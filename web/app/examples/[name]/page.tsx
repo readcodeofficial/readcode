@@ -2,18 +2,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { listExamples, loadExample } from "@/lib/examples";
+import { currentUser } from "@/lib/auth";
+import { getExampleState } from "@/lib/progress";
 import { areaName, topicName } from "@/lib/format";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ExampleViewer from "./ExampleViewer";
+import SaveButton from "./SaveButton";
 
 const href = (name: string) => `/examples/${encodeURIComponent(name)}`;
 
 export default async function ExamplePage({ params }: PageProps<"/examples/[name]">) {
     const { name: raw } = await params;
     const name = decodeURIComponent(raw);
-    const [example, all] = await Promise.all([loadExample(name), listExamples()]);
+    const [example, all, user] = await Promise.all([loadExample(name), listExamples(), currentUser()]);
     if (!example) notFound();
+    const state = user ? await getExampleState(user.id, name) : null;
 
     // position within the exercise's unit (its main topic), for previous / next
     const topic = example.public.concepts[0] ?? "";
@@ -45,6 +49,7 @@ export default async function ExamplePage({ params }: PageProps<"/examples/[name
                     {related.length > 3 && <span className="text-xs text-muted-foreground">+{related.length - 3}</span>}
                 </div>
                 <span className="text-xs text-muted-foreground">{example.public.language} · ~{example.public.durationMinutes} min</span>
+                <SaveButton exampleName={name} initiallySaved={state?.saved ?? false} signedIn={user !== null} />
                 <nav className="flex items-center gap-1" aria-label="Exercises in this unit">
                     <Link
                         href={prev ? href(prev.name) : "#"}
@@ -63,7 +68,8 @@ export default async function ExamplePage({ params }: PageProps<"/examples/[name
                     </Link>
                 </nav>
             </header>
-            <ExampleViewer example={example} />
+            {/* key: a different user (or none) gets a fresh viewer, not the previous user's answers */}
+            <ExampleViewer key={user?.id ?? "anon"} example={example} signedIn={user !== null} resume={state?.attempt ?? null} />
         </div>
     );
 }

@@ -1,14 +1,18 @@
 "use client";
 
 import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { LoadedExample } from "@/lib/examples";
+import type { ExampleState } from "@/lib/progress";
+import { locateCorrect } from "@/lib/grading";
+import { submitAnswer } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, ChevronDown, FileCode, RotateCcw, TextSelect, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { codeFont } from "@/lib/fonts";
-import type { DefectLocation, LocateAnswer } from "../../../../shared/types";
+import type { DefectLocation } from "../../../../shared/types";
 
 type MonacoEditor = Parameters<OnMount>[0];
 type Decorations = ReturnType<MonacoEditor["createDecorationsCollection"]>;
@@ -16,16 +20,29 @@ type Decorations = ReturnType<MonacoEditor["createDecorationsCollection"]>;
 // A candidate's answer to a locate question: marked lines, "no defect", or nothing yet.
 type LocateMark = DefectLocation | "none" | null;
 
-// A marked range counts as correct if it overlaps the defect, allowing this many lines either side.
-const LINE_TOLERANCE = 1;
-
-// NOTE: the answer key is sent to the browser. Fine for a prototype, not for real use.
-export default function ExampleViewer({ example }: { example: LoadedExample }) {
+// NOTE: the answer key is sent to the browser, which grades for instant feedback. Saved scores are
+// graded again on the server (submitAnswer), but a determined user could still read the answers.
+export default function ExampleViewer({ example, signedIn, resume }: {
+    example: LoadedExample;
+    signedIn: boolean;
+    resume: ExampleState["attempt"]; // the user's latest attempt, shown as they left it
+}) {
     const [current, setCurrent] = useState(example.files[0]?.path ?? "");
     const questions = example.public.questions;
-    const [picked, setPicked] = useState<(number | null)[]>(questions.map(() => null));
-    const [marks, setMarks] = useState<LocateMark[]>(questions.map(() => null));
-    const [submitted, setSubmitted] = useState<boolean[]>(questions.map(() => false));
+    const [picked, setPicked] = useState<(number | null)[]>(() => questions.map((_, qi) => {
+        const a = resume?.answers[qi];
+        return typeof a === "number" ? a : null;
+    }));
+    const [marks, setMarks] = useState<LocateMark[]>(() => questions.map((_, qi) => {
+        const a = resume?.answers[qi];
+        return a === undefined || a === null || typeof a === "number" ? null : a;
+    }));
+    const [submitted, setSubmitted] = useState<boolean[]>(() => questions.map((_, qi) => (resume?.answers[qi] ?? null) !== null));
+
+    // saving to the account: the attempt being answered (null until the first answer is saved)
+    const attemptId = useRef<string | null>(resume?.id ?? null);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     const editorRef = useRef<MonacoEditor | null>(null);
     const decorationsRef = useRef<Decorations | null>(null);
@@ -82,12 +99,32 @@ export default function ExampleViewer({ example }: { example: LoadedExample }) {
 
     const canSubmit = (qi: number) => (questions[qi].kind === "locate" ? marks[qi] !== null : picked[qi] !== null);
 
+    // Reset starts a new attempt; the old one keeps its score.
     const reset = () => {
         setPicked(questions.map(() => null));
         setMarks(questions.map(() => null));
         setSubmitted(questions.map(() => false));
+        attemptId.current = null;
+        setSaveError(null);
     };
-    const submit = (qi: number) => setSubmitted((s) => s.map((v, i) => (i === qi ? true : v)));
+    const submit = async (qi: number) => {
+        setSubmitted((s) => s.map((v, i) => (i === qi ? true : v)));
+        if (!signedIn) return;
+        const answer = questions[qi].kind === "locate" ? marks[qi] : picked[qi];
+        if (answer === null) return;
+        setSaving(true);
+        try {
+            const res = await submitAnswer({ exampleName: example.name, attemptId: attemptId.current, questionIndex: qi, answer });
+            if (res.ok) {
+                attemptId.current = res.attemptId;
+                setSaveError(null);
+            } else setSaveError(res.error);
+        } catch {
+            setSaveError("Couldn't save. Check your connection.");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
         <div className="flex min-h-0 flex-1">
@@ -143,6 +180,22 @@ export default function ExampleViewer({ example }: { example: LoadedExample }) {
                             />
                         ))}
                     </div>
+                    <p className={cn("mt-2 text-xs", saveError ? "text-red-400" : "text-muted-foreground")}>
+                        {!signedIn ? (
+                            <>
+                                <Link href={`/sign-in?next=${encodeURIComponent(`/examples/${encodeURIComponent(example.name)}`)}`} className="text-foreground underline underline-offset-2">
+                                    Sign in
+                                </Link>{" "}
+                                to save your answers and score.
+                            </>
+                        ) : saveError ? (
+                            `Not saved: ${saveError}`
+                        ) : saving ? (
+                            "Saving…"
+                        ) : (
+                            doneCount > 0 && "Saved to your account."
+                        )}
+                    </p>
                 </div>
 
                 <div className="flex-1 space-y-3 overflow-auto p-4">
@@ -229,7 +282,7 @@ export default function ExampleViewer({ example }: { example: LoadedExample }) {
                                 )}
 
                                 {!done ? (
-                                    <Button size="sm" className="w-fit" disabled={!canSubmit(qi)} onClick={() => submit(qi)}>
+                                    <Button size="sm" className="w-fit" disabled={!canSubmit(qi) || saving} onClick={() => submit(qi)}>
                                         Submit
                                     </Button>
                                 ) : (
@@ -273,13 +326,6 @@ const defineTheme: BeforeMount = (monaco) => {
         },
     });
 };
-
-function locateCorrect(mark: LocateMark, answer: LocateAnswer): boolean {
-    if (mark === null) return false;
-    if (answer.defect === null) return mark === "none";
-    if (mark === "none" || mark.path !== answer.defect.path) return false;
-    return mark.startLine <= answer.defect.endLine + LINE_TOLERANCE && mark.endLine >= answer.defect.startLine - LINE_TOLERANCE;
-}
 
 function describe(loc: DefectLocation): string {
     return loc.startLine === loc.endLine ? `${loc.path} line ${loc.startLine}` : `${loc.path} lines ${loc.startLine}–${loc.endLine}`;

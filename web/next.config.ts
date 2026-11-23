@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
       "../pipeline/taxonomy/**/*.json",
     ],
   },
+  serverExternalPackages: ["@electric-sql/pglite"],              // local dev database (lib/db); load from node_modules, not bundled
   experimental: {
     agentFeedback: true,
     agentUpgrade: "security",
