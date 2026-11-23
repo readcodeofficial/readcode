@@ -31,6 +31,14 @@ function createDb(): DB {
     return drizzle(new PGlite(LOCAL_DB_DIR), { schema }) as unknown as DB;
 }
 
+// Create or update the local PGlite database's tables from drizzle/. Called at dev-server start
+// (instrumentation.ts), so a deleted or reset local database gets its tables back. Neon is
+// migrated with `npm run db:migrate` instead.
+export async function migrateLocalDb(): Promise<void> {
+    const { migrate } = await import("drizzle-orm/pglite/migrator");
+    await migrate(db as unknown as Parameters<typeof migrate>[0], { migrationsFolder: "drizzle" });
+}
+
 // Connects on first use, so importing this module (e.g. while Next.js builds) needs no database.
 export const db: DB = new Proxy({} as DB, {
     get(_, prop) {
