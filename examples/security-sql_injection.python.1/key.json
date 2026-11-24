@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "app/users_repo.py",
+        "startLine": 51,
+        "endLine": 51
+      }
+    },
+    0,
+    3,
+    2
+  ],
+  "explanations": [
+    "The sort direction is checked with startswith, so any string that begins with ASC or DESC passes, for example 'ASC, (SELECT ...)'. The original, unmodified string is then wrapped in sql.SQL, which inserts it into the statement verbatim. An attacker can append arbitrary expressions to ORDER BY, enabling blind data extraction from the users table (and other tables) through ordering behaviour. The direction must be compared for equality against a fixed set and mapped to a constant, such as sql.SQL('ASC') or sql.SQL('DESC'). The column name is safe because it is allow-listed and quoted with sql.Identifier, and all values travel as bound parameters.",
+    "Placeholders are sent as values; ORDER BY 'email' orders by a literal and has no effect. Column names must be composed into the SQL text, which is why the allow-list plus sql.Identifier (which quotes the name) is used. psycopg supports parameters alongside ORDER BY, and performance and plan caching are not the reason.",
+    "Binding keeps the value out of the SQL grammar, so injection is not possible even without escaping. LIKE and ILIKE still interpret % and _ inside the bound value as wildcards, so a search for '_' would match every email. escape_like neutralises those characters so the input is matched literally. No syntax error occurs because the value is data.",
+    "The tenant comes from the authenticated request context (g.auth.tenant_id), not from request.args, and search_users always starts its clause list with tenant_id = %(tenant)s; the optional clauses are only ANDed on. The escaping function, role filter and soft-delete check have nothing to do with tenant isolation."
+  ]
+}

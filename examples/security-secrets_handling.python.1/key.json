@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "ledger/secrets.py",
+        "startLine": 57,
+        "endLine": 57
+      }
+    },
+    1,
+    2,
+    1
+  ],
+  "explanations": [
+    "DbCredentials is a plain frozen dataclass, so its generated __repr__ includes every field, password included. When force_refresh is true (which happens exactly after a password rotation), the provider logs the whole object with %s, writing the new database password to the application logs. WebhookSecret shows the intended pattern: field(repr=False) keeps the value out of repr, and the webhook path logs only key_id. The log call should name host and username only, and the password field should use repr=False.",
+    "connection() catches pg_errors.InvalidPassword (SQLSTATE 28P01), calls _connect(force_refresh=True), which bypasses the cache and rereads the secret, and tries once. If that also fails the exception propagates, so there is no endless loop. The cache also expires after ttl_seconds, and boto3 never pushes updates.",
+    "String == stops at the first differing character, so an attacker can measure response times and recover a valid signature a byte at a time. hmac.compare_digest runs in time that does not depend on where the inputs differ. It does no decoding, == never raises on length differences, and == works on both str and bytes.",
+    "The lookup, the fetch and the cache update all happen inside self._lock. The first thread to enter refetches; later threads then see a fresh entry and return it. The downside is that the lock is held during the Secrets Manager call, so every caller stalls for its duration. Nobody receives the old value, and boto3 low-level clients are safe to share between threads."
+  ]
+}

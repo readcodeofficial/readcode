@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/webhooks/deliveryWorker.ts",
+        "startLine": 25,
+        "endLine": 25
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The webhook-id is generated with randomUUID() inside the job processor, so every retry of the same delivery carries a different id. Receivers deduplicate on webhook-id, and retries commonly follow timeouts where the first attempt actually reached the customer, so the customer processes the same event several times and cannot recognise them as one. The id must be stable across attempts, for example job.id (which is the event and endpoint pair) or an id stored with the event. The timestamp changing per attempt is fine, and the signature is computed over the id that is sent.",
+    "BullMQ treats a custom jobId as a unique key: adding a job whose id already exists is a no-op. An upstream event bus that redelivers the same event therefore does not create duplicate deliveries to the same endpoint. The id does not order jobs, rate limit them, or carry the secret (that is read from the repo via endpointId in the data). Note that uniqueness holds only while the earlier job is retained (removeOnComplete keeps the latest 1,000).",
+    "A 503 is classified as retryable, so the processor throws a plain Error and BullMQ retries according to attempts: 8 with exponential backoff starting at 5 seconds. After the last attempt the job is kept (removeOnFail: false) in the failed state and no further automatic delivery occurs. 4xx statuses other than 408 and 429 are the ones that stop immediately, and failed jobs are not marked completed.",
+    "With manual redirect handling fetch returns the 3xx response itself. res.ok is false, the status is neither 408, 429 nor 5xx, so the code throws UnrecoverableError and BullMQ does not retry. Not following redirects stops a customer-controlled endpoint from steering a signed request to another host, such as an internal address. It is not treated as success."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "There is no defect. The risky-looking spots are handled correctly. The escalator uses update_all, which skips validations, callbacks and automatic timestamps, so it writes updated_at itself and records events explicitly with insert_all!. It re-selects the candidate ids with the stale scope under a row lock inside a transaction, so tickets solved or replied to after the batch was read are not escalated. The tag filter uses a subquery, so includes(:tags) still preloads every tag of each ticket rather than only the matching ones. Requesters and tags are preloaded, so rendering the queue does not trigger per-row queries, and counts come from a single GROUP BY.",
+    "in_batches reads ids with no lock, so by the time escalate runs some tickets may no longer be stale. The second query re-applies the stale condition and takes FOR UPDATE locks inside the transaction, so the rows that get updated and the rows that get events are exactly the ones still stale, and they cannot change until commit. It is not a performance feature, update_all never runs validations, and two processes would still each read the same batches; the lock just makes the second wait and then find nothing stale.",
+    "update_all builds one SQL UPDATE from the given attributes. It does not instantiate models, run validations or callbacks, or touch timestamps, so updated_at stays stale unless set by hand. The database would not reject the statement, enum setters are not involved here, and insert_all! writes rows in another table.",
+    "When includes is combined with a where condition on the included table, ActiveRecord switches to a JOIN-based eager load, and the loaded tags association then holds only the rows that satisfied the condition, so a ticket tagged billing and vip filtered on vip would appear to have only vip. The subquery filters tickets by id without involving the preload, so each ticket keeps its full tag list. Duplicates are a separate concern, includes and where can be combined, and no table lock is taken."
+  ]
+}

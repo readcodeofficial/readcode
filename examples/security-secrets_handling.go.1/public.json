@@ -1,0 +1,51 @@
+{
+  "id": "7c170550-bef3-457d-95ca-29e97eceb50f",
+  "title": "Secret loading and request signing in a ledger API",
+  "name": "Ledger API secrets",
+  "createdAt": "2026-11-24T14:49:45.750Z",
+  "durationMinutes": 13,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code loads, holds, compares or logs its secrets? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does LogStartup write for the config and signing_key attributes?",
+      "choices": [
+        "The database URL and the signing key in clear text, since slog prints struct fields",
+        "Only the field names, because slog skips unexported fields",
+        "[redacted] for each secret, because Secret implements fmt, JSON and slog.LogValuer behaviour that hides the value",
+        "The key as a hex string, since []byte values are hex encoded by slog"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the middleware compare signatures with hmac.Equal instead of bytes.Equal or ==?",
+      "choices": [
+        "hmac.Equal is faster for 32-byte values",
+        "bytes.Equal would not compile for byte slices",
+        "hmac.Equal takes the same time whatever the position of the first differing byte, so response timing cannot be used to guess the signature byte by byte",
+        "hmac.Equal also hashes the body again to verify it"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A secret file with mode 0644 is mounted for LEDGER_SIGNING_KEY_FILE. What happens at startup?",
+      "choices": [
+        "LoadConfig returns an error wrapping ErrInsecurePermissions, so the service does not start with that secret",
+        "The secret is loaded and a warning is logged",
+        "The file is read and then its mode is changed to 0600",
+        "Loading falls back to the LEDGER_SIGNING_KEY environment variable silently"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.secrets_handling",
+    "backend.observability.logging_sensitive_data",
+    "backend.config.configuration_loading",
+    "backend.security.authentication"
+  ]
+}

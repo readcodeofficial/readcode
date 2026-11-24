@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "feed/service.go",
+        "startLine": 41,
+        "endLine": 43
+      }
+    },
+    1,
+    0,
+    2
+  ],
+  "explanations": [
+    "In Publish, f.Error() only reports whether the entry was committed by the Raft cluster (leadership lost, timeout, and so on). The result of the FSM's Apply, such as ErrDuplicatePost or a decode error, is returned through f.Response(), which Publish never inspects, so it returns nil. A client that republishes an existing post gets a success reply while the FSM rejected it on every replica. Delete shows the correct pattern: check f.Error() and then type-assert f.Response() to error.",
+    "For strong reads the first check is State() != Leader, which returns NotLeaderError with s.raft.Leader(), leaving the caller to redirect. Nothing is forwarded, and serving local state is what the non-strong path does; Barrier is only reached on the leader.",
+    "VerifyLeader confirms leadership with a quorum, but the leader's FSM may still lag behind committed log entries; Barrier blocks until everything prior to it has been applied, so the read observes all earlier committed writes. It does not snapshot, affect other nodes, or hold a lease.",
+    "Apply futures can fail with leadership-lost errors even when the entry ended up committed by the new leader, so an error does not prove the write did not happen. Callers need idempotent writes (here the post ID and ErrDuplicatePost on retry). Success is not guaranteed in that window, and the FSM is not affected by term changes."
+  ]
+}

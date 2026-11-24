@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "dispatch/driver_client.go",
+        "startLine": 39,
+        "endLine": 39
+      }
+    },
+    2,
+    0,
+    2
+  ],
+  "explanations": [
+    "Offer builds its HTTP request with context.Background() instead of the ctx it was given. The dispatcher cancels its derived context as soon as one driver accepts, when the 8 second window ends, or when the rider's request is cancelled, but none of that reaches the in-flight requests. The other offers keep running until the HTTP client's own timeout (if any), so losing drivers can still receive and accept an offer for a trip that is already assigned, and goroutines and connections stay busy long after Assign has returned. The request should be created with ctx.",
+    "winner has capacity 1 and each accepting goroutine does a non-blocking send. Only the first send succeeds (and calls cancel); the others hit default and are dropped. Channel sends do not overwrite, no error is produced and only one driver is ever returned.",
+    "With SetLimit(5) and up to 12 candidates, later goroutines start only when a slot frees up, possibly after a winner was chosen or the 8s window expired. The check skips them. Offer does not panic on cancelled contexts, returning nil already frees the slot, and errors.Is is used separately for logging.",
+    "Assign derives its timeout context from r.Context(), so ctx.Err() is context.Canceled and Assign returns that. In fail, errors.Is(err, context.Canceled) is true and the request's own context is done, so the handler returns without writing. Only DeadlineExceeded or ErrNoDriver map to 503 and other errors to 500; cancellation of the parent is not waited out."
+  ]
+}

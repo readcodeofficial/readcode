@@ -1,0 +1,33 @@
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+
+server:
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      status:
+        order: DOWN,OUT_OF_SERVICE,DEGRADED,UP
+        http-mapping:
+          DEGRADED: 200
+      group:
+        liveness:
+          include: livenessState,diskSpace,db,orderQueue
+        readiness:
+          include: readinessState,db,orderQueue,kitchenBacklog
+
+fleetbite:
+  health:
+    kafka-timeout-ms: 1500
+    backlog-threshold: 500

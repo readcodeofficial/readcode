@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "notify/batch_handler.go",
+        "startLine": 83,
+        "endLine": 84
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The decoder walks the top-level object key by key and publishes messages as it goes, using whatever campaignID has been seen so far. JSON object key order is not guaranteed, so a client that sends \"messages\" before \"campaign_id\" has every message published with an empty campaign ID, and the later campaign_id value is parsed and ignored. Nothing checks that campaignID is set before the messages case runs, and the request is still answered 202. Fix: reject the request with 400 when \"messages\" appears before a non-empty \"campaign_id\" (or buffer the messages array only when it comes first and the size is bounded).",
+    "MaxBytesReader only enforces a limit; it does not buffer. The code reads the array with dec.Token, dec.More and one dec.Decode(&m) per element, so at most one message plus the 500-slot batch slice (reused with batch[:0]) is live at a time. The publisher call is synchronous, which provides natural flow control, but it is not what bounds memory. Decoding into a slice of Message would load everything, which this code avoids.",
+    "MaxBytesReader returns a *http.MaxBytesError once the limit is crossed. wrap passes it through unchanged and ServeHTTP maps it to 413, reporting the Accepted count so far. Because the handler publishes batch by batch while streaming, there is no transaction around the request; earlier batches stay published. The size is not checked up front, and a truncated body is an error, not end of input.",
+    "The handler streams and publishes before it has seen the end of the body, and it does not use a message ID or any request-level idempotency key. The JetStream Publish call here sets no Nats-Msg-Id header, so it does not deduplicate. Retrying the same body re-publishes every earlier message. The handler keeps no per-campaign progress state."
+  ]
+}

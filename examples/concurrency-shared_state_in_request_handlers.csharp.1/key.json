@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "Booking/SeatHoldRegistry.cs",
+        "startLine": 36,
+        "endLine": 36
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "Yes. SeatHoldRegistry is a singleton, and TryHold and SweepExpired mutate the _holds dictionary while holding _gate. Release calls _holds.Remove outside the lock, so a DELETE /holds request can modify the Dictionary while another request is inserting or enumerating it inside the lock. Dictionary is not thread-safe: the result can be a corrupted internal state, lost holds, or an InvalidOperationException from the sweep's enumeration. The fix is to do the Remove inside the lock (or use a concurrent collection plus a lock around the compound update).",
+    "IFlightInventory is registered with AddScoped, so a singleton that injected it would capture one instance for the life of the app (and ASP.NET Core's scope validation rejects it in development). Creating a scope inside QuoteAsync gives each quote its own inventory. Option 1 is wrong: endpoints resolve scoped services fine (the /holds endpoint does). Option 0 is the opposite of the intent. Option 3 is wrong: IHttpClientFactory.CreateClient is unrelated to the scope.",
+    "TryHold takes _gate, reads held, compares held + seats with the remaining value passed in, and updates _heldByFlight before releasing the lock. The first caller sets held to 2; the second sees 2 + 2 > 3 and returns false, so the endpoint answers 409. The remaining value being stale does not matter because the registry's own count is the shared, serialized part. The database query takes no row lock, and the ordering is decided by who gets the registry lock first.",
+    "AddScoped creates one instance per request scope, so concurrent requests never touch the same list; each sees a count of 1 after its first Record call. Sharing would require a singleton registration, and FareQuoter has no reference to RequestAudit."
+  ]
+}

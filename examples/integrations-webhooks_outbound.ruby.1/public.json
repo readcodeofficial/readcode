@@ -1,0 +1,51 @@
+{
+  "id": "42bf9e3f-30ea-4130-9774-fbc0c381b65b",
+  "title": "Outbound payment webhooks with Sidekiq",
+  "name": "Payment webhook delivery",
+  "createdAt": "2026-11-24T14:49:46.129Z",
+  "durationMinutes": 12,
+  "language": "Ruby",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles outbound webhook delivery? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A customer's endpoint answers 404 to a delivery. What does DeliverWebhookJob do?",
+      "choices": [
+        "Retries up to 8 times with backoff.",
+        "Disables the endpoint immediately.",
+        "Marks the delivery failed with 'HTTP 404' and does not retry.",
+        "Treats it as delivered because the server responded."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "How can a receiver safely handle the same event arriving twice because of a retry?",
+      "choices": [
+        "Use the Webhook-Id header, which carries the event id and is the same on every attempt for that event.",
+        "Compare the Webhook-Signature header, which is identical on every attempt.",
+        "Rely on the sender to never repeat a delivery that returned an error.",
+        "Check the timestamp in the signature, which identifies the attempt number."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does PaymentEvent publish webhooks from after_commit rather than after_create?",
+      "choices": [
+        "after_create runs only for updates.",
+        "It is required for the unique index on deliveries to work.",
+        "after_commit avoids Faraday timeouts.",
+        "The Sidekiq worker runs in another process and could start before the transaction commits, not finding the rows; it also ensures nothing is sent for a rolled-back event."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.integrations.webhooks_outbound",
+    "backend.resilience.retries_and_backoff",
+    "backend.resilience.timeouts",
+    "backend.api.idempotency"
+  ]
+}

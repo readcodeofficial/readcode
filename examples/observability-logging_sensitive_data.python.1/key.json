@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "playback_api.py",
+        "startLine": 76,
+        "endLine": 76
+      }
+    },
+    1,
+    0,
+    2
+  ],
+  "explanations": [
+    "Yes. The error log in start_playback passes dict(request.headers) as an extra field. RedactingFilter only checks top-level record attributes against SENSITIVE_KEYS, so the nested dict is emitted whole by JsonFormatter, including the Authorization header (the user's session token) and any Cookie header, in plaintext in the logs whenever license issuing fails. Log only the specific safe fields needed, or make redaction recursive.",
+    "url.path excludes the query string, where clients often put signed tokens or identifiers. The method is logged separately and neither parsing cost nor the Host header is involved.",
+    "The formatter iterates vars(record), skips the standard LogRecord attributes and adds everything else, using default=str for non-serializable values. There is no allowlist; the RedactingFilter on the handler is the only transformation.",
+    "Filters attached to a handler run for every record the handler receives. The streamhub.playback and streamhub.cdn loggers have no handlers of their own and propagate to the root, so their records pass through the filter."
+  ]
+}

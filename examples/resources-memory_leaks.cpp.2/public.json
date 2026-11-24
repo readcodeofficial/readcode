@@ -1,0 +1,50 @@
+{
+  "id": "f120c75f-438a-4ab6-ba81-1b8533f9a019",
+  "title": "Open order index with ownership transfer",
+  "name": "Open order index",
+  "createdAt": "2026-11-24T14:49:45.267Z",
+  "durationMinutes": 14,
+  "language": "C++",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code manages the lifetime of Order objects? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "After remove(id) returns, who owns the Order and when is it destroyed?",
+      "choices": [
+        "The index still owns it until its destructor runs, and the returned pointer is a non-owning view",
+        "The caller owns it through the returned unique_ptr, and it is destroyed when that pointer goes out of scope unless the caller moves it elsewhere",
+        "It is destroyed inside remove before returning, and the unique_ptr holds a dangling pointer",
+        "Ownership is shared between the caller and byCustomer_ until the next purge"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "purgeOlderThan collects stale ids under the lock, releases it, then calls remove for each id. What is the consequence of another thread removing one of those ids in between?",
+      "choices": [
+        "Undefined behaviour, because the id now refers to a deleted order",
+        "A deadlock, because remove locks mu_ again while purgeOlderThan still holds it",
+        "The orders are deleted twice, once by each thread",
+        "remove finds nothing for that id and returns nullptr, so it is not counted and nothing is freed twice"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the destructor delete only the pointers in byId_ and ignore byCustomer_?",
+      "choices": [
+        "byCustomer_ is a cache and is rebuilt when the object is next constructed",
+        "unordered_map destroys raw pointers it contains automatically",
+        "Deleting both maps would double free: byCustomer_ only holds second, non-owning references to the same orders",
+        "byCustomer_ is always empty after the last remove call"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.memory_leaks",
+    "backend.errors.cleanup_on_error_paths",
+    "backend.concurrency.locking_and_lock_ordering"
+  ]
+}

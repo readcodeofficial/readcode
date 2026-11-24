@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/io/syncvault/agent/tls/BlockStoreChannel.java",
+        "startLine": 41,
+        "endLine": 41
+      }
+    },
+    1,
+    1,
+    1
+  ],
+  "explanations": [
+    "A raw SSLSocket does not verify the server's host name by default: the trust manager checks only that the certificate chains to a trusted CA. The SSLParameters built here restrict the protocol versions but never call setEndpointIdentificationAlgorithm(\"HTTPS\"), so any certificate issued by a trusted CA, for any host name, is accepted and a man-in-the-middle holding such a certificate can receive the uploaded blocks. The HttpClient path in SyncAgent does verify host names automatically, which hides the gap. The fix is to add params.setEndpointIdentificationAlgorithm(\"HTTPS\") before setSSLParameters.",
+    "KeyManagerFactory is initialised from the identity PKCS12 file, so its KeyManagers present the agent's certificate chain during the handshake (mutual TLS). TrustManagerFactory is initialised from the trust store, which provides the CA certificates used to validate the peer. Passing null for SecureRandom just selects the default.",
+    "setSoTimeout(READ_TIMEOUT_MS) was applied to the underlying socket before the SSL layer was created, so the handshake's reads inherit it. The resulting SocketTimeoutException is an IOException, so the catch block closes the plain socket and rethrows. connectTimeout only bounds the TCP connect, and the JSSE does not retry with other versions on its own.",
+    "TLS already authenticates and integrity-protects data in transit, so network tampering is covered. The application-level digest check verifies that the server's view of the block matches what was sent (for example if it stored a truncated buffer), and MessageDigest.isEqual does it in constant time. It does no encryption and does not authenticate the agent."
+  ]
+}

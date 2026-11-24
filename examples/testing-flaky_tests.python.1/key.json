@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "tests/test_artifact_cache.py",
+        "startLine": 47,
+        "endLine": 47
+      }
+    },
+    3,
+    1,
+    2
+  ],
+  "explanations": [
+    "test_prune_evicts_least_recently_written builds a cache with the default real clock and tries to make the files differ in mtime by sleeping 10 ms between puts. Eviction orders by (mtime, name), and the mtimes come from time.time() and the filesystem. On platforms or filesystems with coarse timestamp resolution (Windows clocks tick around 15 ms, some filesystems store whole or two-second timestamps) consecutive puts can share an mtime, so ordering falls back to the file name and the test may evict a different entry. It passes most runs and fails occasionally. Fix: use the injected FakeClock and clock.advance between puts, as the other tests do.",
+    "put() stamps the file with os.utime using the injected clock, and get() computes age from the same clock, so advancing the fake clock moves expiry deterministically while real files are still used. Nothing is mocked and no threads are involved.",
+    "The cache fixture is function scoped and rooted at tmp_path / \"cache\"; pytest gives every test a fresh tmp_path, so tests cannot leak entries to one another or depend on run order. Pruning and deletion by other tests are irrelevant.",
+    "put() replaces the file atomically with os.replace and then calls os.utime with the current fake time (t+45), so at t+90 the age is 45 seconds, below the 60 second TTL. get() enforces age >= ttl_seconds on every read regardless of size, and the clock advances normally."
+  ]
+}

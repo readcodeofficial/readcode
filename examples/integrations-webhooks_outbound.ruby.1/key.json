@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "No defect. Deliveries are enqueued only after the event commits and are deduplicated per (endpoint, event); each attempt uses connect and read timeouts, a signed body, and a stable Webhook-Id. Responses are classified: 2xx delivered, 410 disables the endpoint, 408/429/5xx and network errors raise to let Sidekiq retry with jittered exponential backoff, and other 4xx fail permanently. Exhausted retries mark the delivery failed.",
+    "404 matches neither 2xx, 410, nor the retryable list, so the else branch records a permanent failure. Only 408, 429, 5xx and network errors raise RetryableError, and only 410 disables the endpoint.",
+    "Webhook-Id is delivery.event_id, stable across retries. The signature header contains a timestamp that is regenerated on every attempt, so it differs between retries, and the sender explicitly retries failures (at-least-once).",
+    "Enqueuing inside the transaction creates a race with the worker, which may look up a delivery that is not yet visible, and would fire for events that later roll back. after_commit runs once the data is durable. The unique constraint and timeouts are independent of the callback."
+  ]
+}

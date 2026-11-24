@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/com/streamhub/transcode/config/TranscodeTopics.java",
+        "startLine": 25,
+        "endLine": 25
+      }
+    },
+    2,
+    1,
+    1
+  ],
+  "explanations": [
+    "The recoverer publishes each failed record to partition record.partition() of transcode.jobs.DLT, but the DLT is declared with only 3 partitions while transcode.jobs has 12. A failing record from partition 3 to 11 targets a DLT partition that does not exist, so the publish fails (after the producer's metadata wait) and the error handler cannot recover the record; it is redelivered and retried instead of being parked, so the poison job is neither dead-lettered nor skipped. The fix is to give the DLT at least as many partitions as the source topic, or to return a partition-agnostic TopicPartition(topic, -1).",
+    "UnsupportedCodecException is registered with addNotRetryableExceptions, so DefaultErrorHandler hands the record to the DeadLetterPublishingRecoverer on the first failure, with no backoff. The listener does not catch anything, and a bad record does not stall the group once it has been recovered.",
+    "DefaultErrorHandler performs blocking retries: it seeks back to the failed record and redelivers it after each backoff interval on the same consumer thread. Records behind it on that partition wait, which preserves order but means up to about a minute of delay (setMaxElapsedTime(60_000)) per poison record.",
+    "The recoverer adds headers such as the original topic, partition, offset and timestamp plus the exception class, message and stack trace to the record it publishes to the DLT. A replay tool can use these to route and audit. It does not write to a database, and Kafka records are never removed from the source topic by this mechanism (retention handles that)."
+  ]
+}

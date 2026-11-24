@@ -1,0 +1,51 @@
+{
+  "id": "a7a36908-360a-4ac0-b244-ab9063758194",
+  "title": "C policy library over C++ engine",
+  "name": "Authorization policy library",
+  "createdAt": "2026-11-24T14:49:45.248Z",
+  "durationMinutes": 13,
+  "language": "C++",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps C++ exceptions from escaping across its boundaries? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A C host calls authz_check with a valid handle while another thread is in the middle of PolicyEngine::reload parsing a new file. What does the check see?",
+      "choices": [
+        "It blocks until parsing has finished, since reload holds the write lock for its whole duration",
+        "The previous complete rule set, because the new rules are built in a local vector and only swapped in under the lock",
+        "A partially filled rule set, since rules_ is appended to while parsing",
+        "AUTHZ_ERROR, because reload and check cannot run concurrently"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does authz_check return if the policy has an allow rule and a deny rule that both match the request?",
+      "choices": [
+        "AUTHZ_ALLOW, because the first matching rule wins",
+        "AUTHZ_ALLOW, because allow rules are evaluated after deny rules",
+        "AUTHZ_DENY, because a matching deny returns immediately regardless of any allow",
+        "AUTHZ_ERROR, because conflicting rules are treated as invalid"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is the message returned by authz_last_error kept in a thread_local string, and what is the caller-visible consequence?",
+      "choices": [
+        "Each calling thread sees only its own most recent error, so a failure on one thread cannot overwrite the message another thread is about to read",
+        "All threads share one message, which is guarded by the engine mutex",
+        "The message is cleared automatically on the next successful call",
+        "Errors from the background reload thread are visible to the thread that started it"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.panics_and_exceptions_at_boundaries",
+    "backend.concurrency.shared_state_in_request_handlers",
+    "backend.errors.error_propagation",
+    "backend.security.authorization_checks"
+  ]
+}

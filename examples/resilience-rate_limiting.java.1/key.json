@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/io/fleetsense/ingest/TelemetryController.java",
+        "startLine": 47,
+        "endLine": 47
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "The limiter is configured in readings per second (one token is one reading, see the class comment and the property names), and a batch may hold up to maxBatchSize readings. The controller, however, calls limiter.tryAcquire(deviceId, 1), so a batch of 500 readings costs the same single token as a batch of one. A device that sends maximum-size batches can ingest maxBatchSize times the configured rate and the limit no longer protects the store. The call should pass readings.size().",
+    "expireAfterAccess drops idle buckets and buckets.get(deviceId, id -> newBucket()) builds a new one at full burst capacity. An idle device would have refilled to capacity anyway, so nothing is lost and memory is bounded (maximumSize also caps tracked devices). There is no failure state on expiry, and old debt is not preserved because the Bucket object is gone.",
+    "The buckets live in a per-process Caffeine cache and are built with Bucket.builder(), a local bucket with no distributed backend. Round-robin spreads one device across instances and each applies its own full limit. Bucket4j only coordinates across JVMs when built through a proxy manager (for example over Redis or a data grid), which this code does not use. Capacity is not divided automatically.",
+    "Bucket4j local buckets update their state atomically (lock-free compare-and-swap), so only one of the two concurrent consumers can take the last token. The loser gets a ConsumptionProbe with isConsumed() false and getNanosToWaitForRefill(), which the controller turns into a 429 with Retry-After. It never blocks, and Caffeine's per-key computation only guards bucket creation."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "rides/schemas.py",
+        "startLine": 7,
+        "endLine": 7
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "The promo code pattern is anchored with $ and applied with re.match. In Python, $ also matches just before a trailing newline, so \"SAVE20\\n\" passes validation (and no strip happens afterwards). The value is then logged verbatim in _lookup_promo, so a caller can embed a newline plus text that looks like another log record (log forging). Use re.fullmatch with the pattern without anchors, or \\Z. The note sanitizing, parameterized SQL, ORDER BY allow-list and receipt path check are all sound.",
+    "The validator calls bleach.clean(value, tags=[], attributes={}, strip=True). With strip=True, disallowed tags are removed rather than escaped, leaving the text \"Gate B\". Nothing raises, so there is no 422, and field validators run on every value, while max_length only limits length.",
+    "Bind parameters carry values, not identifiers, so the column in ORDER BY cannot be a parameter. The code maps the user's sort key through the SORT_COLUMNS dict and rejects anything else with InvalidSort, so the f-string only ever receives one of three constant strings. text() does not escape f-string interpolation, and the limit cap is unrelated.",
+    "pathlib discards the left operand when the right one is absolute, so the candidate resolves to /etc/passwd. is_relative_to(RECEIPT_DIR) is false, so the function returns None and the route answers 404 regardless of whether the file exists. Checking containment after resolve() also covers ../ segments and symlinks."
+  ]
+}

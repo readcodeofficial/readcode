@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "There is no defect. The places that look risky are all sound. The Polly policy is built once per carrier and cached in CarrierPolicyRegistry, so the AddPolicyHandler lambda, which runs on every request, always returns the same breaker instance and failures accumulate across requests. The breaker handles only transient outcomes (HttpRequestException, TimeoutRejectedException, 5xx and 408), and 4xx responses are turned into InvalidQuoteRequestException by the client after the policy has run, so bad requests never trip it. Retry is the outermost policy and does not handle BrokenCircuitException, so an open breaker is never hammered with retries. The 3 second timeout is the innermost policy, so each attempt is bounded and timeouts count as breaker failures. The service falls back to a last-known rate only for infrastructure failures and labels it IsEstimate.",
+    "While the circuit is open Polly throws BrokenCircuitException without invoking the HTTP handler, so no network call happens. Retry does not handle that exception type (its builder handles HttpRequestException, TimeoutRejectedException and 5xx/408 results), so it propagates straight through. RateQuoteService catches BrokenCircuitException in its filter and finds the entry stored by the last successful call (six hour TTL), returning it with IsEstimate = true. The first choice describes a closed breaker. The second wrongly assumes retries run against an open circuit. The fourth is wrong because BrokenCircuitException is explicitly in the catch filter.",
+    "The transient predicate only matches exceptions plus status codes of 500 and above or 408. A 422 therefore counts as a success sample for the breaker, and it is not retried either. The client then raises InvalidQuoteRequestException outside the policy, which the endpoint maps to 422 for the caller. The second choice would be true if 4xx counted as failures. The third and fourth misstate which outcomes retry and the breaker react to.",
+    "Circuit state lives inside the policy object. CarrierPolicyRegistry.For uses a ConcurrentDictionary to hand out one wrapped policy per carrier, so successes and failures from all requests are sampled in the same rolling window. A policy created per request would never see enough calls to reach minimumThroughput. Typed clients are transient and are not singletons. IMemoryCache only holds last-known quotes. Retry state is per execution, not shared."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "com/streamly/playback/PlaybackEventPublisher.java",
+        "startLine": 29,
+        "endLine": 29
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The producer sets acks to \"1\" while allowing 5 in-flight requests and unlimited retries. With enable.idempotence not set explicitly, an explicit acks other than all makes the client quietly disable idempotence. Without idempotence, if a batch fails and is retried while a later batch to the same partition has already succeeded, the retried batch is appended after it, so events for a session are reordered (for example STOP before PAUSE). The consumer then drops the late lower-seq event as stale, so the projection is wrong. Fix: acks=all with enable.idempotence=true (which keeps ordering with up to 5 in-flight requests), or max.in.flight.requests.per.connection=1.",
+    "Kafka orders records only within a partition, and the default partitioner chooses the partition from a hash of the key. Keying by session makes a session's events share a partition, while different sessions spread across partitions for parallelism. Compaction is a topic setting unrelated to keys here and would delete history anyway. The key is not used to skip deserialization. Keying by videoId, not sessionId, would be needed for the last choice.",
+    "The catch block seeks that partition back to N and breaks out of its inner loop, so later records of that partition are skipped for this poll to keep order. Offsets recorded in processed (up to N-1) are committed with commitSync, and other partitions are handled independently. The exception is caught inside the loop, so it does not end run(), and the offset is never advanced past the failing record.",
+    "Offsets are committed only after processing, so a crash in between gives at-least-once delivery and the same records are polled again. SessionProjection.compute keeps lastSeq per session and returns the current state unchanged when e.seq() is not newer, so replays are harmless. Records are not lost because the committed offset still points before them, and the group has no offset for them yet."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    1,
+    1,
+    1
+  ],
+  "explanations": [
+    "There is no defect. Each lane queue has capacity 500, the consumer pauses when the deepest lane reaches 300 and a single poll adds at most max.poll.records (100) to one lane, so the AbortPolicy rejection can never trigger. While paused the loop keeps calling poll, which returns nothing but keeps the consumer in the group. The pause flag is reapplied to newly assigned partitions after a rebalance, offsets are committed only for work that has finished and only for currently assigned partitions, and shutdown drains the lanes before the final commit. The lanes are single-threaded and keyed by partition, so the max-offset merge is safe because completion within a partition is in order.",
+    "applyBackpressure calls consumer.pause(assignment) and the loop continues to call poll every 500 ms, which keeps the consumer's membership alive while returning nothing for paused partitions. Stopping poll entirely would exceed max.poll.interval.ms and trigger a rebalance; dispatch uses execute on a queue with headroom and never blocks; nothing is dropped or committed for unprocessed events.",
+    "Math.floorMod(partition, LANES) routes a partition to one lane with one thread, so its tasks run in the order they were polled. The largest completed offset therefore means every smaller offset in that partition has completed. With a multi-thread pool the max could skip over unfinished records. commitSync does not reorder anything, the sink is not described as transactional, and ConcurrentHashMap says nothing about task ordering.",
+    "Offsets are committed only after the sink has finished, so a crash in between leaves the committed offset before the event; on restart it is consumed again. This is at-least-once delivery, so the sink should tolerate duplicates. The event is not lost because commit happens after processing, nothing routes to a DLQ, and no manual repair is needed."
+  ]
+}

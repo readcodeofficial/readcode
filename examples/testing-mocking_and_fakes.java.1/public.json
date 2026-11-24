@@ -1,0 +1,49 @@
+{
+  "id": "629eab34-5b0e-4557-b34c-01b266aaf352",
+  "title": "Telemetry ingest service and tests",
+  "name": "Telemetry ingest tests",
+  "createdAt": "2026-11-24T14:49:45.908Z",
+  "durationMinutes": 13,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how these tests use test doubles, or in how they exercise the service? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The tests use a hand-written InMemoryReadingStore for ReadingStore but a Mockito mock for AlertPublisher. Which reasoning best fits that choice?",
+      "choices": [
+        "Mockito cannot mock interfaces that return Optional",
+        "Fakes are always preferable to mocks, so the mock for alerts is an oversight",
+        "The store's behaviour (keep only the newest reading) decides outcomes and is asserted through its state, while publishing an alert is an outgoing call best verified as an interaction",
+        "A fake is needed whenever a class has more than one method"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Suppose the fake store were replaced by an unconfigured Mockito mock of ReadingStore in readingAboveThresholdPublishesAlertCarryingTheDeviceThreshold. What would happen?",
+      "choices": [
+        "saveIfNewer returns false by default, so ingest returns STALE and no alert is published, failing the test",
+        "The test would pass unchanged because the service only reads from the store",
+        "Mockito would throw as soon as saveIfNewer is called without a stubbing",
+        "The alert would be published but the stored reading would be null"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the alert test use an ArgumentCaptor rather than verify(alerts).publish(any(Alert.class))?",
+      "choices": [
+        "any() would make the verification fail if publish is called more than once",
+        "The captor lets the test inspect the Alert that was actually passed, confirming its threshold comes from the device profile and not from the reading",
+        "The captor makes Mockito stub publish so that it returns a value",
+        "verify cannot be used on void methods without a captor"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.mocking_and_fakes",
+    "backend.testing.unit_test_design"
+  ]
+}

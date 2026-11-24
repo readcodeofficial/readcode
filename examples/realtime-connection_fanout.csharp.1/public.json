@@ -1,0 +1,51 @@
+{
+  "id": "765ba72c-402e-4c29-916c-17a8d160a9b6",
+  "title": "SignalR post fanout",
+  "name": "Live feed fanout",
+  "createdAt": "2026-11-24T14:49:46.307Z",
+  "durationMinutes": 13,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code tracks which authors currently have live viewers? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "What happens to a published post when the fanout queue already holds 10,000 undelivered posts?",
+      "choices": [
+        "Publish blocks the calling request until the consumer catches up",
+        "Publish throws a ChannelClosedException",
+        "The oldest queued post is dropped to make room and Publish still returns true",
+        "The new post is rejected and Publish returns false"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A connection that subscribed to three authors loses its network connection. What does OnDisconnectedAsync do and what does SignalR do for the groups?",
+      "choices": [
+        "It must also call RemoveFromGroupAsync for each author, otherwise the connection stays in the groups forever",
+        "It decrements the viewer count for each subscribed author; SignalR removes the connection from its groups itself",
+        "It does nothing, because the viewer counts are recomputed on every fanout",
+        "It decrements the counts and sends a goodbye message to the groups"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "One post's SendAsync throws an unexpected non-cancellation exception. What is the effect on later posts?",
+      "choices": [
+        "The BackgroundService stops and no further posts are delivered until restart",
+        "The exception is logged and the loop moves on to the next post",
+        "The same post is retried until it succeeds",
+        "The queue is cleared"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.realtime.connection_fanout",
+    "backend.concurrency.atomic_operations",
+    "backend.concurrency.race_conditions",
+    "backend.messaging.backpressure"
+  ]
+}

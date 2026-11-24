@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/authz.cpp",
+        "startLine": 79,
+        "endLine": 80
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "The reload runs on a separate std::thread (h->reloader), and the thread function has no try/catch. The guarded() wrapper only protects the code that starts the thread, not the code that runs later on it. If the policy file is missing, malformed JSON (nlohmann parse_error) or empty (PolicyError), the exception leaves the thread function and std::terminate aborts the whole host process, which is the C server that loaded the library. The callback also never learns about the failure; the thread should catch everything, report AUTHZ_ERROR through cb, and record the error.",
+    "reload parses and builds the vector next outside any lock and takes the unique_lock only for the swap. A concurrent check holds a shared_lock on rules_ and sees the old complete rules until the swap. It does not block during parsing, never sees partial data, and nothing reports an error for concurrency.",
+    "In check, a matching rule with allow == false returns Decision::Deny straight away, and allow rules only set a flag that is consulted at the end. Rule order is irrelevant to the outcome, and conflicts are not an error.",
+    "g_last_error is a thread_local std::string, so each thread has an independent copy and authz_last_error returns the calling thread's own message. It is not shared or mutex-protected, it is not cleared on success in this code, and an error recorded on the reload thread would live in that thread's copy, not in the starter's."
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "2d9c1981-f168-4751-87fb-48c6b172d8ad",
+  "title": "Clinic slot lookup behind a circuit breaker",
+  "name": "Clinic slot lookup",
+  "createdAt": "2026-11-24T14:49:44.360Z",
+  "durationMinutes": 12,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code uses the circuit breaker to protect calls to the EHR availability service? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "With the configuration in BreakerRegistryFactory, what happens when the EHR answers 404 for an unknown clinic id?",
+      "choices": [
+        "It counts as a failure, because any exception thrown by the client is recorded",
+        "It is ignored by the breaker: it is neither a failure nor a success in the sliding window, and the exception propagates to the caller",
+        "It counts as a slow call and contributes to slowCallRateThreshold",
+        "It is recorded as a success because the HTTP exchange completed"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The breaker is OPEN and a request for openSlots arrives. What does the caller get?",
+      "choices": [
+        "The CallNotPermittedException, which propagates to the controller",
+        "A fresh call to the EHR with the 3 second timeout, since the open state only logs",
+        "The most recent stored snapshot for that clinic and day, without any call to the EHR",
+        "An empty list, because the supplier is never invoked"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "After the breaker has been open for 30 seconds, how does it recover under this configuration?",
+      "choices": [
+        "It closes immediately on the next request that succeeds",
+        "It moves to half-open on its own timer and lets 3 trial calls through; the outcome of those calls decides whether it closes or reopens",
+        "It stays open until an operator calls transitionToClosedState",
+        "It moves to half-open only when the next request arrives, and then allows unlimited calls until one fails"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.circuit_breakers",
+    "backend.resilience.graceful_degradation",
+    "backend.resilience.timeouts",
+    "backend.errors.swallowed_errors"
+  ]
+}

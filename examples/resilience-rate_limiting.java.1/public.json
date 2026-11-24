@@ -1,0 +1,51 @@
+{
+  "id": "baebdfde-d91c-49a2-89aa-5fa648b2d3ba",
+  "title": "Per-device rate limiting on telemetry ingestion",
+  "name": "Telemetry ingest limiter",
+  "createdAt": "2026-11-24T14:49:44.390Z",
+  "durationMinutes": 10,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code enforces the per-device ingestion limit? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A device stops sending for longer than idleEviction and then resumes. What does the limiter do for that device?",
+      "choices": [
+        "It rejects the first request because its bucket expired in an invalid state",
+        "It creates a fresh full bucket on the next call, which is equivalent to what the refill would have produced anyway",
+        "It restores the old token count from before the pause, so the device keeps any earlier debt",
+        "It throws, because Caffeine entries cannot be re-created after expiry"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The service runs as 6 identical instances behind a round-robin load balancer. What is the effective limit for one device?",
+      "choices": [
+        "Exactly readingsPerSecond, because Bucket4j coordinates across JVMs automatically",
+        "Exactly readingsPerSecond, because Caffeine caches are shared per host",
+        "Up to roughly 6 x readingsPerSecond, since each instance keeps its own in-memory bucket for the device",
+        "readingsPerSecond / 6, because the capacity is split across instances"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two requests from the same device arrive at the same instant on different threads while the bucket holds exactly one token and the consumed amount is 1. What happens?",
+      "choices": [
+        "Exactly one tryConsumeAndReturnRemaining call succeeds; the other gets a probe with the wait time for refill",
+        "Both succeed, because the cache lookup and the consume are separate steps",
+        "Both are rejected, because Caffeine locks the entry while computing it",
+        "One succeeds and the other blocks until the bucket refills"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.rate_limiting",
+    "backend.api.status_codes_and_error_responses",
+    "backend.concurrency.atomic_operations",
+    "backend.api.request_validation"
+  ]
+}

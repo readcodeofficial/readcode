@@ -1,0 +1,49 @@
+{
+  "id": "63a63ccd-ec77-4073-84f8-f395121dd578",
+  "title": "Inventory reservations with atomic stock counters",
+  "name": "Order stock reservation",
+  "createdAt": "2026-11-24T05:03:32.701Z",
+  "durationMinutes": 12,
+  "language": "Rust",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps stock levels correct when many orders reserve the same SKU at once? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Inventory::release uses fetch_update with a closure. Under heavy contention on one SKU, what is true about that closure?",
+      "choices": [
+        "It runs exactly once per call, because fetch_update takes an internal lock on the atomic.",
+        "It may run several times for one call, because the update is retried whenever another thread changed the value first, so it should have no side effects.",
+        "It is skipped when another thread is updating, and the released quantity is silently lost.",
+        "It runs once per thread that is currently calling fetch_update on the same atomic, in a fixed order."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "place_order is called with two lines. The first SKU reserves successfully, but the second SKU does not have enough stock. What is the outcome?",
+      "choices": [
+        "The first line stays reserved until the caller invokes cancel_order, because place_order only returns the error.",
+        "The whole call panics, because reserved holds references into lines that are dropped on return.",
+        "Nothing was ever taken from the first SKU, because reserve validates every line before changing any counter.",
+        "The first line's quantity is released again and the stock error is returned, but while the call was in flight other orders could see and compete for the reduced stock of the first SKU."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "OrderService::place_order obtains order ids with next_id.fetch_add(1, Ordering::Relaxed). Why is Relaxed sufficient for the ids to be unique?",
+      "choices": [
+        "Uniqueness comes from the atomic read-modify-write itself, so each caller gets a different value whatever the ordering; the ordering only affects how other memory is synchronized.",
+        "Relaxed is not sufficient; two threads can get the same id, and uniqueness only holds because of the Acquire load of draining.",
+        "Relaxed is enough only because the reservation step before it already serialized all callers.",
+        "Relaxed is enough only because next_id is a u64, which the CPU can always update without contention."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.atomic_operations",
+    "backend.concurrency.race_conditions"
+  ]
+}

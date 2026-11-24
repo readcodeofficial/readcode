@@ -1,0 +1,50 @@
+{
+  "id": "51f4b1b1-5e1e-4592-9e71-7e6734fd6e02",
+  "title": "Delivery proof photo upload",
+  "name": "Delivery proof upload",
+  "createdAt": "2026-11-24T14:49:45.307Z",
+  "durationMinutes": 13,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code streams the uploaded photo to the object store? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The handler wraps r.Body with http.MaxBytesReader instead of only rejecting requests whose Content-Length header is too large. Why is that more robust?",
+      "choices": [
+        "MaxBytesReader compresses the body so less memory is needed",
+        "The header can be absent (chunked uploads) or wrong, whereas MaxBytesReader enforces the limit on the bytes actually read and returns an error once it is exceeded",
+        "MaxBytesReader validates that the body is a well-formed multipart message",
+        "Go refuses to parse multipart bodies unless MaxBytesReader is present"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Roughly how much memory does one in-flight upload need, as a function of the photo size?",
+      "choices": [
+        "Proportional to the photo size, because the part is buffered before Put is called",
+        "Proportional to the photo size, because the hasher keeps all bytes it has seen",
+        "Constant, apart from the sniff buffer and I/O buffers, because the part is streamed through the hasher to the store",
+        "Zero, because the Go runtime spools request bodies to disk"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "If Put fails midway, for example because the client disconnects, why does the cleanup use context.WithoutCancel(r.Context())?",
+      "choices": [
+        "The request context is cancelled when the client goes away, so Delete would fail immediately and leave the partial object behind",
+        "WithoutCancel gives the delete a longer deadline than the upload",
+        "WithoutCancel makes Delete run in a separate goroutine",
+        "The store requires a fresh context for every call"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.streaming_large_payloads",
+    "backend.resources.context_cancellation",
+    "backend.errors.cleanup_on_error_paths"
+  ]
+}

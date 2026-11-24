@@ -1,0 +1,51 @@
+{
+  "id": "43e4ec75-5193-4c68-b795-6a74a6f6f4a9",
+  "title": "Support ticket search queries",
+  "name": "Ticket search repository",
+  "createdAt": "2026-11-24T14:49:45.436Z",
+  "durationMinutes": 11,
+  "language": "PHP",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles user-controlled values in SQL? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The sort field comes from the query string and ORDER BY cannot use bound parameters. How does the code keep it safe?",
+      "choices": [
+        "It escapes the value with PDO::quote().",
+        "It strips non-alphanumeric characters from the value.",
+        "It looks the value up as a key in the SORTABLE map and uses only the mapped column; unknown keys throw.",
+        "It relies on ATTR_EMULATE_PREPARES being false."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The status filter builds placeholders :status0, :status1, ... in a loop. Is attacker-supplied text able to change the structure of the SQL here?",
+      "choices": [
+        "No. The number of placeholders depends only on how many values were sent; the values themselves are bound separately.",
+        "Yes, because the status strings are used to name the placeholders.",
+        "Yes, but only when more than one status is sent.",
+        "No, but only because the values are validated against an enum first."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A user searches for the text 50%_off. What does escapeLike plus ESCAPE '!' accomplish beyond parameter binding?",
+      "choices": [
+        "It prevents SQL injection, which binding alone would not.",
+        "It makes the search case-insensitive.",
+        "It encodes the text so it is safe to place in the JSON response.",
+        "It makes % and _ in the input match literally instead of acting as LIKE wildcards."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.sql_injection",
+    "backend.security.input_sanitization",
+    "backend.api.request_validation",
+    "backend.data.pagination"
+  ]
+}

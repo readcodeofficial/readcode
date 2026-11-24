@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "export.c",
+        "startLine": 52,
+        "endLine": 56
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "In appt_export_day the successful path calls fclose(fp) and ignores its return value, then renames the temporary file over the real export. stdio buffers output, so write errors such as a full disk or a quota failure often surface only when the buffer is flushed during fclose. The function would then rename a truncated file over the previous good export and return APPT_OK. fclose must be checked, and on failure the temp file removed and APPT_ERR_IO returned. The ignored fclose calls on the other error paths are fine because the function is already failing and unlinks the file, and the ignored rollback result in appt_book is logged.",
+    "BEGIN IMMEDIATE acquires the write lock up front, so the check and the insert happen with no other writer in between. The second caller either blocks or fails at BEGIN (returning APPT_ERR_DB) and, if it proceeds later, sees the committed row in the overlap count. There is no unique constraint in the code, last_insert_rowid only reports the new id, and SQLite does not support FOR UPDATE.",
+    "count_overlaps only sets *count and converts rc to SQLITE_OK when a row was returned. For any other result the statement is finalized and the error code is returned, so appt_book sees rc != SQLITE_OK, rolls back and returns APPT_ERR_DB rather than treating the zero-initialised overlaps as 'no conflict'. The statement is finalized exactly once.",
+    "Writing to a temporary name and renaming gives readers either the old complete export or the new complete one, since rename within a filesystem replaces the target atomically. The query statement stays open during the writes, so the read isn't avoided, the temp location has no speed effect, and fprintf results are still checked in the loop."
+  ]
+}

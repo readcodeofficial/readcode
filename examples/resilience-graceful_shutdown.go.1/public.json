@@ -1,0 +1,50 @@
+{
+  "id": "85149704-2ef2-4fc2-b9a1-782eca89cbde",
+  "title": "Payroll run service with signal-driven shutdown",
+  "name": "Pay run service",
+  "createdAt": "2026-11-24T14:49:44.448Z",
+  "durationMinutes": 14,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this service shuts down on SIGTERM? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does main call srv.Shutdown before runner.Drain rather than the other way round?",
+      "choices": [
+        "Once HTTP intake has stopped and handlers have returned, nothing can call Submit any more, so closing the queue in Drain cannot cut off or reject new work",
+        "srv.Shutdown must run first because it releases the port that the workers need in order to write results",
+        "Drain cancels baseCtx immediately, which would make the HTTP handlers return 500 for requests in flight",
+        "The order does not matter because Submit holds r.mu and the queue is buffered"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why do Submit and Drain both take r.mu and use the closed flag?",
+      "choices": [
+        "To make worker goroutines process runs one at a time in submission order",
+        "To stop Drain from being called twice by two signals arriving at once and hanging in wg.Wait",
+        "To ensure a send on r.queue can never happen after close(r.queue), which would panic",
+        "To protect the statuses map in the store from concurrent writers"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Suppose the shutdown context expires while two pay runs are still being processed and three more are waiting in the queue. What does the runner do with them?",
+      "choices": [
+        "It discards the queued runs without recording anything, since the channel is closed",
+        "Workers keep going until every employee is paid, because Drain waits on <-done after abort",
+        "Each in-progress run is rolled back so no partial payroll lines remain in the store",
+        "Workers see the cancelled baseCtx, mark each remaining run interrupted, and Drain returns an error so the process exits non-zero"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.graceful_shutdown",
+    "backend.concurrency.thread_and_worker_pools",
+    "backend.resources.context_cancellation"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "id": "22baf5ee-ef7b-470d-8510-4bb4193f4163",
+  "title": "Transactional outbox between shipping and tracking services",
+  "name": "Shipment event outbox",
+  "createdAt": "2026-11-24T14:49:46.095Z",
+  "durationMinutes": 15,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps the shipping database and the tracking service consistent? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The publisher sends event 7 successfully, then the send of event 8 times out. What is the state after publishPending returns?",
+      "choices": [
+        "Events 7 and 8 are both unpublished because the whole transaction is rolled back",
+        "Event 7 is marked published and committed, event 8 stays unpublished and is retried on the next poll, and no later event is sent before it",
+        "Event 7 is marked published, and the loop skips event 8 and continues with event 9",
+        "Event 8 is marked published anyway because the broker may have received it"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The publisher service runs as three replicas. What does the PESSIMISTIC_WRITE lock on the polling query achieve?",
+      "choices": [
+        "Replicas serialize on the batch: one holds the rows while sending, and the others wait and then see them published",
+        "It makes Kafka deliver every event exactly once to the tracking service",
+        "Each replica locks a different subset of rows and publishes in parallel",
+        "It prevents ShipmentService from inserting new outbox rows while a batch is being published"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The tracking service applies an event, then the transaction fails on commit, and Kafka redelivers the record. What happens on redelivery?",
+      "choices": [
+        "insertIfNew returns 0 because the processed marker was committed first, so the update is skipped and lost",
+        "The listener fails permanently because the processed_event primary key already exists",
+        "The marker insert was rolled back with the update, so insertIfNew returns 1 and the event is applied again",
+        "The event is applied twice, because the marker is stored outside the transaction"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.distributed.cross_service_consistency",
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.deduplication",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.messaging.message_ordering"
+  ]
+}

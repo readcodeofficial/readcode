@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "Realtime/ViewerTracker.cs",
+        "startLine": 11,
+        "endLine": 11
+      }
+    },
+    2,
+    1,
+    1
+  ],
+  "explanations": [
+    "Increment reads the current count and writes back count + 1 as two separate operations on the ConcurrentDictionary. Many connections subscribe to popular authors at the same moment on different threads, and two concurrent increments can read the same value, so one update is lost. The counter then drifts below the real number of subscribers (Decrement uses AddOrUpdate, which is atomic, so it keeps subtracting from an undercount). When it reaches zero while viewers are still subscribed, FeedFanout's HasViewers check skips the author's posts and those viewers silently stop receiving live updates. Increment should use AddOrUpdate (or GetOrAdd with Interlocked) like Decrement.",
+    "The channel is bounded with FullMode = DropOldest, so TryWrite always succeeds by discarding the oldest item, which is why callers are never blocked. It would return false or block only under the Wait or DropWrite modes, and the channel is never completed here.",
+    "The hub reads the per-connection subscription set from Context.Items and decrements each author's count. SignalR automatically removes a disconnected connection from all groups, so no explicit RemoveFromGroupAsync is needed. The counts are not recomputed anywhere, and no message is sent.",
+    "The send is wrapped in a try/catch filtered to exceptions other than OperationCanceledException, which logs a warning and continues the await foreach loop. Cancellation (from shutdown) is not caught and ends the loop. Nothing retries or clears the queue."
+  ]
+}

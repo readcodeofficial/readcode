@@ -1,0 +1,52 @@
+{
+  "id": "fc4eb1b0-0216-480b-a83e-7cccfbbf7b3f",
+  "title": "Transcode job consumer with dead-letter topic",
+  "name": "Transcode job consumer",
+  "createdAt": "2026-11-24T14:49:45.041Z",
+  "durationMinutes": 11,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code makes sure failed transcode jobs end up in the dead-letter topic? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A job arrives whose codec is \"vp6\". Which path does it take through the error handler?",
+      "choices": [
+        "It is retried with exponential backoff for up to a minute and then dead-lettered",
+        "It is dropped after being logged, because the listener swallows runtime exceptions",
+        "It skips the retries and goes directly to the recoverer, which publishes it to the dead-letter topic",
+        "It blocks the whole consumer group until an operator fixes the profile table"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "TranscoderClient.submit keeps failing with 503s for one job. While the handler retries, what happens to other jobs on the same partition?",
+      "choices": [
+        "They keep being processed, because retries are scheduled on a separate thread",
+        "They wait behind the failing record, since the default error handler retries in place and the offset is not advanced",
+        "They are copied to the dead-letter topic so they are not lost",
+        "They are processed out of order and committed first"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "An engineer wants to replay dead-lettered jobs after fixing a bug. Which information does DeadLetterPublishingRecoverer provide to help with this?",
+      "choices": [
+        "Nothing; only the payload is copied, so the original topic and offset are lost",
+        "Headers on the dead-letter record carrying the original topic, partition, offset and the exception details",
+        "A database row per failure, written by the recoverer",
+        "The record is moved, not copied, so the source topic no longer contains it"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.dead_letter_queues",
+    "backend.messaging.queues_and_consumers",
+    "backend.resilience.retries_and_backoff",
+    "backend.errors.error_propagation",
+    "backend.messaging.message_ordering"
+  ]
+}

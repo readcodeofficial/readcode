@@ -1,0 +1,52 @@
+{
+  "id": "9b2e8c40-23df-4191-bf85-9fa93502145e",
+  "title": "Carrier rate quoting",
+  "name": "Carrier rate quoting",
+  "createdAt": "2026-11-24T14:49:44.339Z",
+  "durationMinutes": 12,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code applies the circuit breaker to carrier rate calls? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Northwind has been failing and its breaker is open. A quote request arrives for a lane, service level and weight band that was quoted successfully two hours ago. What does the caller get?",
+      "choices": [
+        "One HTTP attempt that times out after 3 seconds, then the cached quote.",
+        "Two retries with backoff against Northwind, then a 503 because the breaker is open.",
+        "The cached quote with IsEstimate set to true, returned without any network call being made.",
+        "A 503 immediately, because a broken circuit is not one of the exceptions the service catches."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Northwind starts answering 422 for a malformed ZIP on a large share of requests for an hour. What is the effect on the breaker?",
+      "choices": [
+        "None: 4xx responses are not in the handled set, and the client converts them to InvalidQuoteRequestException, so the breaker records them as successes.",
+        "It opens once at least 10 calls have been sampled in 30 seconds and half of them were 422.",
+        "It stays closed but the retry policy retries each 422 twice.",
+        "It opens only if the 422 responses also exceed the 3 second timeout."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The AddPolicyHandler callback runs for every outgoing request. What makes the breaker able to trip at all?",
+      "choices": [
+        "CarrierRateClient is registered as a typed client, which makes the HttpClient a singleton.",
+        "IMemoryCache stores the failure counts between requests.",
+        "The retry policy is outermost, so it carries the failure count from one attempt to the next across requests.",
+        "The callback returns the instance cached per carrier by CarrierPolicyRegistry, so every request reports its outcome to the same breaker state."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.circuit_breakers",
+    "backend.resilience.retries_and_backoff",
+    "backend.resilience.timeouts",
+    "backend.resilience.graceful_degradation",
+    "backend.integrations.third_party_adapters"
+  ]
+}

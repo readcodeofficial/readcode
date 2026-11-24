@@ -1,0 +1,52 @@
+{
+  "id": "74e68a2e-b400-480a-b855-3860eae0e73d",
+  "title": "Hybrid-cached effective permissions lookup",
+  "name": "Effective permission cache",
+  "createdAt": "2026-11-24T14:49:44.738Z",
+  "durationMinutes": 10,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code protects the permissions database when a popular cache entry is missing or expires? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A single API instance receives 300 concurrent requests for the same user whose entry is not cached anywhere. How many database loads does that instance start for this key?",
+      "choices": [
+        "300, because every request runs its own factory delegate before the cache is populated",
+        "One for the in-flight load; the other callers wait on the same result",
+        "Zero, because Redis is always consulted first and it always has the value",
+        "Two: one for the local cache layer and one for the distributed layer"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "An administrator revokes a role, the transaction commits, and GrantChangedHandler runs on instance A. How fresh is the permission data on instance B?",
+      "choices": [
+        "Immediately fresh, because RemoveAsync on A clears every instance's memory",
+        "Fresh as soon as Redis is cleared, because HybridCache keeps no copy in process memory",
+        "Possibly stale for up to the 45 second local expiry, since B may still hold its in-process copy",
+        "Stale for the full 10 minute Expiration, because removal does not affect the distributed cache"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The database stalls and LoadAsync exceeds its 3 second budget while many requests wait on that load. What is the outcome?",
+      "choices": [
+        "The waiting callers receive an OperationCanceledException, nothing is cached, and the next request starts a new load",
+        "The cache stores an empty EffectivePermissions so callers are denied quickly until expiry",
+        "The factory keeps running without a limit because the timeout only applies to the first caller",
+        "The callers receive the previous value, since HybridCache always serves stale data on failure"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.caching.cache_stampedes",
+    "backend.caching.cache_invalidation",
+    "backend.caching.ttls_and_expiry",
+    "backend.caching.stale_reads",
+    "backend.resilience.timeouts"
+  ]
+}

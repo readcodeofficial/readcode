@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    1
+  ],
+  "explanations": [
+    "There is no defect. The registry and the alert publisher are Mockito mocks, the store is a small in-memory fake with the same newer-wins rule as the real contract, and every stubbing is used by the test that declares it, which strict stubs under MockitoExtension require. Each test that expects no alert says so with verifyNoInteractions, the alert test captures the argument to check the threshold came from the device profile, and the fixed Clock makes the future-timestamp check deterministic. The order of ingest calls in the stale-reading test matters because the fake keeps state between calls, and the test does that deliberately.",
+    "The store carries logic the tests depend on across calls (newest reading wins), which a fake reproduces and tests can query with latest(). The publisher is a fire-and-forget side effect with no state to read back, so verifying the call and its argument is the natural check. Mockito can mock Optional-returning interfaces and the number of methods is irrelevant.",
+    "An unstubbed boolean method on a mock returns false (unstubbed calls return defaults and do not throw). The service treats false as 'not newer', returns STALE before reaching the threshold comparison, and never calls the publisher. The service does write through the store, and latest() on a mock would return an empty Optional, not null.",
+    "any(Alert.class) only proves some Alert was published. Capturing it lets the test assert the fields: threshold 80.0 must come from the registry profile and value 93.5 from the reading, which would catch the two being mixed up. Both forms verify exactly one call by default, captors do not stub anything, and void methods can be verified directly."
+  ]
+}

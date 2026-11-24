@@ -1,0 +1,51 @@
+{
+  "id": "3d2fcbde-c565-438e-817c-0c66849f6a08",
+  "title": "CI job executor",
+  "name": "CI job executor",
+  "createdAt": "2026-11-24T14:49:45.193Z",
+  "durationMinutes": 11,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code cleans up resources when a job fails? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A step in run_job exceeds its timeout and subprocess.run raises TimeoutExpired. In what order are the container and the workspace directory cleaned up?",
+      "choices": [
+        "The workspace is deleted first, then the container is removed.",
+        "In parallel, since ExitStack runs all callbacks concurrently.",
+        "The container is removed first, then the workspace is deleted, because ExitStack unwinds in reverse order of entry.",
+        "Neither is cleaned up, because TimeoutExpired is not caught inside run_job."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "docker run itself fails with CalledProcessError inside started_container, after the workspace directory was created. What happens?",
+      "choices": [
+        "The workspace directory is deleted and no docker rm is attempted, because the generator never reached its try block.",
+        "docker rm -f is attempted with a container id of None.",
+        "The workspace directory is left behind for debugging.",
+        "The error is logged and run_job returns \"passed\"."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A step fails and then docker rm -f also fails with CalledProcessError during cleanup. What reaches the caller of run_job?",
+      "choices": [
+        "The CalledProcessError from docker rm, replacing the original error.",
+        "Both exceptions are combined into an ExceptionGroup.",
+        "Nothing, because failures during cleanup are always suppressed.",
+        "The original StepFailed, because the cleanup error is caught and logged and the exits after it still run."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.cleanup_on_error_paths",
+    "backend.resources.file_and_socket_handle_leaks",
+    "backend.errors.error_propagation",
+    "backend.errors.swallowed_errors"
+  ]
+}

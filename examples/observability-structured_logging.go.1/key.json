@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "indexer/indexer.go",
+        "startLine": 66,
+        "endLine": 66
+      }
+    },
+    1,
+    1,
+    0
+  ],
+  "explanations": [
+    "The 'bulk index rejected' call passes an odd number of key/value arguments: after the valid pair, resp.Status is a lone string with no key. slog does not fail; it emits the value under the key '!BADKEY', so the status text is not queryable under a meaningful field, and anything that parses the log by field name (dashboards, alerts on status) misses it. The call should pass a key with it, for example 'status', resp.StatusCode.",
+    "The middleware stores base.With(request_id, method, path) in the context, base already carries service from New, and IndexBatch adds index with With before logging err and docs. Attributes accumulate rather than replace, and From finds the context logger so it does not fall back to slog.Default.",
+    "statusRecorder captures the code passed to WriteHeader; after the handler returns, status >= 500 selects slog.LevelError and l.Log writes the record with status and elapsed attributes. The recorder defaults to 200 only when WriteHeader is never called, and no panic occurs.",
+    "A 200 response can still report per-document failures; the loop logs a warning for each item with status >= 300 and the function returns an error with the failed count. If every item succeeded or the batch is empty, failed is 0 and the function returns nil after the info record. The logger level plays no part in the return value."
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "557eba36-408a-4cd5-a60b-81ec3ce1a828",
+  "title": "Device shadow updates with EF Core concurrency tokens",
+  "name": "Device shadow updater",
+  "createdAt": "2026-11-24T14:49:44.703Z",
+  "durationMinutes": 13,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles concurrent updates to the same device shadow? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does the [Timestamp] / IsRowVersion column do in the SQL that EF Core generates when saving a DeviceShadow?",
+      "choices": [
+        "It adds a lock hint so other writers block until SaveChanges completes",
+        "It adds the original RowVersion to the WHERE clause of the UPDATE, and the update affecting zero rows is raised as DbUpdateConcurrencyException",
+        "It makes EF Core wrap the update in a serializable transaction",
+        "It makes the database reject any update that does not change RowVersion explicitly"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "TrySetDesiredConfigAsync loads the shadow and then assigns OriginalValue on the RowVersion property from expectedVersion. What does this achieve?",
+      "choices": [
+        "It forces the update to succeed whatever the current database value is",
+        "It only affects the in-memory entity and is ignored when generating SQL",
+        "It makes the UPDATE fail if the row has changed since the caller read the version it passes in, even though this method loaded the row only just now",
+        "It makes the call a pessimistic lock on the row until the caller commits"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Under heavy report traffic from the same device, which statement about ApplyReportAsync is correct?",
+      "choices": [
+        "It can throw DbUpdateConcurrencyException to the caller after the fourth failed attempt",
+        "It never throws, because the loop retries until the save succeeds",
+        "It holds a row lock for the whole loop, so concurrent callers queue up",
+        "It throws InvalidOperationException on the first conflict"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.optimistic_vs_pessimistic_locking",
+    "backend.data.orm_pitfalls",
+    "backend.concurrency.race_conditions"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "ci/leases.py",
+        "startLine": 20,
+        "endLine": 23
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "leased_runner only releases the runner on the success path. The try block catches just RunnerLost; for any other exception raised in the with-body (StepFailed, subprocess.TimeoutExpired, an upload error) control leaves the generator at the yield and pool.release(runner) is never reached. Each failed or timed out job therefore leaks a leased runner until the pool is exhausted. The workspace and container context managers are correct because they use finally. Fix: put pool.release(runner) in a finally block (and make the RunnerLost branch discard instead).",
+    "ExitStack exits contexts in LIFO order. started_container was entered after job_workspace, so its finally (docker rm -f) runs first, which releases the bind mount before the directory is removed. The exception is not swallowed, but ExitStack still runs every registered exit as the exception propagates. Callbacks are not concurrent.",
+    "_docker(\"run\", ...) executes before the try, so container_id is never assigned and the finally with docker rm is not entered. The exception propagates out of the generator's first step, and ExitStack unwinds the contexts that were already entered, so job_workspace's finally removes the directory. Nothing swallows the error, so run_job does not return.",
+    "started_container catches SubprocessError and OSError around docker rm and logs them, so cleanup failure does not replace the in-flight StepFailed, and the later exits (workspace deletion) still run. Without that try/except the cleanup error would be chained onto the original and replace it. No ExceptionGroup is built by ExitStack."
+  ]
+}

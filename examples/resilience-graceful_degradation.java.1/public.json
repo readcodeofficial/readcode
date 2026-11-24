@@ -1,0 +1,51 @@
+{
+  "id": "0148531b-a501-4c77-b07c-9338ccf86717",
+  "title": "Device status lookup with cached fallback",
+  "name": "Device status service",
+  "createdAt": "2026-11-24T14:49:44.424Z",
+  "durationMinutes": 12,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code degrades when the telemetry gateway is unhealthy? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does a caller of getStatus receive when the gateway is down, the breaker has been open for a while, and the cache holds a reading observed 3 minutes ago (assuming a max staleness of 10 minutes)?",
+      "choices": [
+        "A StatusUnavailableException, since an open breaker never serves cached data",
+        "The cached reading with degraded set to true",
+        "The cached reading unchanged, indistinguishable from a fresh one",
+        "A CallNotPermittedException propagated to the caller"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What happens in lastKnownStatus when the cached reading for the device is 40 minutes old and max staleness is 10 minutes?",
+      "choices": [
+        "The stale reading is returned with degraded set to true",
+        "The cache evicts the entry and the gateway is called again",
+        "getUsable returns empty and a StatusUnavailableException is thrown with the original cause attached",
+        "An empty Optional is returned to the caller of getStatus"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does StatusCache.put use ConcurrentHashMap.merge with an observedAt comparison instead of a plain put?",
+      "choices": [
+        "merge is required for ConcurrentHashMap to be thread safe",
+        "It prevents an older reading, finished later by a slow request, from overwriting a newer one",
+        "It avoids storing duplicate readings with identical timestamps in memory",
+        "It makes the entry expire automatically after maxStaleness"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.graceful_degradation",
+    "backend.resilience.circuit_breakers",
+    "backend.concurrency.atomic_operations",
+    "backend.caching.stale_reads"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "955e3e65-00b3-456e-ac1c-97563a0b8568",
+  "title": "Clinic appointment booking and day export",
+  "name": "Clinic appointment booking",
+  "createdAt": "2026-11-24T14:49:45.178Z",
+  "durationMinutes": 14,
+  "language": "C",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles errors from the calls it makes? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "In appt_book, a second caller books an overlapping slot for the same clinician at nearly the same moment. How does this code stop both bookings from succeeding?",
+      "choices": [
+        "The overlap count is read first and the INSERT is protected by a UNIQUE constraint on starts_at",
+        "BEGIN IMMEDIATE takes the database write lock before the overlap check, so the second caller waits (or fails to begin) until the first has committed or rolled back",
+        "sqlite3_last_insert_rowid detects the collision after the insert",
+        "count_overlaps locks the matching rows with SELECT ... FOR UPDATE"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "When sqlite3_step fails in count_overlaps with an error code other than SQLITE_ROW, what does the caller see?",
+      "choices": [
+        "APPT_OK, because the count stays at its initial value of zero",
+        "APPT_ERR_CONFLICT, because the count is unknown",
+        "APPT_ERR_DB after the transaction is rolled back",
+        "The function crashes because stmt is finalized twice"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The export builds the file at path.tmp and renames it onto path at the end. What is the main purpose of this design?",
+      "choices": [
+        "Readers of path never see a half-written file, because rename replaces it in one step",
+        "It lets the export run without holding a database read transaction",
+        "It makes fprintf faster by writing to a temporary location",
+        "It avoids needing to check return values of fprintf"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.swallowed_errors",
+    "backend.errors.cleanup_on_error_paths",
+    "backend.resources.file_and_socket_handle_leaks"
+  ]
+}

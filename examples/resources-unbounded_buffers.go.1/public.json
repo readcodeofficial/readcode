@@ -1,0 +1,52 @@
+{
+  "id": "1c6a931e-1725-44ca-89be-d8fbf5e328af",
+  "title": "Courier location event batcher",
+  "name": "Courier location batcher",
+  "createdAt": "2026-11-24T14:49:45.364Z",
+  "durationMinutes": 11,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code bounds the memory it uses for incoming data? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The intake channel is full because the Run loop is busy with a slow sink. What does a caller of Offer observe, and what does the HTTP client see?",
+      "choices": [
+        "Offer blocks until space frees up, so the HTTP request hangs",
+        "Offer returns false immediately and the handler answers 503 with Retry-After, pushing back on the producer",
+        "Offer silently discards the event and the handler still answers 202",
+        "Offer panics because sending on a full channel is an error"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The sink is down for ten minutes while couriers keep sending at a high rate. How much event data can the Batcher hold in memory in that time?",
+      "choices": [
+        "Unlimited, because failed batches are appended back and the slice grows with every flush attempt",
+        "At most the channel capacity, because pending is flushed to disk on failure",
+        "At most about queue + maxPending events; beyond that Run counts and drops new ones",
+        "Nothing, because a failed flush clears pending to avoid retaining data"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "On shutdown, why does Run flush with a context derived from context.Background() rather than reusing ctx?",
+      "choices": [
+        "ctx is already cancelled at that point, so a Write using it would fail immediately and the pending events would be lost",
+        "context.Background() makes the flush run faster than a derived context",
+        "Using ctx would make the ticker fire again",
+        "A cancelled context would panic inside the sink"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.unbounded_buffers",
+    "backend.messaging.backpressure",
+    "backend.resources.context_cancellation",
+    "backend.resilience.graceful_shutdown",
+    "backend.resources.streaming_large_payloads"
+  ]
+}

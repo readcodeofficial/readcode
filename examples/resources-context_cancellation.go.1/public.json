@@ -1,0 +1,51 @@
+{
+  "id": "d75eac38-df3c-45c7-bcd4-23786e764e2d",
+  "title": "Parallel driver offers",
+  "name": "Parallel trip dispatcher",
+  "createdAt": "2026-11-24T14:49:45.388Z",
+  "durationMinutes": 13,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code propagates cancellation to the outbound driver offers? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Several drivers accept at nearly the same time. What does Assign return?",
+      "choices": [
+        "An error, since more than one driver accepted",
+        "The driver whose offer completed last, because later sends overwrite the channel value",
+        "Exactly one driver: the first to place itself on the buffered channel; later accepts fall into the default case",
+        "All of them, as the channel collects every acceptance"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the goroutine check ctx.Err() before calling Offer?",
+      "choices": [
+        "To avoid starting new offers once a winner exists or the window has closed, since g.SetLimit may delay goroutines until earlier ones finish",
+        "Because Offer panics when called with a cancelled context",
+        "To release the semaphore slot held by the errgroup",
+        "Because errors.Is cannot detect cancellation inside Offer"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The rider closes the app and their request context is cancelled while offers are pending and no driver has accepted yet. How does the handler respond?",
+      "choices": [
+        "It writes 503 no driver available",
+        "It writes 500 dispatch failed",
+        "It writes nothing and returns, since the client is gone",
+        "It waits for the offerWindow to elapse before responding"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.context_cancellation",
+    "backend.concurrency.thread_and_worker_pools",
+    "backend.resilience.timeouts",
+    "backend.errors.error_propagation"
+  ]
+}

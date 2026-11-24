@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "events/ProcessedEventStore.java",
+        "startLine": 22,
+        "endLine": 22
+      }
+    },
+    2,
+    0,
+    1
+  ],
+  "explanations": [
+    "Yes. markProcessed is annotated REQUIRES_NEW, so the dedup row commits in its own transaction before inventory.reserve runs. If reserve throws (for example InsufficientStockException or a DB error), the listener does not ack and the error handler redelivers the record, but the event is already recorded, so markProcessed returns false and the retry is acknowledged as a duplicate. The reservation is silently lost. The dedup insert must be in the same transaction as the business effect (or the record removed on failure).",
+    "Duplicates that matter here are the same event published more than once; they land at different offsets, so an offset key would not detect them, while eventId is stable. The consumer name is part of the key, covering the cross-group case. Index speed and compaction behaviour are not the reason.",
+    "The unique key makes the insert the arbiter: one instance gets inserted == 1 and proceeds; the other gets 0 and skips. Consumer groups give no such guarantee across a rebalance or redelivery. The stock UPDATE would simply succeed twice if stock allowed, and the error handler is per-container.",
+    "After the crash the processed_events row exists, so markProcessed returns false and the listener acks and returns; the reservation committed earlier stays as the only one. Nothing in the config routes to a dead-letter topic, and the duplicate path returns before reserve is called, so no reservation insert conflict arises."
+  ]
+}

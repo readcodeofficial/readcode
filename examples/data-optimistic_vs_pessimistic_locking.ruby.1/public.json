@@ -1,0 +1,51 @@
+{
+  "id": "57852bf9-1126-450b-a256-fb0062b46154",
+  "title": "Marketplace item purchase",
+  "name": "Marketplace item purchase",
+  "createdAt": "2026-11-24T14:49:44.526Z",
+  "durationMinutes": 12,
+  "language": "Ruby",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code guards concurrent updates to gold and listings? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two different buyers press Buy on the same active listing in the same instant. Which mechanism ensures only one of them gets the item?",
+      "choices": [
+        "buyer.with_lock, because it serializes the two purchase requests.",
+        "The surrounding transaction, because it makes the two requests run one after the other.",
+        "The optimistic version check performed by listing.update!, which raises StaleObjectError for the request that loses the race.",
+        "The listing.active? guard, because it reads the current database state under a lock."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A buyer's with_lock block finishes and the code continues to listing.update!. When is the buyer's row lock released?",
+      "choices": [
+        "Only when the outer ApplicationRecord.transaction commits or rolls back, because with_lock joined the transaction that was already open.",
+        "At the end of the with_lock block, so the row is free for other requests while the listing is updated.",
+        "Immediately after buyer.update! executes, because the UPDATE statement releases row locks.",
+        "When the controller action returns, because the lock belongs to the request."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The same buyer double-clicks and two requests arrive at once for two different listings priced 70 and 60 gold. The buyer has 100 gold. What happens?",
+      "choices": [
+        "Both succeed and the buyer ends with -30 gold, because they do not conflict on a listing.",
+        "Both fail with StaleObjectError because the buyer row changed.",
+        "Both succeed because each request read 100 gold before the other committed.",
+        "One request waits on the buyer row lock, then re-reads the reduced balance (with_lock reloads the record), and raises InsufficientGold."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.optimistic_vs_pessimistic_locking",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.concurrency.race_conditions",
+    "backend.data.orm_pitfalls"
+  ]
+}

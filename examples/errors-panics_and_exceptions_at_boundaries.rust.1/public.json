@@ -1,0 +1,52 @@
+{
+  "id": "c716fa00-1e72-43f8-8a9e-1180a30dd20e",
+  "title": "Click ingestion handler with budget ledger",
+  "name": "Click budget ingestion",
+  "createdAt": "2026-11-24T14:49:45.227Z",
+  "durationMinutes": 12,
+  "language": "Rust",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles bad input at the HTTP boundary? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does BudgetLedger lock with `.unwrap_or_else(PoisonError::into_inner)` instead of `.unwrap()`?",
+      "choices": [
+        "Because lock() cannot fail, so the call is only there to satisfy the compiler",
+        "So a panic in some other thread that held the mutex does not make every later charge or refund panic",
+        "So the lock is released automatically when the request times out",
+        "So multiple threads can hold the lock at once for read-only access"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The INSERT fails because the database is unreachable. What does the client observe, and what happens to the campaign budget?",
+      "choices": [
+        "A 500 from the panic handler; the budget stays reduced",
+        "A 503 with a generic message; the charge is refunded so the budget is unchanged",
+        "A 503 with the sqlx error text in the body; the budget stays reduced",
+        "A 202, because the error is only logged"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Where does the layer ordering `.layer(TimeoutLayer ...).layer(CatchPanicLayer ...)` place panic handling relative to the timeout?",
+      "choices": [
+        "CatchPanicLayer is added last, so it wraps the timeout and the handler; a panic anywhere inside becomes the 500 response",
+        "TimeoutLayer wraps CatchPanicLayer, so a timeout is converted into a panic",
+        "The order does not matter in axum; both layers run on every request in parallel",
+        "CatchPanicLayer only applies to routes registered after it was added"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.panics_and_exceptions_at_boundaries",
+    "backend.errors.error_propagation",
+    "backend.api.request_validation",
+    "backend.api.status_codes_and_error_responses",
+    "backend.concurrency.shared_state_in_request_handlers"
+  ]
+}

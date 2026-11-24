@@ -1,0 +1,50 @@
+{
+  "id": "d600090b-437b-446b-805c-b95429ded2c1",
+  "title": "Support ticket queue and escalation",
+  "name": "Ticket queue services",
+  "createdAt": "2026-11-24T14:49:44.502Z",
+  "durationMinutes": 14,
+  "language": "Ruby",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code uses ActiveRecord to query and update tickets? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "escalate re-queries the ids with Ticket.stale(...).where(id: candidate_ids).lock instead of updating candidate_ids directly. What does this buy?",
+      "choices": [
+        "It makes the update faster by avoiding a full table scan",
+        "Tickets that were solved or replied to after the batch was read are skipped, and the locked rows cannot change before the update and event insert",
+        "It lets update_all run the model validations on each ticket",
+        "It guarantees that two escalator processes split the batches between them without overlap"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The update_all call sets updated_at explicitly. Why?",
+      "choices": [
+        "The column has no default, so the database would reject the update",
+        "Rails refreshes updated_at only when the status changes through an enum setter",
+        "update_all sends a single UPDATE statement and bypasses callbacks and automatic timestamping, so nothing else would touch the column",
+        "insert_all! below it would overwrite the value otherwise"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "AgentQueueSummary#page filters by tag with a subquery on Tagging rather than joins(:tags).where(tags: { name: names }) combined with includes(:tags). What problem does this avoid?",
+      "choices": [
+        "Each ticket's preloaded tags collection would contain only the tags that matched the filter",
+        "The query would return duplicate ticket rows that limit and offset could not handle",
+        "Rails would refuse to combine includes with where",
+        "The tags table would be locked for the duration of the query"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.orm_pitfalls",
+    "backend.data.n_plus_one_queries",
+    "backend.data.transactions_and_isolation_levels"
+  ]
+}

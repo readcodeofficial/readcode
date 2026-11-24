@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    1,
+    0,
+    2
+  ],
+  "explanations": [
+    "There is no defect. ShipmentService.dispatch changes the shipment and inserts the outbox row in one local transaction, so the event exists if and only if the state change committed, with no dual write to Kafka. OutboxPublisher is at-least-once: it marks an event published only after the broker acknowledged it, so a crash between send and commit causes a re-send, not a loss. The consumer absorbs those duplicates with insertIfNew in the same transaction as the tracking update, so a rollback also removes the processed marker. The PESSIMISTIC_WRITE lock without SKIP LOCKED makes a second publisher instance wait rather than send later events out of order, and the early return on a failed send keeps events in order.",
+    "The catch block logs and returns normally rather than rethrowing, so the transaction commits with event 7's markPublished flush. Event 8 keeps a null publishedAt and, being the oldest unpublished row, is first in the next batch. Returning instead of continuing means event 9 is never sent ahead of 8, which preserves order per aggregate. A rollback (first choice) would only happen on an exception escaping the method. Skipping to 9 (third choice) is exactly what the early return avoids, and an unacknowledged send is never marked (fourth choice).",
+    "The query takes row locks with SELECT ... FOR UPDATE (no SKIP LOCKED), so a second replica blocks on the same rows until the first commits, then re-reads them as published and finds nothing to send. This avoids duplicate sends from concurrent polls and avoids a replica sending a later event of an aggregate while an earlier one is held by another replica. Delivery to Kafka is still at-least-once (second choice), parallel subsets would need SKIP LOCKED (third choice), and the lock covers only existing unpublished rows, not new inserts (fourth choice).",
+    "onEvent is @Transactional, so the processed_event insert and the tracking update commit or roll back together. If the commit failed, neither persisted, and on redelivery the insert succeeds (returns 1) and the update is applied once. Because the marker is part of the same transaction, it cannot be committed without the update (first choice), and ON CONFLICT DO NOTHING means a conflict yields 0 rather than an exception (second choice). The marker is not outside the transaction (fourth choice)."
+  ]
+}

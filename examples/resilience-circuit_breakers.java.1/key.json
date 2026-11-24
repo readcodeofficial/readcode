@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/com/clinicflow/scheduling/service/SlotService.java",
+        "startLine": 37,
+        "endLine": 39
+      }
+    },
+    1,
+    2,
+    1
+  ],
+  "explanations": [
+    "The IOException handler inside the supplier passed to CircuitBreaker.decorateSupplier returns the cached snapshot instead of rethrowing. Resilience4j only records a failure when the decorated supplier throws, so connect failures and timeouts that surface as IOException look like successful calls. The failure rate stays near zero, the breaker never opens, and every request keeps paying the 3 second request timeout against a dead EHR. The catch should be outside the decorated call (or rethrow), with the snapshot fallback applied afterwards.",
+    "UnknownClinicException is listed in ignoreExceptions, so Resilience4j neither records it as an error nor as a success; the exception still propagates to the caller. Recording every exception is not the behaviour here because recordExceptions is an explicit allow-list plus the ignore list. It is not a slow call, since slowness depends on duration. It is not counted as a success either, because ignored calls do not enter the window.",
+    "While open, decorated calls are rejected with CallNotPermittedException before the supplier runs. openSlots catches that exception and returns snapshots.latest(...). The exception does not escape, the EHR is not called, and the result comes from the snapshot cache rather than an empty list.",
+    "automaticTransitionFromOpenToHalfOpenEnabled(true) makes the transition happen after waitDurationInOpenState without needing a request, and permittedNumberOfCallsInHalfOpenState(3) limits how many trial calls are allowed. The result of those trial calls is evaluated against the failure rate threshold. It does not close on a single success, does not need manual intervention, and does not allow unlimited calls."
+  ]
+}

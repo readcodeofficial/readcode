@@ -1,0 +1,51 @@
+{
+  "id": "fc74a003-ab06-4be2-9885-7868bbc0ec70",
+  "title": "Order service health indicators and probe groups",
+  "name": "Order service health checks",
+  "createdAt": "2026-11-24T14:49:45.828Z",
+  "durationMinutes": 14,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how the health endpoints and probe groups are configured? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The kitchen has 700 open tickets (threshold 500) and every other component is healthy. What does GET /actuator/health/readiness return?",
+      "choices": [
+        "HTTP 503 with status DOWN, because any status other than UP fails the group",
+        "HTTP 200 with status DEGRADED, because the status order makes DEGRADED the aggregate and the http-mapping maps it to 200",
+        "HTTP 200 with status UP, because kitchenBacklog's detail values are not part of the aggregate",
+        "HTTP 200 with status OUT_OF_SERVICE, because the group falls back to its first indicator"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The Kafka brokers are unreachable. How long can OrderQueueHealthIndicator.health() block the thread handling the request?",
+      "choices": [
+        "Indefinitely, because the AdminClient retries until a broker answers",
+        "About 30 seconds, matching spring.lifecycle.timeout-per-shutdown-phase",
+        "Zero time, because the indicator reads a cached result",
+        "About 1.5 seconds, because the call is bounded by the timeout used in describeCluster and the future's get"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does health() restore the interrupt flag in the InterruptedException branch?",
+      "choices": [
+        "Because Health.down(e) throws unless the thread is interrupted",
+        "So that the AdminClient is closed when the thread exits",
+        "So the code that owns the thread, for example the servlet container, can still see that it was asked to stop",
+        "To make the next health check run immediately on the same thread"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.health_checks",
+    "backend.resilience.timeouts",
+    "backend.resilience.graceful_degradation",
+    "backend.config.configuration_loading"
+  ]
+}

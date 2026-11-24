@@ -1,0 +1,50 @@
+{
+  "id": "d25b1004-e886-4077-b328-59105ca7486d",
+  "title": "Bulk indexer with request-scoped logging",
+  "name": "Search bulk indexer",
+  "createdAt": "2026-11-24T14:49:45.801Z",
+  "durationMinutes": 12,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code emits structured log records? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A request arrives with header X-Request-ID: abc123 and IndexBatch fails on the HTTP call. Which fields does the 'bulk request failed' record carry?",
+      "choices": [
+        "Only err and docs, since the call passes just those attributes",
+        "request_id, method, path and service from the middleware logger, then index, then err and docs",
+        "Only request_id, because the middleware replaces the base logger's attributes",
+        "Nothing from the middleware, because logging.From falls back to the default logger"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What happens to the log output when the handler returns a 502 for a request?",
+      "choices": [
+        "Nothing is logged by the middleware, which only logs successful requests",
+        "The 'request completed' record is written at Error level with status and elapsed",
+        "The record is written at Info level because the default status is 200",
+        "The middleware panics because the status code was already written"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which situation produces a log line and an error return from IndexBatch without any HTTP failure?",
+      "choices": [
+        "The server answers 200 and some items in the response carry a status of 300 or above",
+        "The server answers 200 and every item is below 300",
+        "The context has a debug logger attached",
+        "The batch contains an empty Docs slice and the server answers 200"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.structured_logging",
+    "backend.errors.error_wrapping_and_context",
+    "backend.integrations.third_party_adapters"
+  ]
+}

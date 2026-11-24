@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "service.py",
+        "startLine": 34,
+        "endLine": 34
+      }
+    },
+    3,
+    1,
+    1
+  ],
+  "explanations": [
+    "In _request_label the CarrierUnavailable branch raises LabelError without `from exc`. Python only sets the implicit __context__ in that case, and causes() follows __cause__. is_transient therefore finds no CarrierUnavailable in the chain, so tenacity treats the failure as permanent and never retries timeouts, 429s or 5xx responses. The same omission makes worker.py log the LabelError itself as the root cause, hiding the underlying error type. The fix is `raise LabelError(...) from exc`, as the CarrierRejected branch does.",
+    "A 400 is raised by CarrierClient as CarrierRejected from the requests HTTPError. _request_label wraps it in LabelError from exc, is_transient finds no CarrierUnavailable in the chain, so tenacity does not retry. process_batch catches the LabelError, and root_cause walks __cause__ from LabelError to CarrierRejected to the original requests.HTTPError, so the recorded name is HTTPError, not CarrierRejected (second choice). Four attempts would only happen for a transient failure (first choice), and LabelError is caught per shipment so nothing propagates (third choice).",
+    "`raise X from exc` sets X.__cause__ = exc, so tracebacks say 'The above exception was the direct cause of the following exception' and helpers such as causes() and root_cause() can follow the chain. It does not change X's base classes (first choice). Suppressing the original is what `from None` does (third choice), and nothing is re-raised or logged by the syntax itself (fourth choice).",
+    "The payload is built in create_label, outside _request_label, so tenacity never sees the KeyError (third choice) and the carrier client is never reached (fourth choice). process_batch only catches LabelError, so the KeyError escapes the loop and the whole batch call fails, losing the labels already in the local dict. It is not recorded in failures (first choice) because the except clause does not match it."
+  ]
+}

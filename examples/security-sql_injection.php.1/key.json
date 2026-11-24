@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "No defect. Although the query is assembled by string concatenation, every user-supplied value reaches the database as a bound parameter (statuses, assignee, search text, limit, offset). The only parts concatenated into the SQL text are literal fragments from the code, generated placeholder names (:status0, :status1, ...), and the ORDER BY column and direction, which are chosen from the SORTABLE allowlist or a fixed ASC/DESC pair, never copied from input.",
+    "orderBy() uses TicketFilter::SORTABLE[$filter->sort] and throws InvalidArgumentException otherwise, so the SQL contains only trusted column names; the direction is normalised to ASC/DESC. No quoting or character stripping is applied, and the prepare mode does not protect identifiers.",
+    "Placeholder names are built from the loop index, not from the values, and each value is bound with bindValue. There is no enum validation in this code; safety comes from binding.",
+    "Binding already prevents injection. LIKE wildcards are still interpreted inside a bound value, so escapeLike prefixes %, _ and the escape character itself with '!' and the ESCAPE clause tells the database to treat them literally."
+  ]
+}

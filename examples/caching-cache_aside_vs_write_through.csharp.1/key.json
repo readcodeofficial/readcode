@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "Preferences/PreferenceService.cs",
+        "startLine": 58,
+        "endLine": 58
+      }
+    },
+    0,
+    1,
+    2
+  ],
+  "explanations": [
+    "UnsubscribeAllAsync writes the new preferences to the repository but never updates or removes the Redis entry, unlike UpdateAsync, which writes through to the cache. After an unsubscribe, GetAsync keeps returning the cached copy with the old channels for up to the 30 minute expiry, so NotificationDispatcher keeps sending email, SMS and push to a user who has opted out. The fix is to remove the cache key (or write the new value through) after the repository save.",
+    "GetAsync checks IDistributedCache, and on a miss the application code (not the cache) loads from the repository, which is cache-aside. The null from LoadAsync is replaced with NotificationPreferences.Default and that value is then written with the 30 minute CacheOptions, so unknown users are cached too. It is not read-through because the cache does not own the loader (second choice), the default is cached rather than skipped (third choice), and nothing is written asynchronously (fourth choice).",
+    "The save happens first and nothing wraps the two calls in a transaction, so the committed database row stays. The exception propagates to the caller (the endpoint returns an error) and the old cached JSON remains until it expires after 30 minutes or another write replaces it. There is no automatic rollback (first choice) and no internal retry in this code (third choice). The cache write is after the database write, so the reverse split (fourth choice) cannot happen here.",
+    "There is no lock, single-flight or SetNX logic, so concurrent misses each call LoadAsync and then SetStringAsync. Because both write equivalent values, the result is correct but the database sees duplicate reads, which only matters under heavy load. SetStringAsync overwrites rather than failing on an existing key (second choice), nothing blocks the second caller (first choice), and defaults are only used when the repository returns null (fourth choice)."
+  ]
+}

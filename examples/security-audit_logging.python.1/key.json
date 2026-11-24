@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "shop/orders.py",
+        "startLine": 38,
+        "endLine": 39
+      }
+    },
+    0,
+    2,
+    1
+  ],
+  "explanations": [
+    "In cancel_order the before snapshot is taken after the order has already been mutated (status set to cancelled and cancel_reason set). The audit row's before and after are therefore identical in status and reason, so the trail cannot show what the order looked like before the cancellation. refund_order takes the snapshot before mutating, which is the correct order. The transactional write, redaction and append-only listener are sound.",
+    "record_event calls session.add and never commits; the audit event is part of the same unit of work opened by session.begin() in the service. A failed commit rolls back both rows, so the trail never claims something happened that did not. A flush alone does not make data durable.",
+    "before_update and before_delete mapper events fire for ORM unit-of-work flushes of individual objects, so the first raises. A Core/ORM-enabled bulk update(...) statement does not fire per-object mapper events, and neither does raw SQL, so true immutability needs database permissions or triggers as well.",
+    "_redact walks dicts and lists recursively and replaces the value of any key in REDACTED_KEYS, at any depth. It runs inside record_event on both before and after, so the stored JSON keeps city but masks phone and payment_token. The shipping key itself is not in the set, so the dict is kept."
+  ]
+}

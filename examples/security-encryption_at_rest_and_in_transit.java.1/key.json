@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/com/streamly/packaging/crypto/SegmentCipher.java",
+        "startLine": 51,
+        "endLine": 51
+      }
+    },
+    2,
+    1,
+    0
+  ],
+  "explanations": [
+    "Segment nonces are derived from the segment index alone, but the same title key is used for every rendition of a title. Segment 0 of the 720p rendition and segment 0 of the 1080p rendition are therefore encrypted under the same key and the same nonce. With AES-GCM a repeated (key, nonce) pair is catastrophic: XORing two ciphertexts reveals the XOR of the plaintexts, and the authentication key can be recovered, allowing forgery. Binding the rendition into AAD does not help, because AAD is authenticated but is not part of the keystream. The nonce must be unique per key (random 96-bit values, or a counter that includes a rendition id), or a separate key must be derived per rendition.",
+    "wrapTitleKey generates a random 12-byte IV with SecureRandom, encrypts the key bytes under the master key and stores iv||ciphertext; unwrapTitleKey splits the IV off again. Plain bytes would leave the keys readable, hashing would make them unrecoverable and unusable for decryption, and segment nonces play no role in key wrapping.",
+    "Associated data is authenticated, not encrypted or stored: the tag covers it, so decryptSegment with a different rendition or index fails with AEADBadTagException. This prevents swapping segments between positions or renditions. It does not influence the nonce, and nothing is compressed.",
+    "The SSLContext is TLSv1.3 with the trust managers built from the trust store (so server certificates are validated), the key managers from the client store (client authentication), and SSLParameters sets TLSv1.3 and the HTTPS endpoint identification algorithm, which enables hostname verification. Nothing disables verification, and the protocol list is restricted rather than left at defaults. Whether the URI is https is the caller's choice, but with this code the client trusts only the supplied store."
+  ]
+}

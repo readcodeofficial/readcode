@@ -1,0 +1,50 @@
+{
+  "id": "96aa718e-0b16-4d50-9515-77b34af4ae29",
+  "title": "Booking API integration tests on Testcontainers",
+  "name": "Booking integration tests",
+  "createdAt": "2026-11-24T14:49:46.004Z",
+  "durationMinutes": 13,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how these integration tests isolate their data from one another? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why can't the test class simply be annotated with @Transactional to roll back each test's changes, given that requests go through TestRestTemplate on a RANDOM_PORT server?",
+      "choices": [
+        "The embedded server handles each request on its own thread with its own transaction, so the test's rollback cannot undo what the server commits",
+        "Because TestRestTemplate disables transactions in the application",
+        "Because @Transactional only works with H2 and not with PostgreSQL",
+        "Because Testcontainers wraps every statement in an autocommit transaction"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What is the purpose of @DynamicPropertySource combined with the container started in the static initializer?",
+      "choices": [
+        "It restarts the container for every test method to guarantee a clean database",
+        "It supplies the JDBC URL, user and password of the container's randomly mapped port to the Spring context at startup, and the single container is shared by all subclasses in the JVM",
+        "It replaces the Flyway migrations with a schema generated from the entities",
+        "It makes Spring connect to a Postgres instance already running on localhost:5432"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does createBooking_forTakenSeat_returnsConflict actually verify about the application?",
+      "choices": [
+        "That two concurrent requests for the same seat result in exactly one booking",
+        "That a second sequential request for an already held seat is rejected with 409, using the real Postgres schema and constraints",
+        "That the first request returns 201, and that bookings are idempotent",
+        "That the service retries when the database is unavailable"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.integration_tests",
+    "backend.testing.flaky_tests",
+    "backend.data.transactions_and_isolation_levels"
+  ]
+}

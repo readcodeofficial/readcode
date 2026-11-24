@@ -1,0 +1,50 @@
+{
+  "id": "024cc2c0-401e-44fa-9ced-5bc0109d8868",
+  "title": "Fare search HTTP handler",
+  "name": "Fare search handler",
+  "createdAt": "2026-11-24T14:49:44.319Z",
+  "durationMinutes": 12,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code protects state that is shared between concurrent requests? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "ServeHTTP copies the cached fares into a new slice before sorting. What does the copy protect against?",
+      "choices": [
+        "Sorting rearranging the slice that other requests may be reading from the cache at the same time",
+        "The JSON encoder mutating the Fare structs while encoding them",
+        "The cache entry expiring while the response is being written",
+        "The upstream FareSource reusing its internal buffer on the next call"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two requests for the same route and date arrive at the same moment, and nothing for that key is cached yet. What happens?",
+      "choices": [
+        "The second request blocks on the mutex until the first has filled the cache, then reads the cached result",
+        "Both requests call the upstream FareSource, and whichever stores last overwrites the other's cache entry",
+        "The second request fails with a 502 because the key is already being fetched",
+        "Both requests call upstream, and the second store is rejected because the key already exists"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The service runs for months with a wide variety of routes and dates searched. Which statement about the cache is true?",
+      "choices": [
+        "Entries are removed automatically once cacheTTL has passed",
+        "The map is bounded because keys are only three-letter airport codes",
+        "Expired entries are only replaced when the same key is searched again, so the map keeps growing with each distinct route and date",
+        "Memory stays flat because the sorted copy lets old slices be garbage collected"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.shared_state_in_request_handlers",
+    "backend.concurrency.race_conditions",
+    "backend.caching.ttls_and_expiry"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/io/searchlane/index/routing/SearchIndexService.java",
+        "startLine": 39,
+        "endLine": 39
+      }
+    },
+    1,
+    1,
+    1
+  ],
+  "explanations": [
+    "Documents are written and read using the tenant id as the routing key (index, get and searchTenant all call router.shardFor(tenantId)), so every document of a tenant lives on one shard. delete alone hashes docId, which almost always selects a different shard than the one holding the document. The call completes without error against a shard that has nothing to delete, the document stays in the index, and deleted data keeps showing up in search results. delete must route with router.shardFor(tenantId).",
+    "Consistent (jump) hashing only moves the keys that must land on the new bucket, roughly 1/9 of them when going from 8 to 9, so reindexing is limited. With hash % n, changing n remaps most keys. The shard count is still an input, and consistent hashing does not balance tenant sizes.",
+    "Each call converts its timeout or error into an empty list through exceptionally and records the failing shard in the failed array, so allOf always completes normally. The merge then ranks the hits that did arrive and the partial flag is set from the array. The caller can therefore tell the answer is incomplete.",
+    "Co-locating a tenant lets searchTenant, get and index touch a single shard, but the whole tenant's storage and query load go to whatever shard its hash selects. A single large tenant can overload it. Tenant searches are cheaper, not more expensive, nothing is rebuilt on tenant creation, and uniqueness is unaffected."
+  ]
+}

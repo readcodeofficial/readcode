@@ -1,0 +1,51 @@
+{
+  "id": "5d8f76c1-b954-4dd4-b2fa-089439637c0e",
+  "title": "Restaurant menu feed import",
+  "name": "Menu feed importer",
+  "createdAt": "2026-11-24T14:49:45.285Z",
+  "durationMinutes": 11,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles file and network handles? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Importer.Sync calls defer tx.Rollback() right after BeginTx, even though the happy path ends in tx.Commit(). Why is that safe and useful?",
+      "choices": [
+        "Rollback after Commit undoes the commit, so the deferred call must be conditional.",
+        "It rolls back every transaction on exit, so Commit has no effect.",
+        "It only runs if the context is cancelled.",
+        "After a successful Commit, Rollback returns sql.ErrTxDone and does nothing; on any early return it releases the connection and discards partial work."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "ActiveItems checks rows.Err() after the loop even though every Scan error is handled. Why?",
+      "choices": [
+        "rows.Next() returns false both at the end of the data and when iteration fails, so Err distinguishes a truncated result from a complete one.",
+        "rows.Err() closes the result set.",
+        "Scan errors are only reported by rows.Err().",
+        "It is required to release the connection back to the pool."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In Fetch, when io.Copy fails the code calls tmp.Close() and os.Remove(tmp.Name()) before returning. Why is that needed?",
+      "choices": [
+        "Because os.CreateTemp files are deleted automatically only if closed.",
+        "Because the caller only removes the path Fetch returns on success; on error no one else knows the file name, so it would stay on disk with an open descriptor.",
+        "To flush buffered data so the HTTP client can reuse the connection.",
+        "Because io.Copy leaves the file locked."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.file_and_socket_handle_leaks",
+    "backend.errors.cleanup_on_error_paths",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.data.connection_pooling"
+  ]
+}

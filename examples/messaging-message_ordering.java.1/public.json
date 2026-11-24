@@ -1,0 +1,51 @@
+{
+  "id": "3cc7cfca-489e-4cbe-8854-9f650394da1c",
+  "title": "Playback event pipeline",
+  "name": "Playback event pipeline",
+  "createdAt": "2026-11-24T14:49:44.898Z",
+  "durationMinutes": 12,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code preserves the order of playback events for a session? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the publisher use event.sessionId() as the record key?",
+      "choices": [
+        "So Kafka compacts the topic down to one event per session.",
+        "So all events for one session hash to the same partition, where order is preserved, while different sessions can be processed in parallel.",
+        "So the consumer can skip deserializing the value for sessions it does not own.",
+        "So every event for a video goes to the same consumer instance."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In PlaybackStateConsumer, applying the record at offset N of one partition throws. What is the observable result?",
+      "choices": [
+        "The consumer commits past N so the poison event cannot block the group, and logs a warning.",
+        "The whole batch is abandoned and no offsets at all are committed for any partition.",
+        "The exception propagates out of run() and the consumer closes.",
+        "Records after N in that partition from this poll are not applied, offsets up to N-1 are committed, and N is fetched again on the next poll; other partitions continue normally."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The consumer crashes after SessionProjection.apply for a batch but before commitSync. After restart, what happens to those records?",
+      "choices": [
+        "They are redelivered, and the projection tolerates it because apply ignores events whose seq is not greater than the session's lastSeq.",
+        "They are lost, because auto commit is disabled.",
+        "They are redelivered and every event is applied a second time, double counting playback.",
+        "They are skipped because the group already holds their offsets."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.message_ordering",
+    "backend.messaging.queues_and_consumers",
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.deduplication"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    1,
+    2,
+    1
+  ],
+  "explanations": [
+    "There is no defect. Each side effect registers its inverse immediately after it succeeds, so the stack only ever contains actions for work that actually happened. On any exception UndoStack runs them in reverse order, one failing undo does not stop the others, and the original exception still propagates (the context manager returns False) with a note listing what needs manual cleanup. undo.commit() is the last statement inside the with block, after the final side effect, which clears the stack so a successful run is never rolled back. The audit write is deliberately outside the with block: a failure there happens after the account is fully provisioned and must not delete it. The lambda for each group binds the loop variable as a default argument, so each undo targets the right group.",
+    "The stack is last-in-first-out: codes were pushed last, so they are revoked first, then each group in reverse, then the user. __exit__ returns False so the mailer's exception propagates. The first choice invents behaviour the code does not rely on, the third reverses the order and swallows the error, and the fourth is wrong because an uncommitted stack is exactly what triggers the rollback.",
+    "Each undo runs in its own try/except inside the while loop, so a failure is logged and recorded in `failed` and the loop continues. After the loop, exc.add_note attaches the list to the original exception, and returning False lets that original exception propagate. An exception raised from inside __exit__ would have replaced the original, which is why undo errors are caught; the failure is not silent because of the log and the note.",
+    "Once commit() has run the work is complete, and the audit log is a record of it, not part of it. Inside the block, an audit outage would surface to the caller as a provisioning failure even though the user exists and was invited (and a retry would then fail on the duplicate user). Outside, the exception is caught and logged. Context managers can call anything, garbage collection is irrelevant, and __exit__ here returns False so it never suppresses exceptions."
+  ]
+}

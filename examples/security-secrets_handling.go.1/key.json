@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    2,
+    0
+  ],
+  "explanations": [
+    "There is no defect. Secrets are read from a mounted file (or env) and the file is rejected if group or others can access it. Errors drop the path with pathless, so error messages never leak file locations or contents. Secret redacts itself in fmt, JSON, text and slog output, so LogStartup logging the whole Config prints [redacted] for both secrets (Config embeds Secret values, not strings). Signature checking uses hmac.Equal, a constant-time comparison, after a length check on the decoded signature, the body is size-limited, and the 401 response is the same for malformed and wrong signatures. The case that looks risky, logging cfg, is safe because of the Secret methods.",
+    "slog resolves LogValuer implementations, and Secret.LogValue returns [redacted]. Config's fields are Secret values, so rendering them uses the same methods (String/Format/MarshalJSON depending on the handler) and never exposes the bytes. The unexported `value` field is never reached, and the output is not clear text or hex.",
+    "hmac.Equal uses a constant-time comparison (crypto/subtle). bytes.Equal returns at the first mismatch, a timing side channel an attacker can exploit to forge a signature gradually. Speed is not the reason, bytes.Equal compiles fine, and hmac.Equal does not hash anything.",
+    "FromFile checks info.Mode().Perm()&0o077 and returns the wrapped error before reading the content; FromEnv returns it directly (the *_FILE branch has no fallback once the variable is set) and LoadConfig propagates it. Nothing is logged and continued, the mode is never altered, and no silent fallback occurs."
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "id": "52f52e15-526c-4d52-90af-fc28806eda04",
+  "title": "Mutual TLS sync agent",
+  "name": "Mutual TLS sync agent",
+  "createdAt": "2026-11-24T14:49:46.240Z",
+  "durationMinutes": 12,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code makes sure the agent is talking to the intended server over TLS? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "In TlsContextFactory, which store proves the agent's identity to the server and which decides whether the server is trusted?",
+      "choices": [
+        "The trust store identifies the agent and the identity store validates the server",
+        "The identity store (key managers) supplies the agent's client certificate and key; the trust store (trust managers) holds the CAs used to validate the server",
+        "Both stores are used only to validate the server, and the agent authenticates with a password",
+        "The null SecureRandom passed to init supplies the certificate"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The block store accepts the TCP connection but then never sends anything during the TLS handshake. What happens in open()?",
+      "choices": [
+        "It waits forever because connectTimeout only covers TCP connect",
+        "startHandshake fails with a SocketTimeoutException after about 30 seconds, because the socket read timeout was set before the handshake and the plain socket is closed",
+        "The handshake is retried automatically over TLS 1.2 after 5 seconds",
+        "It succeeds, because the protocol list has two entries"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "uploadBlock compares the server's 32-byte acknowledgement to the SHA-256 of the data it sent. What does this add on top of TLS?",
+      "choices": [
+        "It protects the bytes against tampering on the network, which TLS does not",
+        "It confirms that the server received and acknowledged exactly the bytes sent, catching truncation or corruption on the server side or a protocol mix-up that TLS would not detect",
+        "It encrypts the block so the server cannot read it",
+        "It replaces the need for client certificates"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.encryption_at_rest_and_in_transit",
+    "backend.security.authentication",
+    "backend.resilience.timeouts",
+    "backend.resources.file_and_socket_handle_leaks",
+    "backend.integrations.third_party_adapters"
+  ]
+}

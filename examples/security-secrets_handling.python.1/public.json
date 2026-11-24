@@ -1,0 +1,51 @@
+{
+  "id": "87c80b53-499b-4231-8c69-3feb6ce9182e",
+  "title": "Secrets Manager credentials for a ledger service",
+  "name": "Ledger secrets provider",
+  "createdAt": "2026-11-24T14:49:45.774Z",
+  "durationMinutes": 10,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps secret values out of places they should not appear? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The ledger database password is rotated in Secrets Manager while the service is running. What happens on the next new connection?",
+      "choices": [
+        "The service keeps using the stale cached password until the process restarts",
+        "The first attempt with the cached password may be rejected with InvalidPassword, after which the secret is refetched and one more attempt is made",
+        "The service retries forever with the cached password until the TTL expires",
+        "boto3 pushes the new value into the provider's cache automatically"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is the webhook signature compared with hmac.compare_digest instead of ==?",
+      "choices": [
+        "compare_digest also decodes the hexadecimal string into bytes before comparing",
+        "== raises when the strings differ in length, whereas compare_digest does not",
+        "compare_digest takes the same time wherever the first mismatching character is, so response timing does not reveal how much of a forged signature was right",
+        "compare_digest is required for the str type; == only works on bytes"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Many worker threads call get_json for a secret whose cache entry just expired. What is the behavior of SecretsProvider?",
+      "choices": [
+        "Every thread calls Secrets Manager at once, because the cache check is not synchronized",
+        "Threads serialize on one lock, so a single fetch refreshes the entry and the rest reuse it, but all of them wait while that network call runs",
+        "Only the first thread waits; the others immediately get the old value",
+        "The threads fail with a RuntimeError because boto3 clients cannot be shared"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.secrets_handling",
+    "backend.observability.logging_sensitive_data",
+    "backend.security.authentication",
+    "backend.concurrency.shared_state_in_request_handlers"
+  ]
+}

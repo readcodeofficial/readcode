@@ -1,0 +1,51 @@
+{
+  "id": "ef40794f-a90f-4dd2-b517-f6e083d1be79",
+  "title": "Account provisioning with compensating rollback",
+  "name": "Account provisioning rollback",
+  "createdAt": "2026-11-24T14:49:45.206Z",
+  "durationMinutes": 12,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code cleans up when a step of provisioning fails? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The mailer raises an exception inside send_invite. Which cleanup happens, and in what order?",
+      "choices": [
+        "Only the user is deleted, because the directory removes memberships with it",
+        "Recovery codes are revoked, then the user leaves each group in reverse order, then the user is deleted; the mailer error then propagates to the caller",
+        "The user is deleted first, then groups, then codes, and the mailer error is swallowed",
+        "Nothing is undone, because commit() has not been reached and the stack is discarded"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "During rollback, delete_user itself raises an exception. What is the outcome?",
+      "choices": [
+        "The rollback exception replaces the original error, which is lost",
+        "Remaining undo steps are skipped, because the first failure aborts the loop",
+        "The failure is logged, the other steps still run, and the original error propagates with a note naming the step that needs manual cleanup",
+        "The failure is silently ignored and the caller cannot tell cleanup was incomplete"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is the audit.record call placed after the with block instead of inside it?",
+      "choices": [
+        "Because context managers cannot contain calls to external services",
+        "Because an audit failure inside the block would roll back an account that was already fully created and invited, whereas outside it only gets logged",
+        "Because the audit record must be written after the stack is garbage collected",
+        "Because inside the block the exception would be suppressed by __exit__"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.cleanup_on_error_paths",
+    "backend.errors.error_propagation",
+    "backend.errors.error_wrapping_and_context",
+    "backend.distributed.cross_service_consistency"
+  ]
+}

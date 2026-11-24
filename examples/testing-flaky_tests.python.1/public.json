@@ -1,0 +1,50 @@
+{
+  "id": "c9e96efe-7453-4346-9f77-a96653c05fbe",
+  "title": "Artifact cache tests",
+  "name": "Artifact cache tests",
+  "createdAt": "2026-11-24T14:49:45.970Z",
+  "durationMinutes": 11,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how these tests control time and ordering? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does injecting the clock fixture into ArtifactCache let test_ttl_boundaries do?",
+      "choices": [
+        "Run the TTL checks in separate threads so they finish sooner.",
+        "Mock os.utime so the file system is never touched.",
+        "Skip the cache directory creation.",
+        "Test expiry exactly at and after the TTL without sleeping, because both the stamped mtime and the age calculation come from the same fake time source."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "test_roundtrip fills the cache and a later test uses the cache fixture too. What does the later test see in the cache directory?",
+      "choices": [
+        "The entries left by earlier tests, since the fixture is shared for the session.",
+        "An empty directory, because the fixture builds each cache under that test's own tmp_path.",
+        "An empty directory only if the earlier test deleted its files.",
+        "Whatever entries survive pruning of the earlier test."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In test_put_replaces_existing_entry_and_refreshes_ttl the second get happens 90 simulated seconds after the first put, with a 60 second TTL, yet it returns b\"new\". Why?",
+      "choices": [
+        "The TTL is only enforced when the cache is over max_bytes.",
+        "get() returns stale entries when the clock moves less than twice the TTL.",
+        "The second put rewrote the file and re-stamped its mtime from the clock, so its age is 45 seconds.",
+        "The fake clock does not advance during the second advance call."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.flaky_tests",
+    "backend.testing.unit_test_design",
+    "backend.caching.ttls_and_expiry"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "main.go",
+        "startLine": 45,
+        "endLine": 45
+      }
+    },
+    0,
+    2,
+    3
+  ],
+  "explanations": [
+    "The defect is in main.go: the shutdown context is derived from ctx, the signal.NotifyContext context, which is already cancelled by the time the signal is handled. context.WithTimeout on a cancelled parent yields a context that is cancelled immediately, so the 20 second grace period never applies. srv.Shutdown returns at once with context.Canceled instead of waiting for in-flight requests, and runner.Drain sees ctx.Done() immediately, calls abort() and interrupts every pay run that was still processing. The fix is to derive the shutdown context from context.Background() (or context.WithoutCancel(ctx)).",
+    "Once the HTTP server has stopped accepting and finished its handlers, nothing calls Submit, so Drain closes the queue with no producers left and clients do not get avoidable 503 ErrClosed responses for work they believed was accepted. The port is not used by workers (second choice). Drain only cancels baseCtx if its own context expires, not immediately (third choice). The mutex only prevents a send on a closed channel; it does not make the order irrelevant (fourth choice).",
+    "Sending on a closed channel panics. Submit does its send while holding the mutex and re-checks closed, and Drain sets closed and closes the channel under the same mutex, so the two cannot interleave. Workers run concurrently and this lock does not order them (first choice). Guarding against a double close is a side effect, but a repeated Drain would not hang in any case and that is not the purpose (second choice). The store has its own mutex for its maps (fourth choice).",
+    "Drain calls r.abort() and then waits on <-done. process checks r.baseCtx.Err() before every employee, so running runs stop at the next employee, and queued runs, which workers still receive from the closed-but-nonempty channel, are marked StatusInterrupted straight away. Drain returns a wrapped context error and main exits with status 1. Queued runs are not silently discarded (first choice), workers do not finish the work after abort (second choice), and nothing in the code rolls back lines already saved (third choice)."
+  ]
+}

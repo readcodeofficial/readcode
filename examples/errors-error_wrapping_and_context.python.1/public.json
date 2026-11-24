@@ -1,0 +1,51 @@
+{
+  "id": "1b514f39-8fb6-4db1-a417-d18b396d0aef",
+  "title": "Shipping label creation with carrier error wrapping",
+  "name": "Shipping label service",
+  "createdAt": "2026-11-24T14:49:45.119Z",
+  "durationMinutes": 14,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code wraps carrier errors and preserves their context? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The carrier answers one label request with HTTP 400. How many times does _request_label call the carrier, and what does process_batch record for that shipment?",
+      "choices": [
+        "Four times, then a failure entry named LabelError",
+        "Once, then a failure entry named CarrierRejected taken from the exception chain",
+        "Once, and the 400 propagates out of process_batch because only LabelError is caught per shipment",
+        "Once, then a failure entry named HTTPError because root_cause follows the chain to the requests exception"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In CarrierClient.create_label, why is `from exc` used on each raise?",
+      "choices": [
+        "It makes the new exception inherit from the requests exception class so existing handlers still match",
+        "It records the original exception as __cause__, so tracebacks show it as the direct cause and code walking the chain can find it",
+        "It suppresses the original exception so callers only see the domain error",
+        "It re-raises the original exception after the domain exception has been logged"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "While building the payload in LabelService.create_label, a shipment dict turns out to lack the 'weight_g' key. What happens in process_batch?",
+      "choices": [
+        "The shipment is recorded in failures with root cause KeyError and processing continues",
+        "A KeyError propagates out of process_batch, abandoning the remaining shipments and discarding the labels collected so far",
+        "tenacity retries the KeyError up to four times and then raises LabelError",
+        "The KeyError is converted into a CarrierRejected by the client"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.error_wrapping_and_context",
+    "backend.errors.error_propagation",
+    "backend.resilience.retries_and_backoff",
+    "backend.observability.structured_logging"
+  ]
+}

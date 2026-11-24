@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/ledger.rs",
+        "startLine": 21,
+        "endLine": 21
+      }
+    },
+    1,
+    1,
+    0
+  ],
+  "explanations": [
+    "ClickEvent.placement is a free-form string from the request body, and BudgetLedger::price looks it up with HashMap indexing (self.rates_micros[&click.placement]), which panics when the key is missing. The signature returns a plain i64, so callers cannot see the failure. A client sending an unknown placement therefore trips CatchPanicLayer and gets a 500 with a logged panic instead of a 422, and ad SDKs will usually retry 5xx responses. It should use .get() and return AppError::Invalid so the existing IntoResponse mapping applies.",
+    "std::sync::Mutex is poisoned when a thread panics while holding the guard, and then lock() returns Err for everyone. With .unwrap() each later request would panic and CatchPanicLayer would answer 500 forever. into_inner recovers the guard, at the cost of possibly seeing state a panicking thread left half-updated. Mutex has no read-only sharing (that is RwLock), and timeouts do not release guards.",
+    "The sqlx::Error is converted via #[from] into AppError::Storage, whose IntoResponse logs the detail server-side and returns 503 with the fixed text 'storage unavailable'. Before returning, the handler calls ledger.refund with the same cost, undoing the earlier charge. No panic is involved, and the raw database error is not exposed.",
+    "In axum the layer added last is the outermost one, so CatchPanicLayer wraps TimeoutLayer and the handler. A panic raised in the handler (or in the timeout service) unwinds into CatchPanicLayer, which calls handle_panic and returns a 500 while the process keeps running. Layers run in nested order, not in parallel, and a layer applies to every route that existed when .layer was called, which here is the one route."
+  ]
+}

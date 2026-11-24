@@ -1,0 +1,51 @@
+{
+  "id": "57537f5b-749a-4541-b4ec-1002d4ab12c0",
+  "title": "Ride request validation",
+  "name": "Ride request validation",
+  "createdAt": "2026-11-24T14:49:45.699Z",
+  "durationMinutes": 11,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code validates and sanitizes user-supplied input? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A rider submits pickup_note = \"<img src=x onerror=alert(1)>Gate B\". What is stored in rides.note?",
+      "choices": [
+        "The request is rejected with 422 because it contains markup.",
+        "Gate B, because bleach.clean with no allowed tags and strip=True drops the tags and keeps the text.",
+        "&lt;img src=x onerror=alert(1)&gt;Gate B, because bleach always escapes disallowed tags.",
+        "The original string, because the validator only runs for strings longer than 280 characters."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "ride_history builds its ORDER BY clause with an f-string. Why is that acceptable here, and why not use a bound parameter for it?",
+      "choices": [
+        "It is acceptable because SQLAlchemy's text() escapes interpolated values automatically.",
+        "It is acceptable because the limit is capped at 200 rows.",
+        "The column name comes from a fixed allow-list (SORT_COLUMNS), and identifiers cannot be bound as parameters, so only known values are ever interpolated.",
+        "It is not acceptable; bound parameters work for column names too."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A request asks for GET /v1/receipts//etc/passwd, so name = \"/etc/passwd\". What does receipt_path return?",
+      "choices": [
+        "None, because RECEIPT_DIR / \"/etc/passwd\" yields /etc/passwd (an absolute right operand replaces the base), which is not inside RECEIPT_DIR.",
+        "The file /var/lib/rides/receipts/etc/passwd if it exists.",
+        "The contents of /etc/passwd, because resolve() follows the absolute path.",
+        "None, but only because /etc/passwd is not a file."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.input_sanitization",
+    "backend.api.request_validation",
+    "backend.security.sql_injection",
+    "backend.observability.structured_logging"
+  ]
+}

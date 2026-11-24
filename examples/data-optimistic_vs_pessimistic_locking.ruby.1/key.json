@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "app/services/market_purchase.rb",
+        "startLine": 38,
+        "endLine": 39
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "The seller credit is an unprotected read-modify-write. Player has no lock_version column and the seller row is neither locked with with_lock nor updated atomically. Two buyers purchasing different listings from the same seller at the same time can both read the same gold value and both write back gold + price, so one sale's payment is lost. The buyer's debit is correctly protected by with_lock and the listing by its lock_version check, but the seller row was forgotten. Fix: seller.with_lock { seller.increment!(:gold, price) } or Player.where(id: ...).update_counters / an atomic SQL increment.",
+    "Both requests load the listing at the same lock_version. The first update! succeeds and increments the version; the second issues UPDATE ... WHERE lock_version = old, matches zero rows, and Rails raises StaleObjectError, which rolls back that request's gold debit. with_lock locks the buyer's own row, and the two buyers are different rows, so it does not serialize them. A transaction alone does not serialize anything at the default isolation level. active? is a plain in-memory check on an unlocked read.",
+    "with_lock opens a transaction and takes SELECT ... FOR UPDATE; when called inside an existing transaction it joins it, so the database holds the lock until the outermost transaction ends. That is why the debit, listing update and item grant happen while other requests touching the same buyer wait. A lock is not released by the end of a Ruby block, by an UPDATE statement, or by the HTTP layer.",
+    "with_lock calls lock!, which issues a SELECT ... FOR UPDATE and reloads the attributes. The second request blocks until the first transaction commits, then sees gold = 30 and fails the balance check, which the controller reports as 402. Negative balances would require reading the balance without the lock. StaleObjectError only applies to models with lock_version, and Player has no such column."
+  ]
+}

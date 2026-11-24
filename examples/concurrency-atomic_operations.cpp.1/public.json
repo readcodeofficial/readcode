@@ -1,0 +1,49 @@
+{
+  "id": "dff4b653-558d-4fd3-91bf-34372af2813a",
+  "title": "Stream ingest admission and live-edge tracking",
+  "name": "Stream ingest limiter",
+  "createdAt": "2026-11-24T05:03:32.669Z",
+  "durationMinutes": 12,
+  "language": "C++",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code enforces the maximum number of concurrent streams? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "In HighWaterMark::advance, compare_exchange_weak fails because another thread has meanwhile stored a larger media time. What happens next?",
+      "choices": [
+        "advance returns false immediately without looking at the new value, because a failed exchange always means someone else won.",
+        "current is overwritten with the value actually found in value_, the while condition is re-evaluated against it, and advance returns false if the found value is not smaller than candidate.",
+        "The loop spins forever, because current is never updated when the exchange fails.",
+        "value_ is overwritten with candidate anyway, because the success order is acq_rel."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "IngestService::snapshot() reads segments_in_, bytes_in_, the limiter counters and the live edge with separate loads. What can a monitoring thread observe?",
+      "choices": [
+        "A torn 64-bit value on 32-bit platforms, because the counters are plain integers wrapped in std::atomic only for increments.",
+        "Values that are always mutually consistent, because the acquire load in HighWaterMark::get() orders all the earlier relaxed loads.",
+        "Stale values from before the last segment, because relaxed counters are only published when a thread exits.",
+        "Each field is individually exact, but the fields need not come from the same instant, so bytes and segments may not match what any single moment looked like."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two publisher threads call IngestService::accept_segment at the same moment. The sequencer uses fetch_add with memory_order_relaxed. What does that guarantee?",
+      "choices": [
+        "The two threads receive distinct sequence numbers, but relaxed ordering says nothing about how this operation is ordered relative to other memory accesses in either thread.",
+        "The two threads may receive the same sequence number, because relaxed operations are not required to agree on a single order for one variable.",
+        "The thread that receives the lower sequence number is guaranteed to have its live-edge update and byte count visible to the other thread first.",
+        "The numbers are distinct only because accept_segment is called from threads that each hold a StreamPermit."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.atomic_operations",
+    "backend.concurrency.race_conditions"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "id": "948b1461-ec15-4551-9c6b-1e50b1e9c1d1",
+  "title": "Login audit event consumer",
+  "name": "Login audit consumer",
+  "createdAt": "2026-11-24T14:49:45.089Z",
+  "durationMinutes": 14,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps a slow audit sink from overwhelming the service? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The audit sink stalls and the deepest lane reaches 300 queued events. What does the consumer do next?",
+      "choices": [
+        "Stops calling poll until the lanes drain, to avoid fetching more records",
+        "Pauses its assigned partitions but keeps calling poll, which returns no records while paused",
+        "Blocks inside dispatch until the lane queue has room again",
+        "Drops new records for the slow lane and commits their offsets"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why are the offsets recorded with completed.merge(tp, offset + 1, Math::max) safe to commit?",
+      "choices": [
+        "Because commitSync sorts offsets before sending them to the broker",
+        "Because each partition always maps to the same single-threaded lane, so its records finish in order and the highest completed offset implies all earlier ones are done",
+        "Because the sink writes are transactional, so earlier offsets are never lost",
+        "Because ConcurrentHashMap guarantees work is executed in submission order"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What can happen to events if the process is killed right after the sink wrote an event but before commitCompleted ran?",
+      "choices": [
+        "The event is lost, because its offset was committed before processing",
+        "The event is redelivered after restart and may be written to the sink a second time",
+        "The event is moved to a dead letter topic automatically",
+        "The consumer refuses to restart until the offset is repaired manually"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.backpressure",
+    "backend.messaging.queues_and_consumers",
+    "backend.messaging.at_least_once_delivery",
+    "backend.concurrency.thread_and_worker_pools",
+    "backend.resilience.graceful_shutdown"
+  ]
+}

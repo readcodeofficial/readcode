@@ -1,0 +1,51 @@
+{
+  "id": "4e979848-a686-478d-a352-1d5952d54e92",
+  "title": "Raft-replicated post store",
+  "name": "Replicated post store",
+  "createdAt": "2026-11-24T14:49:46.077Z",
+  "durationMinutes": 14,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code reports the outcome of replicated writes? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A follower receives Timeline(author, 20, true). What happens?",
+      "choices": [
+        "It serves the read from its own FSM, since the data is replicated",
+        "It returns a NotLeaderError carrying the address of the node it believes is leader",
+        "It forwards the request to the leader and returns the result",
+        "It runs Barrier and then reads local state"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the strong read path call Barrier after VerifyLeader succeeds?",
+      "choices": [
+        "To make sure all entries committed before the read have been applied to the local FSM, so the read reflects them",
+        "To persist a snapshot of the FSM before reading",
+        "To demote other nodes so they stop serving reads",
+        "To extend the leader's lease so VerifyLeader does not have to be called again"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A leader accepts Apply, replicates the entry to a majority, then loses leadership before replying. What may the caller of Publish observe?",
+      "choices": [
+        "Always a successful return, since the entry reached a majority",
+        "Always an error, and the entry is guaranteed not to have been applied",
+        "Possibly an error even though the entry was committed and will be applied on every replica",
+        "A panic from the FSM because the leader term changed"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.distributed.replication_and_consensus",
+    "backend.errors.error_propagation",
+    "backend.caching.stale_reads",
+    "backend.api.idempotency"
+  ]
+}

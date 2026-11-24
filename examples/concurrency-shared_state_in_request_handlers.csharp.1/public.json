@@ -1,0 +1,51 @@
+{
+  "id": "bc29101f-5eaa-4e3f-bb83-3e968df76391",
+  "title": "Flight fare quotes and seat holds",
+  "name": "Fare quote service",
+  "createdAt": "2026-11-24T14:49:44.248Z",
+  "durationMinutes": 12,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles state shared between concurrent requests? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "FareQuoter is registered as a singleton but resolves IFlightInventory through IServiceScopeFactory inside QuoteAsync instead of taking it in the constructor. Why?",
+      "choices": [
+        "So the quoter can cache inventory instances between requests for speed.",
+        "Because minimal API endpoints cannot resolve scoped services directly.",
+        "IFlightInventory is scoped; a singleton cannot receive a scoped service in its constructor, so the quoter creates a short-lived scope per call and the inventory lives only for that call.",
+        "To give each caller a private copy of the HttpClient and avoid sharing it between threads."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two POST /holds requests arrive at the same moment for 2 seats each on a flight with 3 seats remaining in the database. Both read remaining = 3 before calling TryHold. What happens?",
+      "choices": [
+        "Exactly one succeeds and the other gets 409, because the check against the held count and the increment happen together under one lock.",
+        "Both succeed, because each request read remaining = 3 from the database before reaching the registry.",
+        "Both succeed unless the database row is locked by the inventory query.",
+        "Exactly one succeeds, but which one is decided by the database rather than the registry."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "RequestAudit is registered as scoped and holds a List<string>. Two requests run concurrently and each calls Record once. What does each request's log line report as its entry count?",
+      "choices": [
+        "The second request logs 'entry 2' because both share the same list.",
+        "The list can be corrupted because it is accessed from two threads without a lock.",
+        "Both log 'entry 1' only if the singleton FareQuoter resets the list.",
+        "Both log 'entry 1': each request gets its own RequestAudit instance and list, so no cross-request sharing or locking is involved."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.shared_state_in_request_handlers",
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.concurrency.race_conditions",
+    "backend.design.dependency_injection"
+  ]
+}

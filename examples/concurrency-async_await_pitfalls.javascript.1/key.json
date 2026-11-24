@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    1
+  ],
+  "explanations": [
+    "There is no defect. Several spots look suspicious but are correct. The recordSync promise is not awaited, but it has a .catch attached, so it cannot cause an unhandled rejection and it deliberately does not delay the returned summary. Directory walking awaits sequentially in a for loop on purpose, to avoid opening many directories at once, while file hashing and uploads go through mapLimit, which bounds concurrency (cursor++ runs synchronously, so no two workers take the same item). Per-file failures in #uploadOne are converted into result objects, so one bad file does not abort the others, and Promise.allSettled is used for the stale-file removals so one failed removal cannot reject the sync. Each attempt gets its own AbortController and its timer is cleared in finally. The loop in run catches errors from sync so one failed cycle does not stop the worker, and treats only AbortError from sleep as a normal stop.",
+    "Promise.allSettled never rejects: it waits for every removal and returns a status per promise. The code counts the 'rejected' entries as removalFailures and subtracts them from removed, so the summary is accurate (2 removed, 1 failure). Promise.all would have rejected immediately on the first failure, which is what the first two choices describe, and in-flight promises cannot be cancelled anyway. The fourth choice is wrong because the code explicitly filters on status === 'rejected'.",
+    "A rejection is only 'unhandled' if no handler is attached by the time the promise settles; here .catch(...) is attached right away and logs a warning. Because sync() has already returned, the error cannot propagate to run(), which makes the last two choices impossible; no state is stored for later calls. The missing await is therefore a deliberate fire-and-forget, not a bug.",
+    "mapLimit starts exactly min(limit, items) workers, and each one awaits fn for its current item before taking the next index. #uploadOne includes the retry loop and the sleep, so the worker stays occupied and the other three keep draining the queue. Nothing starts more workers (first choice), the pool does not shrink or lose the slot (third), and sleep from node:timers/promises is a timer, not a blocking call (fourth)."
+  ]
+}

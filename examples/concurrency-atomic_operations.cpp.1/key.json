@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "limiter.h",
+        "startLine": 14,
+        "endLine": 18
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The defect is in StreamLimiter::try_acquire in limiter.h. The limit check (active_.load) and the increment (active_.fetch_add) are two separate atomic operations, so the pair is not atomic. With max_streams_ = 100 and active_ = 99, several publishers can all load 99, all pass the check, and all increment, ending with 100 + N active streams. Each individual operation is atomic, but the check-then-act sequence is a race. The fix is a compare_exchange_weak loop that only increments when the value it just observed is below the limit (or an unconditional fetch_add followed by an undo when the result exceeds the limit).",
+    "On failure, compare_exchange_* writes the value it observed back into the 'expected' argument (current). The loop then re-checks candidate > current: if the other thread stored something at least as large, the loop exits and false is returned; if it stored something smaller, the loop retries with the fresh value. The first choice is wrong because it would skip the retry when the other thread stored a smaller value. The third is wrong because current is refreshed by the failed exchange. The fourth is wrong because a failed exchange never writes to value_, whatever the memory order.",
+    "Every load is of a std::atomic, so none can tear and each returns some value that was really stored. But snapshot() is not one atomic operation: segments_in_ and bytes_in_ are updated by two separate fetch_adds in accept_segment, and the loads happen at different times, so a reader can see a segment counted but its bytes not yet added. Nothing in the loads (the acquire in get() only orders operations after it) makes the set consistent. Relaxed operations are still visible promptly; they are not deferred until a thread exits, and std::atomic is never torn.",
+    "fetch_add is an atomic read-modify-write, so each call observes a different previous value regardless of memory order; relaxed only removes ordering with respect to other variables. The second choice is wrong: all operations on one atomic variable have a single modification order. The third is wrong because relaxed gives no cross-variable ordering, so a lower sequence number says nothing about the visibility of live_edge_ or bytes_in_. The fourth is wrong because uniqueness comes from the atomic RMW, not from the permits."
+  ]
+}

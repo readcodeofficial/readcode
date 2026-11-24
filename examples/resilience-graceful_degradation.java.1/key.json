@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/io/fleetpulse/status/DeviceStatusService.java",
+        "startLine": 50,
+        "endLine": 50
+      }
+    },
+    1,
+    2,
+    1
+  ],
+  "explanations": [
+    "The fallback in getStatus is registered only for CallNotPermittedException, which is thrown when the circuit is already open. While the gateway is merely slow or failing (a 2 second request timeout, a 5xx turned into IllegalStateException, a BulkheadFullException), the calls throw and the exception propagates to the caller, even though a perfectly usable cached status exists. The cache only helps after the breaker has seen enough failures (a window of 20 calls at 50%) to open. getFleetSummary shows the intended pattern: a catch-all fallback. The fix is to register the fallback for all relevant failures (for example the Exception/Throwable overload, or including timeouts and bulkhead rejections).",
+    "With the breaker open, CallNotPermittedException is thrown, the fallback runs and lastKnownStatus returns the cached value mapped through asDegraded, so degraded is true. It is not unchanged because of the map(DeviceStatus::asDegraded) call; no exception propagates because the fallback handles that type; StatusUnavailableException only occurs when the cache has nothing usable.",
+    "getUsable compares the age against maxStaleness and returns Optional.empty() for old entries; orElseThrow then builds StatusUnavailableException carrying the cause. Nothing evicts entries or retries the gateway, and the method returns DeviceStatus, never an Optional.",
+    "Concurrent fetches for the same device can complete out of order. merge applies the remapping function atomically per key and keeps whichever reading has the later observedAt, so a late-arriving older response cannot replace a newer one. Plain put on a ConcurrentHashMap is also thread safe, so merge is not needed for that; expiry is handled at read time in getUsable, not in put."
+  ]
+}

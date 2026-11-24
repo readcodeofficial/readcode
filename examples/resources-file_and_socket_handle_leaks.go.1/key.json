@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "menus/menufeed.go",
+        "startLine": 40,
+        "endLine": 40
+      }
+    },
+    3,
+    0,
+    1
+  ],
+  "explanations": [
+    "Yes. In Fetch, the status check returns before defer resp.Body.Close() is registered. Any non-200 response (404, 500, 429) returns without closing the body, so the underlying connection is never released back to the http.Client's pool; repeated failing feeds leak sockets and goroutines until the process runs out of connections or file descriptors. The defer must come right after the err check from client.Do, before the status check.",
+    "Rollback on a finished transaction is a harmless no-op returning ErrTxDone. On error returns before Commit it undoes the deactivate/upserts and returns the connection to the pool. It never undoes a committed transaction.",
+    "A mid-iteration network or driver error makes Next return false; only rows.Err() reveals it, otherwise a partial menu would be returned as complete. Closing is done by the deferred rows.Close().",
+    "Sync defers os.Remove(path) only after Fetch returned a path. On the error path the name is never returned, so Fetch must clean up itself and close the descriptor. CreateTemp files are not auto-deleted, and flushing/locking are unrelated."
+  ]
+}

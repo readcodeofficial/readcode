@@ -1,0 +1,52 @@
+{
+  "id": "e3e2ee41-80c7-4211-97ca-162d71d5135b",
+  "title": "Outbound webhook delivery worker",
+  "name": "Webhook delivery worker",
+  "createdAt": "2026-11-24T14:49:46.158Z",
+  "durationMinutes": 14,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code delivers webhooks and retries failed deliveries? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "enqueueWebhooks passes jobId: `${event.id}:${endpoint.id}`. What does this give the system?",
+      "choices": [
+        "Jobs for the same endpoint are processed in strict order",
+        "If the same storage event is enqueued twice, BullMQ ignores the second add for each endpoint while the first job still exists",
+        "Each endpoint receives events at most once per hour",
+        "The worker can look up the endpoint secret from the job id"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A customer's endpoint returns HTTP 503 for every request for two days. What happens to a delivery for that endpoint?",
+      "choices": [
+        "It is retried forever with growing delays",
+        "It is dropped after the first failure because 5xx responses are not retried",
+        "It is retried once after 10 seconds, then marked as completed",
+        "It is attempted up to 8 times with exponentially growing delays, then stays in the failed set for inspection and is not retried automatically"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "fetch is called with redirect: \"manual\". What is the effect when a customer's endpoint answers with a 302 to another URL?",
+      "choices": [
+        "The 302 is not followed; since it is not an ok status and is not retryable, the job fails permanently as a rejected delivery",
+        "The request is retried against the new URL with the same signature",
+        "The 302 is treated as success and the job completes",
+        "The worker follows redirects only for POST requests with a body"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.integrations.webhooks_outbound",
+    "backend.api.idempotency",
+    "backend.resilience.retries_and_backoff",
+    "backend.resilience.timeouts",
+    "backend.messaging.deduplication"
+  ]
+}

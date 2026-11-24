@@ -1,0 +1,51 @@
+{
+  "id": "eb6c2f86-7a25-4f39-8215-304d628e4392",
+  "title": "Notification preference service backed by Redis",
+  "name": "Notification preference cache",
+  "createdAt": "2026-11-24T14:49:44.804Z",
+  "durationMinutes": 14,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this service keeps the cache and the database consistent when preferences change? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which caching strategy does GetAsync implement, and what happens to a user with no row in the database?",
+      "choices": [
+        "Cache-aside: on a miss it loads from the repository, and for an unknown user it caches the default preferences for 30 minutes",
+        "Read-through: the cache itself calls the repository, and an unknown user results in a null that is not cached",
+        "Cache-aside: on a miss it loads from the repository, but an unknown user is never cached so every call hits the database",
+        "Write-behind: the cache is filled first and the repository is updated asynchronously later"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In UpdateAsync, the repository save succeeds and then the Redis SetStringAsync call throws a timeout. What is the resulting state?",
+      "choices": [
+        "Both stores keep the old value because the save is rolled back automatically",
+        "The database holds the new preferences, the caller sees an exception, and the cache keeps serving the old value until its entry expires or is overwritten",
+        "The database holds the new preferences and the cache holds them too, because IDistributedCache retries internally",
+        "The cache holds the new preferences while the database still holds the old ones"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two requests call GetAsync for the same user on a cold cache at the same moment. What happens?",
+      "choices": [
+        "The second request blocks until the first has populated the cache, so only one database query runs",
+        "Redis rejects the second SetStringAsync because the key already exists",
+        "Both requests may query the database and both write the same entry; the code does not coordinate them",
+        "The second request receives the default preferences instead of waiting"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.caching.cache_aside_vs_write_through",
+    "backend.caching.stale_reads",
+    "backend.caching.ttls_and_expiry",
+    "backend.caching.cache_invalidation"
+  ]
+}

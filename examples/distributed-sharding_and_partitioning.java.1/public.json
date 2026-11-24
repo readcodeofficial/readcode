@@ -1,0 +1,52 @@
+{
+  "id": "2e925bd2-c789-4f34-accd-9efddaaeadba",
+  "title": "Tenant-sharded search index service",
+  "name": "Sharded index router",
+  "createdAt": "2026-11-24T14:49:46.040Z",
+  "durationMinutes": 11,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code routes operations to shards? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The cluster grows from 8 to 9 shards. Why is Guava's consistentHash used instead of Math.floorMod(hash, shardCount)?",
+      "choices": [
+        "It produces a better spread of keys across shards than modulo hashing",
+        "Only about one ninth of keys move to a different shard, whereas modulo would remap most of them",
+        "It makes shard lookups possible without knowing the shard count",
+        "It guarantees that no tenant is ever larger than another"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "During searchAll, shard 5 times out while the others respond. What does the caller receive?",
+      "choices": [
+        "A failed future, because allOf fails if any call fails",
+        "Results from the other shards with partial = true",
+        "Results from the other shards, indistinguishable from a complete answer",
+        "An empty result, because merging requires every shard"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What is the main operational cost of routing by tenantId rather than by docId?",
+      "choices": [
+        "Tenant-scoped searches must be sent to every shard",
+        "Documents of a very large tenant all land on one shard, which can become a hot or oversized shard",
+        "The router has to be rebuilt every time a tenant is added",
+        "Document ids can no longer be unique within the index"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.distributed.sharding_and_partitioning",
+    "backend.resilience.graceful_degradation",
+    "backend.resilience.timeouts",
+    "backend.concurrency.async_await_pitfalls",
+    "backend.security.multi_tenant_isolation"
+  ]
+}

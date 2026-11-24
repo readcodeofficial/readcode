@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/pipeline.rs",
+        "startLine": 23,
+        "endLine": 23
+      }
+    },
+    2,
+    0,
+    2
+  ],
+  "explanations": [
+    "The retry queue is created with mpsc::unbounded_channel. The row channel is bounded, but flush() hands failed batches to the retry queue without ever waiting, and the single retry worker spends most of its time sleeping in backoff (up to five attempts per batch) and processes batches one at a time. When the payroll API is slow or down, the batcher keeps reading rows from the database at full speed and every failed batch of 500 rows is pushed onto the unbounded queue, so memory grows with the size of the whole export instead of being limited by the row channel. A bounded channel (send().await so the batcher stalls and the row channel applies backpressure to the database stream) fixes it.",
+    "Channel::send on a bounded tokio mpsc channel waits for capacity, which pauses the loop and, since sqlx's fetch() is a lazy stream, stops reading from the database. fetch() does not collect the rows (fetch_all would). Rows are not dropped, and a full channel is not an error; send only errors when the receiver has been dropped, which the code treats as a signal to stop.",
+    "The worker loops on rx.recv(), which only yields None after every sender is dropped and the queue is empty. Without the drop, retrier.await would hang forever. Dropping does not cancel queued batches (they are still delivered first), the sender holds almost no memory, and nothing prevents using it after the row channel closes.",
+    "retry_loop counts batches that were not delivered after MAX_RETRY_ATTEMPTS and returns the count; run_export awaits the worker to the end and then bails if abandoned > 0. Other batches are therefore still processed, the error appears only at the end, the failure is not just logged, and retries are capped at five attempts rather than infinite."
+  ]
+}

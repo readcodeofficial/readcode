@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/resources/application.yml",
+        "startLine": 26,
+        "endLine": 26
+      }
+    },
+    1,
+    3,
+    2
+  ],
+  "explanations": [
+    "The liveness group includes the db and orderQueue indicators. Liveness answers the question 'should this process be restarted', and a database or Kafka outage is not fixed by restarting the pods. When either dependency goes down, every replica reports liveness DOWN, Kubernetes restarts them all at once, and the restarts add startup load and lose in-memory state while the real problem persists. Dependencies belong in the readiness group only (as in the readiness line), so the pod is taken out of rotation without being killed. Liveness should contain only livenessState and checks about the process itself.",
+    "kitchenBacklog is in the readiness group and returns the custom DEGRADED status. The group's aggregate is the highest-priority status in status.order among its members, and DEGRADED ranks above UP. Without an http-mapping, Spring Boot maps unknown statuses to 200 anyway, but here it is explicit. The pod therefore stays in rotation while operators can see it is degraded. DOWN is only produced by indicators returning DOWN (first choice), and the status of a member does count towards the aggregate (third choice). Groups do not fall back to a first indicator (fourth choice).",
+    "The AdminClient request is capped by DescribeClusterOptions.timeoutMs, and the result future is waited on with get(timeoutMs, MILLISECONDS), both set from fleetbite.health.kafka-timeout-ms (1500). On expiry a TimeoutException is caught and the indicator returns DOWN. The AdminClient is also configured with 2 second API timeouts, so it does not retry indefinitely (first choice). The lifecycle shutdown timeout is unrelated (second choice), and nothing is cached in this class (third choice).",
+    "Catching InterruptedException clears the thread's interrupted status. Re-asserting it with Thread.currentThread().interrupt() preserves the signal for the caller or container, which is the standard handling when the exception cannot be rethrown. It has nothing to do with Health.down (first choice), the AdminClient lifecycle (second choice, it is a bean closed by destroyMethod), or scheduling (fourth choice)."
+  ]
+}

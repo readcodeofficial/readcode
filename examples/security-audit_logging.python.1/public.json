@@ -1,0 +1,51 @@
+{
+  "id": "df63143c-b384-4f0a-9785-394e23a75cb5",
+  "title": "Order audit trail",
+  "name": "Order audit trail",
+  "createdAt": "2026-11-24T14:49:46.188Z",
+  "durationMinutes": 12,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code records audit events for order changes? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The database commit fails (for example a deadlock) right after record_event has run in refund_order. What is in the database?",
+      "choices": [
+        "Neither the order change nor the audit row, because record_event only adds to the session and both are committed or rolled back together.",
+        "The audit row but not the order change, because audit rows use a separate transaction.",
+        "The order change but not the audit row, because the audit insert is deferred.",
+        "Both, because the audit event is flushed immediately."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "An admin script loads an AuditEvent through the ORM, changes its actor_id and flushes. Another script runs session.execute(update(AuditEvent).values(actor_id=\"x\")). What happens?",
+      "choices": [
+        "Both are blocked by the before_update listener.",
+        "Both succeed, because the listener only protects deletes.",
+        "The ORM edit raises RuntimeError, but the bulk update statement bypasses the mapper event and changes the rows.",
+        "The bulk update raises, but the ORM edit succeeds."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "An order has shipping = {\"city\": \"Lyon\", \"phone\": \"+33 6 12 34 56 78\"} and a payment_token. What do the stored before/after JSON documents contain for these fields?",
+      "choices": [
+        "city, phone and payment_token in clear text, because redaction is applied only to log output.",
+        "shipping.city in clear text, while shipping.phone and payment_token are replaced by \"[REDACTED]\", because _redact recurses into nested dicts.",
+        "The whole shipping object replaced by \"[REDACTED]\".",
+        "Only payment_token redacted, because only top-level keys are checked."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.audit_logging",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.observability.logging_sensitive_data",
+    "backend.security.authorization_checks"
+  ]
+}

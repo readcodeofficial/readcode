@@ -1,0 +1,50 @@
+{
+  "id": "a4737860-5e5d-44e1-94b5-efe2806b7007",
+  "title": "Playback session start with redacting logs",
+  "name": "Playback session API",
+  "createdAt": "2026-11-24T14:49:45.875Z",
+  "durationMinutes": 11,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles sensitive data in logs? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The access_log middleware records request.url.path rather than the full URL. What does that avoid?",
+      "choices": [
+        "Logging the HTTP method twice.",
+        "Writing query-string values, which can carry tokens or personal data, into the access log.",
+        "Extra latency from parsing the URL.",
+        "Exposing the Host header."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "How does JsonFormatter treat fields passed via extra= when a caller logs?",
+      "choices": [
+        "It copies every non-standard record attribute into the JSON object, so whatever callers put in extra appears in the output unless the filter changed it.",
+        "It writes only the message and level.",
+        "It writes only fields on an allowlist.",
+        "It drops any field whose value is not a string."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "RedactingFilter is added to the root logger's handler in configure_logging. Which records does it process?",
+      "choices": [
+        "Only records from the root logger itself.",
+        "Only records at WARNING and above.",
+        "Every record that reaches that handler, including those from the streamhub.* loggers, since they propagate to the root.",
+        "Only records that include an extra field."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.logging_sensitive_data",
+    "backend.observability.structured_logging",
+    "backend.security.session_and_token_handling"
+  ]
+}

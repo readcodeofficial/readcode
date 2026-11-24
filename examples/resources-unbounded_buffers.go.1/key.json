@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "courierfeed/handler.go",
+        "startLine": 39,
+        "endLine": 39
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "The single-event endpoint wraps the body in http.MaxBytesReader, and the batcher bounds both its intake channel and its pending slice. The bulk endpoint instead calls io.ReadAll(r.Body) with no limit, and only afterwards checks len(events) > maxBulkEvents. A client can stream a multi-gigabyte body and the server buffers all of it (twice, once as bytes and again as decoded structs) before the size check ever runs. The body should be wrapped in http.MaxBytesReader (and decoded from it) before reading.",
+    "Offer uses select with a default branch, so it never blocks: a full channel yields false and increments the dropped counter. enqueue turns that into a 503 and Retry-After, and reports how many events were accepted. Without the default case the send would block; sending on a full buffered channel never panics (only sending on a closed one does).",
+    "flush copies the head of pending and only removes it after a successful Write, so a failure leaves pending intact. Run refuses to append once len(pending) >= maxPending, incrementing dropped, and the intake channel is itself bounded, so memory stays near queue + maxPending events. Nothing is written to disk and pending is not cleared on failure.",
+    "The case runs because ctx.Done() is closed. Passing that context into WithTimeout in flush would yield an already-expired context and any context-aware sink (database or HTTP client) would return immediately with an error. A fresh 5 second budget lets the final batch be written. It has no effect on the ticker, and context cancellation does not panic."
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "b9098f16-44d6-40b2-853b-6a5ac797fd61",
+  "title": "Folder sync worker with bounded concurrency",
+  "name": "Folder sync worker",
+  "createdAt": "2026-11-24T05:03:32.628Z",
+  "durationMinutes": 12,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles asynchronous work and failures during a sync? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "During a sync, three stale remote files are removed and the removal of one of them rejects. What is the effect on the sync call?",
+      "choices": [
+        "sync rejects with that error, and the remaining two removals are cancelled.",
+        "sync rejects, but only after the other two removals have finished.",
+        "sync resolves normally; the two successful removals are counted in removed, and the failure is reported in removalFailures.",
+        "sync resolves, but removed counts all three, because allSettled hides the rejection."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "this.store.recordSync(summary) is called without await and sync() returns the summary right after. Suppose recordSync later rejects. What happens?",
+      "choices": [
+        "The error is logged as a warning and nothing else changes; the caller already has its summary.",
+        "Node emits an unhandled rejection, because the promise is not awaited by anyone.",
+        "The next call to sync() throws the stored error before doing any work.",
+        "The error is thrown inside sync()'s try/catch in run(), so the cycle is reported as failed."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "concurrency is 4 and 20 files need uploading; one file's upload keeps failing and waits for its backoff delays between attempts. How many uploads can be in flight at once, and what happens to the delayed file's slot?",
+      "choices": [
+        "Up to 20, because each worker starts the next upload while the delayed one sleeps.",
+        "At most 4; the worker that owns the delayed file stays busy during its retries, so the other three workers handle the remaining files in the meantime.",
+        "At most 3 while the delayed file retries, since the sleeping worker is returned to the pool and the pool shrinks.",
+        "At most 4, but the delayed file's backoff blocks the Node event loop, so all uploads pause."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.async_await_pitfalls",
+    "backend.resilience.retries_and_backoff",
+    "backend.resilience.timeouts",
+    "backend.errors.error_propagation"
+  ]
+}

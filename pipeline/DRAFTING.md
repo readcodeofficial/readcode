@@ -10,7 +10,15 @@ node pipeline/src/generateBank.ts --mode prepare --plan postings/plans/master.js
   --taxonomy pipeline/taxonomy/v0.1.0.json --out examples [--languages Python,Java,TypeScript,Go]
 ```
 
-Writes one job file per missing example to `examples/.work/jobs/<name>.json`.
+Writes one job file per missing example to `examples/.work/jobs/<name>.json`. To give every topic a minimum number of examples
+(including topics the master plan leaves out), build a floor plan first and use it as `--plan`:
+
+```
+node pipeline/src/floorPlan.ts --taxonomy pipeline/taxonomy/v0.1.0.json --fit pipeline/taxonomy/language_fit.json \n  --plan postings/plans/master.json --examples examples --min 2 --out postings/plans/floor.json
+```
+
+Run assemble with the same `--plan` you prepared with. Give each drafting subagent its own scratch folder: parallel
+agents sharing one folder have overwritten each other's helper scripts.
 
 ## 2. Draft (prompt for the main Claude session)
 

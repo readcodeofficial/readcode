@@ -1,0 +1,51 @@
+{
+  "id": "28704a74-34f6-4ca4-a801-a245c2cf781f",
+  "title": "Cached permission resolver",
+  "name": "Permission resolver cache",
+  "createdAt": "2026-11-24T14:49:44.776Z",
+  "durationMinutes": 12,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code protects the database from many concurrent lookups for the same user? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "200 requests for the same uncached user arrive at the same moment and the database call succeeds. How many times is the SQL query executed?",
+      "choices": [
+        "200, since each request checks the cache before any value is stored",
+        "Once, because concurrent callers with the same key share a single in-flight call",
+        "Once per CPU core, since singleflight groups calls per goroutine scheduler",
+        "Twice: once by the first caller and once more by the callers that missed the cache"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does load check the cache again before calling the store?",
+      "choices": [
+        "go-cache can return stale values, so a second read is needed for correctness",
+        "A caller can miss the cache just before another flight finishes and stores the value, then start a new flight; the re-check avoids a redundant query",
+        "To refresh the TTL of the existing entry",
+        "Because singleflight clears the cache entry when a flight starts"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What is the purpose of the random jitter added to positiveTTL when storing a permission set?",
+      "choices": [
+        "To make entries for different users expire at spread-out times so refreshes do not all hit the database together",
+        "To make a single user's entry live a little longer than the negative entry",
+        "To prevent two users from sharing the same cache key",
+        "To let Invalidate remove entries without calling Forget"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.caching.cache_stampedes",
+    "backend.resources.context_cancellation",
+    "backend.caching.ttls_and_expiry",
+    "backend.security.authorization_checks"
+  ]
+}

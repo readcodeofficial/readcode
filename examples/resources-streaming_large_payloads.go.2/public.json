@@ -1,0 +1,52 @@
+{
+  "id": "d90cf100-5977-4fc1-829e-6426c558e484",
+  "title": "Notification batch ingest",
+  "name": "Notification batch ingest",
+  "createdAt": "2026-11-24T14:49:45.322Z",
+  "durationMinutes": 14,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code streams and processes a large notification batch? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client posts a 400 MB request with several million messages. What bounds the handler's memory use?",
+      "choices": [
+        "http.MaxBytesReader, which buffers up to 512 MB so the decoder always sees the complete body.",
+        "The json.Decoder reads incrementally and messages are decoded one at a time and flushed in groups of 500, so memory stays roughly constant regardless of body size.",
+        "The Publisher, which applies backpressure by blocking the TCP connection.",
+        "Nothing: dec.Decode(&m) loads the whole messages array before the loop starts."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client sends a body of 600 MB. What does it get back, and what happened to the messages in the first 512 MB?",
+      "choices": [
+        "400 Bad Request, and nothing was published because the size is validated before processing.",
+        "202 Accepted, because the decoder stops reading at the limit and treats it as end of input.",
+        "500, and the published messages are rolled back by the Publisher.",
+        "413 Request Entity Too Large, and every complete batch read before the limit was hit has already been published."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client receives 400 for a malformed message at position 1,200,000 and retries the identical request. What is the main consequence?",
+      "choices": [
+        "The messages published before the malformed entry are published again, since nothing in the handler or publisher deduplicates them.",
+        "The retry resumes from message 1,200,000 because the handler remembers progress.",
+        "The retry fails immediately because the campaign was already marked as started.",
+        "Nothing, because JetStream publishes are idempotent per subject."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.streaming_large_payloads",
+    "backend.resources.unbounded_buffers",
+    "backend.api.idempotency",
+    "backend.messaging.backpressure",
+    "backend.resources.context_cancellation"
+  ]
+}

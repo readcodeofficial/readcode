@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "ShutdownCoordinator.kt",
+        "startLine": 27,
+        "endLine": 28
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "Yes. ShutdownCoordinator.run drains the worker (which closes the inbox channel) before it stops the HTTP server. Until server.stop runs, POST /manifests keeps accepting requests: each inserts a QUEUED row and then calls worker.submit on a closed channel, which throws ClosedSendChannelException and returns 503 while leaving the row QUEUED with no worker to process it. The server should stop accepting (and finish in-flight requests) first, and only then should the worker's intake be closed and drained.",
+    "/readyz reports 503 once ready is false; the sleep gives the load balancer a few probe intervals to take the instance out of rotation. It has nothing to do with the carrier calls (the worker drain handles those), pool connections (dataSource.close() does that), or any JVM requirement on hook timing.",
+    "CancellationException is an Exception, so without the earlier catch it would be swallowed by the generic handler, the manifest would be marked FAILED, and the coroutine would continue as if nothing happened. Rethrowing lets cancellation propagate. Channels do not retry, and only one catch block ever runs.",
+    "Closing a Channel stops further sends but elements already in the buffer are still delivered; the for (job in inbox) loop ends only after they are consumed, which is why joinAll can finish. It does not discard, does not suspend (close is not suspending), and consumers do not wait forever because iteration terminates on a closed, empty channel."
+  ]
+}

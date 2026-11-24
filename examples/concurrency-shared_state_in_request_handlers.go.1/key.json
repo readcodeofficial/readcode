@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "booking/search_handler.go",
+        "startLine": 117,
+        "endLine": 119
+      }
+    },
+    0,
+    1,
+    2
+  ],
+  "explanations": [
+    "recordHit increments the routeHits map while holding only a read lock. RLock allows any number of goroutines to hold it at once, so concurrent requests mutate the map simultaneously. That is a data race: counts get lost, and Go's runtime can abort the whole process with 'fatal error: concurrent map writes'. The increment needs mu.Lock()/Unlock(), or a sync/atomic counter per route. The cache accesses are correct: reads use RLock and the write in lookup uses Lock.",
+    "The slice stored in the cache is shared by every request that hits that key. sort.Slice swaps elements in place, so sorting the shared slice would let one request reorder data another request is reading or sorting with a different key. Copying gives each request its own backing array. The encoder does not mutate values, expiry only affects the map entry (the old slice stays valid), and nothing in the code suggests the source reuses buffers.",
+    "lookup releases the read lock before calling Search, and nothing deduplicates in-flight work (no singleflight). Both requests miss, both call upstream, and both reach h.mu.Lock() one after the other, each plain-assigning the map key. The second write wins. The lock is not held during the upstream call, so nobody blocks on it. There is no 'already exists' check and no error path for this case.",
+    "cacheTTL is only checked on read: a stale entry is ignored and overwritten if that key is requested again. Nothing deletes entries, and the key includes the departure date, so the key space is routes times dates and grows over time. The TTL does not evict, airport codes are only part of the key, and the per-request copy has no effect on what the map retains."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/test/java/com/wayfare/booking/BookingFlowIT.java",
+        "startLine": 36,
+        "endLine": 37
+      }
+    },
+    0,
+    1,
+    1
+  ],
+  "explanations": [
+    "The cleanup after each test deletes seat_holds and bookings but not outbox_events, while one container and one schema are shared by every test in the JVM. createBooking_enqueuesConfirmationEmail asserts hasSize(1) on every booking.confirmed event in the table, so it only passes if no other test has already created a booking since the last time the table was empty. It passes today because of the order JUnit happens to run the methods (and because events are only written in this class), and it will fail or flake as soon as the order changes, a test is added, or another IT class shares the container. The cleanup should also clear outbox_events (or the assertion should filter by this test's traveler).",
+    "With RANDOM_PORT the controller runs in the server's request thread, outside the test method's transaction, so its inserts are committed independently. That is why explicit cleanup is needed. TestRestTemplate does not touch transactions, @Transactional works with any JDBC database, and Testcontainers does not change transaction behaviour.",
+    "The container port is random, so the properties must be computed after the container starts; @DynamicPropertySource registers suppliers evaluated when the context is built. Because the container is static and started once, it is shared by all test classes and not restarted per test (so data persists between tests). Flyway is explicitly enabled, and nothing refers to localhost:5432.",
+    "The test sends two requests one after the other and only asserts on the second status code, so it checks the sequential duplicate path through the real HTTP stack and database. It does not exercise concurrency, it does not assert on the first response, and no database failure is simulated."
+  ]
+}

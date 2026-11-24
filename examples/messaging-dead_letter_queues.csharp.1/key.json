@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    1,
+    0
+  ],
+  "explanations": [
+    "There is no defect. Malformed JSON, invalid instructions and business rejections are settled explicitly with DeadLetterMessageAsync and a reason, so they are not redelivered pointlessly. Anything else is treated as transient: the message is abandoned, which releases the lock and increments DeliveryCount, and the broker moves it to the dead-letter sub-queue itself once the queue's MaxDeliveryCount is exceeded, so a persistently failing message cannot loop forever. AutoCompleteMessages is false, so a message is only completed after the ledger call succeeds, and the requeuer only resends dead letters whose reason is not one of the permanent ones, completing the DLQ copy only after the send succeeded (at-least-once, with the same MessageId so duplicate detection and the ledger's idempotency key can recognise it).",
+    "The guard `instruction.Amount <= 0` dead-letters the message right away with DeadLetterReasonInvalid. Retrying cannot fix a bad payload, so abandoning is wrong. It is not completed (that would silently drop it), and the ledger is not invoked for it.",
+    "Only PaymentRejectedException is treated as permanent. Other exceptions hit the final catch, which logs and calls AbandonMessageAsync; the message is redelivered with a higher DeliveryCount, and the broker's MaxDeliveryCount setting eventually dead-letters it. It is not completed (that would lose the payment), and AutoCompleteMessages is false, so nothing completes it automatically; an escaping exception would go to the error handler and the lock would expire instead.",
+    "With peek-lock, the DLQ message stays in the sub-queue until completed. Sending first then completing means a failure in between leaves the original in the DLQ (and possibly a copy on the main queue): at-least-once, not loss. The copy keeps the MessageId so duplicate handling downstream can recognise it. The broker does not drop the original by itself, there is no rule requiring the copy to be consumed first, and DeliveryCount is not related to the order."
+  ]
+}

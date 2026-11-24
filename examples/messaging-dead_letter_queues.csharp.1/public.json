@@ -1,0 +1,51 @@
+{
+  "id": "506b4aed-a652-497c-8ee3-6bfabbfa06c4",
+  "title": "Invoice payment consumer with dead-lettering",
+  "name": "Invoice payment consumer",
+  "createdAt": "2026-11-24T14:49:45.004Z",
+  "durationMinutes": 14,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles messages that cannot be processed (dead-lettering and retries)? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A message arrives whose body is valid JSON but contains Amount = 0. What happens to it?",
+      "choices": [
+        "It is abandoned and retried until the queue's MaxDeliveryCount is reached, then dead-lettered by the broker",
+        "It is completed and ignored, because the ledger is never called",
+        "It is dead-lettered immediately with reason InvalidPayload and a description, without calling the ledger",
+        "It is passed to the ledger, which is expected to throw PaymentRejectedException"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The ledger throws an HttpRequestException because the core banking API is down. What does the consumer do with the message?",
+      "choices": [
+        "Dead-letters it with reason BusinessRejected",
+        "Abandons it so it becomes available again, and relies on the broker to dead-letter it only after MaxDeliveryCount deliveries",
+        "Completes it so the queue does not back up, and logs the warning",
+        "Lets the exception escape the handler so the processor completes the message automatically"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In DeadLetterRequeuer, why is receiver.CompleteMessageAsync called after sender.SendMessageAsync rather than before?",
+      "choices": [
+        "So that a crash between the two calls can produce a duplicate on the main queue but never lose the message",
+        "So that the broker can detect the duplicate and drop the original automatically",
+        "Because a message in the dead-letter sub-queue cannot be completed until its copy has been consumed",
+        "Because completing first would reset DeliveryCount on the copy"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.dead_letter_queues",
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.queues_and_consumers",
+    "backend.errors.error_propagation"
+  ]
+}

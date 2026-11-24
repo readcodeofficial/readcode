@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "Shadows/ShadowService.cs",
+        "startLine": 48,
+        "endLine": 48
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "In ApplyReportAsync the retry only refreshes the entity's OriginalValues (including the RowVersion) from the database and then saves again. The in-memory values, notably ReportCount, were computed from the stale row (ReportCount += 1 on the old count), and the loop sets them again over the stale state. The retry therefore succeeds with the new token but writes a count based on the old value: the concurrent writer's increment is lost, so ReportCount drifts below the real number of reports. The optimistic check is defeated because every conflict is resolved as 'client wins' without re-reading the data the new value depends on. The retry should reload the shadow (for example entry.ReloadAsync()) and re-apply the report to the fresh values.",
+    "EF Core treats the row version as a concurrency token: UPDATE ... WHERE DeviceId = @id AND RowVersion = @original. If zero rows are affected, EF throws DbUpdateConcurrencyException. No locks are held by the token itself (no blocking), it does not change the isolation level, and the database (or EF) updates the version value automatically, not the caller.",
+    "EF uses the OriginalValue of the token in the WHERE clause. Replacing the freshly loaded value by the version the client originally saw makes the check span the client's read-modify-write cycle, so a change since then yields a concurrency exception and a false return. It does not force success, it does affect the SQL, and there is no lock.",
+    "The exception filter `when (attempt < MaxAttempts)` only catches the first three conflicts; on the fourth attempt the exception is not caught and propagates. So the loop is bounded, not infinite. There is no row lock, so callers do not queue. InvalidOperationException is only thrown when the shadow row has been deleted."
+  ]
+}

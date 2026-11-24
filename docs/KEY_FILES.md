@@ -21,6 +21,7 @@ styling) and can change freely; these deserve care, review, and a note when they
 | `pipeline/src/languageLift.ts` | Corpus evidence for the fit table: how often each language co-occurs with each topic in the postings (`docs/language_lift.json`). |
 | `pipeline/src/exampleGenerator.ts` | The example-generation prompt, and validation of a generated draft into the example format. |
 | `pipeline/src/generateBank.ts` | Runs generation for a whole plan (API, or prepare/assemble for subagents). |
+| `pipeline/src/floorPlan.ts` | Builds `postings/plans/floor.json`: the extra examples that bring every topic up to a minimum count, in languages with fit ≥ 0.7. |
 
 ## Data (generated, committed)
 

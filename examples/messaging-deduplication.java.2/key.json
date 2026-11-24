@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    3,
+    0,
+    1
+  ],
+  "explanations": [
+    "There is no defect. Each driver's high-water mark (session id, session start, sequence) is read and replaced inside a single Caffeine compute call, so concurrent checks for the same driver cannot both accept one update. A restarted app begins a new session whose sequence restarts at 1, and it is accepted because its session start is later than the stored one, while a delayed message from the old session is rejected as stale. If the position write fails, the mark is forgotten before the exception is rethrown, so the redelivered batch is not mistaken for duplicates. Eviction of an idle driver's mark is harmless because the maxAge check still rejects old pings and location data is last-write-wins.",
+    "The sequence comparison only applies when the session ids match. For a different session id the code compares sessionStartedAt: the new session started later, so the update is ACCEPTED and Mark.of(update) replaces the old mark. Comparing bare sequence numbers would wrongly drop everything the restarted app sends. Nothing buffers or holds updates, and the driver id alone is not what defines a duplicate.",
+    "Caffeine's asMap().compute runs the remapping function atomically per key. With a separate get and put, two threads handling the same driver could both read the old mark, both decide the update is newer, and both return ACCEPTED. The cache is local to the JVM, expiry is configured on the builder and not changed by compute, and get/put are permitted.",
+    "check() records the mark before the write happens. If the write fails and the batch is redelivered, the same update would match the stored mark exactly and be dropped as DUPLICATE, so the position would never be saved. Invalidating the mark makes the retry start from a clean state. It does not affect Kafka offsets (the exception does that by preventing the ack), and other drivers' marks are untouched, so entries earlier in the batch are still re-evaluated against their existing marks."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "dispatch/http_provider.go",
+        "startLine": 52,
+        "endLine": 52
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "HTTPProvider.Quote receives ctx but builds the request with http.NewRequest, so the request is not tied to it. The ctx.Err() check only helps before the call starts. When the Dispatcher returns because one provider answered first, or because the shared deadline expires, its deferred cancel() cancels ctx, but the in-flight HTTP calls to the other providers ignore that and keep running until the client's 30 second timeout. Under load these abandoned calls hold connections and goroutines, and the dispatcher deadline does not bound the work it started. The fix is http.NewRequestWithContext(ctx, ...).",
+    "Assign returns as soon as it has one successful quote (or the deadline hits), leaving the other goroutines still running. With an unbuffered channel their send would block permanently because nobody receives any more, leaking those goroutines. A buffer with one slot per provider lets each goroutine send exactly once and exit. The buffer does not order results (first choice), does not serialize providers (third choice) and has no effect on the select with ctx.Done() (fourth choice).",
+    "A failed outcome is appended to failures and the loop continues (the continue statement), so Assign only returns an error after every provider has failed or the context ends. The third outcome has a nil error and is returned directly with nil, and the failures are only logged. The first error is not returned early (first choice), the joined error is only built when no provider succeeded (second choice), and the deadline is not exhausted by quick failures (fourth choice).",
+    "The select on ctx.Done() fires when the 2 second timeout expires and returns fmt.Errorf with %w around ctx.Err(), so errors.Is matches DeadlineExceeded. Assign does not wait for the slow providers (second choice). The joined-error path is only reached when all outcomes arrive, which has not happened by then (third choice), and the channel is never closed, so there is no panic (fourth choice)."
+  ]
+}

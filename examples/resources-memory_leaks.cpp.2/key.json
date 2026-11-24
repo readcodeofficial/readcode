@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "order_index.cpp",
+        "startLine": 14,
+        "endLine": 14
+      }
+    },
+    1,
+    3,
+    2
+  ],
+  "explanations": [
+    "OrderIndex::add releases the unique_ptr into a raw pointer before it knows the order will be stored. When emplace reports a duplicate id (the second `if` branch) the function returns false while raw is owned by no one: the caller's unique_ptr was already released, nothing was inserted, and no delete happens. Every duplicate submission (for example a client retry) leaks one Order with its strings and lines. The fix is to call release() only after a successful insert (or keep the unique_ptr and release it once both maps are updated).",
+    "remove wraps it->second in a std::unique_ptr, erases it from both maps, and returns the unique_ptr by move, so the caller becomes the sole owner. purgeOlderThan simply discards the returned pointer, which deletes the order. The index no longer holds the pointer (first choice), nothing is deleted before the return (third choice), and byCustomer_ holds raw non-owning pointers that remove has already erased (fourth choice).",
+    "The scope block ends before the loop, so the mutex is not held when remove runs (no deadlock with the non-recursive mutex, second choice). The stale list holds ids as strings, not pointers, so no dangling reference exists (first choice). remove looks the id up under the lock; if another thread already took it, find fails and nullptr is returned, which evaluates false and is not counted. Only one thread can extract an entry from byId_, so a double delete cannot happen (third choice).",
+    "Each Order is referenced from byId_ and from one vector in byCustomer_. Ownership is defined to be byId_, so the destructor deletes exactly once per order. The customer vectors store the same addresses and deleting them as well would be a double free. Containers never delete raw pointers they store (second choice), the index is destroyed rather than rebuilt (first choice), and byCustomer_ is non-empty whenever orders exist (fourth choice)."
+  ]
+}

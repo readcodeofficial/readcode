@@ -1,0 +1,51 @@
+{
+  "id": "a4073bbc-a8a9-4371-803f-a93c9560e385",
+  "title": "Inventory reservation from order events",
+  "name": "Order reservation consumer",
+  "createdAt": "2026-11-24T14:49:44.831Z",
+  "durationMinutes": 11,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles duplicate events? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is the dedup key the eventId from the payload rather than the Kafka topic-partition-offset?",
+      "choices": [
+        "Offsets are only unique within a consumer group, so two groups would collide.",
+        "UUIDs are faster to index than a long offset.",
+        "The producer may publish the same logical event twice (for example on a retry), and each copy gets a different offset but carries the same eventId.",
+        "Kafka reuses offsets after log compaction."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two instances of the service receive the same event at the same time, for example after a rebalance. What ensures at most one of them runs reserve for it?",
+      "choices": [
+        "The primary key on (event_id, consumer) together with ON CONFLICT DO NOTHING: only one insert reports 1 row inserted, the other reports 0.",
+        "The Kafka consumer group guarantees a record is never delivered to two instances.",
+        "The UPDATE ... WHERE available >= ? in reserve fails for the second instance.",
+        "The DefaultErrorHandler serializes handling across instances."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The process crashes right after inventory.reserve commits but before ack.acknowledge() is called. What happens when the record is redelivered?",
+      "choices": [
+        "Stock is reserved a second time.",
+        "The event is recognised as already processed, acknowledged, and not reserved again, leaving exactly one reservation.",
+        "The record is sent to a dead-letter topic.",
+        "The listener throws because the reservation row already exists."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.deduplication",
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.queues_and_consumers",
+    "backend.data.transactions_and_isolation_levels"
+  ]
+}

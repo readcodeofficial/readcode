@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "permissions/cache.go",
+        "startLine": 43,
+        "endLine": 44
+      }
+    },
+    1,
+    1,
+    0
+  ],
+  "explanations": [
+    "The singleflight leader runs load with the leader's own request context. Every follower waiting on the same key receives the leader's result, including its error. If the leader's HTTP client disconnects or its deadline expires, QueryContext fails with context.Canceled or DeadlineExceeded, and all concurrent followers, whose own requests are healthy, get that error and the middleware answers 503 for them. Nothing is cached on that error, so the next wave stampedes again. The shared load should use a context detached from any single caller (for example context.WithoutCancel with its own timeout), while each caller still honours its own ctx by selecting on group.DoChan.",
+    "Resolve passes userID as the singleflight key, so only one goroutine runs load and the others wait for and share its result. Not 200: the cache miss alone would allow that, but the group collapses them. There is no per-core grouping, and a second query would only happen for callers arriving after the first call finished and populated the cache, which then hit the cache instead.",
+    "A goroutine can observe a miss in Resolve, and by the time it enters group.Do a previous flight for that key may already have completed and populated the cache, which would start a fresh flight. The re-check inside the flight absorbs that case. It does not refresh TTLs, go-cache is not stale in a way needing this, and singleflight never touches the cache.",
+    "Entries loaded together (for example after a deploy or a mass invalidation) would otherwise all expire at the same instant, producing a synchronized wave of reloads. Random extra TTL spreads that out. It has no relation to key uniqueness or to Forget, and the negative TTL is a separate, much shorter constant."
+  ]
+}

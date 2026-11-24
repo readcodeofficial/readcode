@@ -1,0 +1,50 @@
+{
+  "id": "1d23c14c-3851-404f-9eb4-cc50ceaba5d1",
+  "title": "Admin user directory queries",
+  "name": "Admin user search",
+  "createdAt": "2026-11-24T14:49:45.576Z",
+  "durationMinutes": 12,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code builds SQL from request input? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The sort column is validated against SORTABLE_COLUMNS and inserted with sql.Identifier rather than being passed as a %(sort)s parameter. Why is a parameter not an option here?",
+      "choices": [
+        "Bound parameters stand in for values, not identifiers, so ORDER BY %(sort)s would sort by a constant string and not by the column",
+        "psycopg does not support parameters in queries that have an ORDER BY clause",
+        "Parameters are slower than identifiers for sorting",
+        "sql.Identifier lets the database cache the plan for every possible column"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The search text becomes the parameter \"%\" + escape_like(query.text) + \"%\". What would happen if escape_like were removed but the value still passed as a bound parameter?",
+      "choices": [
+        "The query would be vulnerable to SQL injection through the search box",
+        "The query would raise a syntax error whenever the text contains a percent sign",
+        "The text would be matched as a literal substring regardless of its characters",
+        "Users could still not break out of the statement, but % and _ typed into the search box would act as wildcards and could match more rows than intended"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What stops an administrator from one tenant listing users that belong to another tenant by tampering with query-string parameters?",
+      "choices": [
+        "escape_like removes tenant identifiers from the search text",
+        "The role filter limits results to the caller's own roles",
+        "tenant_id is taken from g.auth and is always the first clause of the WHERE, so no query-string parameter can remove or replace it",
+        "The deleted_at IS NULL clause hides rows from other tenants"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.sql_injection",
+    "backend.security.input_sanitization",
+    "backend.security.multi_tenant_isolation"
+  ]
+}

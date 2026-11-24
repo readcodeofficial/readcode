@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "There is no defect. HybridCache.GetOrCreateAsync coalesces concurrent misses for the same key inside a process, so a burst of requests for one user triggers one LoadAsync call rather than one per request. The factory uses the token it is handed (not the caller's ct, which is only passed as cancellationToken), adds its own 3 second timeout, and uses a static lambda with explicit state so nothing request-specific is captured. Entries are removed after the grant transaction commits. The Redis layer and the 45 second local expiry bound how long other nodes can serve an older value.",
+    "HybridCache provides stampede protection: concurrent GetOrCreateAsync calls for the same key in one process share a single factory execution. Redis is only a second layer and is empty in this scenario. Note the protection is per process; several instances missing at once can each load once.",
+    "RemoveAsync removes the entry from A's local layer and from the shared Redis layer, but B's in-memory copy is not told. It lives until LocalCacheExpiration (45 seconds), after which B asks Redis, finds nothing, and reloads. The 10 minute Expiration applies to the distributed entry which was removed, and HybridCache does keep in-process copies.",
+    "CancelAfter on the linked source cancels the EF Core queries, the exception propagates out of the factory to everyone sharing that load, and HybridCache does not store a failed result. A later request retries. The timeout is part of the factory's token, not tied to one caller, and HybridCache has no built-in serve-stale-on-error behavior."
+  ]
+}

@@ -5,7 +5,7 @@ Code-reading practice for backend interviews: job postings → topic plans → e
 ## Flow
 1. `postings/jobs.json`: 94 postings, scraped once from public job boards; descriptions were partly pasted by hand, so treat it as the source of truth.
 2. Classify each posting against the taxonomy (`pipeline/taxonomy/v0.1.0.json`, prompt in `pipeline/src/classifier.ts`) → `postings/plans/weights/NNN.json` → `plan.ts --fit pipeline/taxonomy/language_fit.json` → `plans/NNN.json` (NNN = 1-based posting index; targets are `{ label, language, count }`). A topic only gets the posting's languages that suit it (fit ≥ 0.7; research and sources in `docs/LANGUAGE_FIT.md`). `combinePlans.ts` → `plans/master.json`: for each (topic, language), the largest count any plan asks for. Pipeline scripts take all inputs and outputs as arguments (run one without arguments for usage).
-3. `pipeline/src/generateBank.ts` turns the master plan into `examples/NNN-<topic>/` (`public.json`, `key.json`, `src/**`).
+3. `pipeline/src/generateBank.ts` turns the master plan into `examples/NNN-<topic>/` (`public.json`, `key.json`, `src/**`). `floorPlan.ts` → `plans/floor.json` tops every taxonomy topic up to a minimum (currently 2) in its best-fitting languages, including topics no posting asked for; run `generateBank.ts` with `--plan postings/plans/floor.json` to fill it.
 4. `web/` (Next.js) reads `examples/` and `postings/` from disk. Run: `cd web && npm run dev`.
 
 ## Example format

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "proof/upload.go",
+        "startLine": 85,
+        "endLine": 85
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "storePhoto reads the first 512 bytes from part to detect the content type, then passes part itself to Put. Those 512 bytes were already consumed, so the stored object is missing its beginning (the JPEG or PNG header), and the SHA-256 and size recorded cover only the remainder. The upload still returns 201 and the corrupt image is only noticed when someone opens it. The sniffed bytes must be put back in front of the stream, for example with io.MultiReader(bytes.NewReader(head[:n]), part), or the part wrapped in a bufio.Reader and sniffed with Peek.",
+    "Content-Length is client-supplied and missing for chunked requests, so checking it does not bound what is read. MaxBytesReader counts real bytes and fails with *http.MaxBytesError, which fail() maps to 413. It does no compression or validation, and multipart parsing works without it.",
+    "MultipartReader hands out parts as streams, Put consumes the reader as it uploads, and TeeReader feeds each chunk to the hash, which keeps only a fixed-size state. Only the 512-byte head and small I/O buffers are allocated per request. Nothing buffers the whole part, and the runtime does not spool the body to disk (that is what ParseMultipartForm does, which is not used here).",
+    "net/http cancels r.Context() when the client connection closes, which is a likely cause of the Put failure. A Delete using that context would fail right away, orphaning the partial object. WithoutCancel keeps the request's values but drops its cancellation. It sets no deadline, does not spawn a goroutine, and the store has no such requirement."
+  ]
+}
