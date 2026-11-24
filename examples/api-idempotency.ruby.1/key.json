@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "app/services/idempotent_request.rb",
+        "startLine": 19,
+        "endLine": 19
+      }
+    },
+    1,
+    2,
+    2
+  ],
+  "explanations": [
+    "The defect is `status, body = yield`. The record that claims the key is only written after the block has already run, so the key is not reserved before the side effects happen. Two concurrent requests with the same Idempotency-Key (for example a client retry after a timeout while the first request is still running) can both pass the `find_by` check, and both execute the payroll run, creating two runs and enqueuing two ACH batches. The unique index only stops the second request from storing its response: the `RecordNotUnique` rescue then replays the first response, so the duplicate run is hidden from the client. A correct version inserts the key row first (or takes a lock on it) and only then runs the block, completing the stored response afterwards.",
+    "The fingerprint is a SHA-256 of the sorted payload, and `replay` raises KeyReuseError when the stored fingerprint differs from the current one; the controller renders that as 422 (:unprocessable_entity). The first choice would be the behaviour if the fingerprint were not compared. A new run is never created because replay happens before the block is yielded. The 409 comes only from PeriodClosed, which is raised inside the block and so never reached on a replay.",
+    "Clients choose their own key strings, so two companies can legitimately send the same one. Scoping the lookup and the unique index [:scope, :key] keeps each tenant's keys separate and prevents one tenant from reading another tenant's stored response. The scope does not affect the fingerprint, the purge job uses created_at only, and the unique index is what the scoped keys rely on.",
+    "All run and payment rows are created inside PayrollRun.transaction, so the error rolls everything back. The exception propagates out of `yield` before IdempotencyRecord.create! is reached, so nothing is stored for the key and the retry executes normally. No 500 is ever stored, the retry cannot see partial payments because they were rolled back, and a 422 is only raised when a stored record exists with a different fingerprint."
+  ]
+}

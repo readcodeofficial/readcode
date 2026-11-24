@@ -1,0 +1,52 @@
+{
+  "id": "0815bde5-4c69-427b-af49-3e76acc9f61a",
+  "title": "Notification API authentication",
+  "name": "Notification API auth",
+  "createdAt": "2026-11-24T04:16:38.962Z",
+  "durationMinutes": 13,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code authenticates callers and verifies credentials? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "jwt.get_unverified_header reads the token header before the signature has been checked. Why is that not a way for an attacker to choose how the token is verified?",
+      "choices": [
+        "The header is encrypted so the attacker cannot change it",
+        "The header is compared with the claims after decoding, which catches tampering",
+        "PyJWT ignores the header for any token that has an exp claim",
+        "The kid is only used to look up a key in a local table and the accepted algorithms are fixed by the server, so the attacker cannot select an algorithm or a key outside the table"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A caller presents a valid access token that has the scope notifications:read but not notifications:send, and posts to /v1/notifications. What response do they get and why?",
+      "choices": [
+        "403 Insufficient scope, because authentication succeeded and require_scope rejected the principal",
+        "401, because the token is not valid for this endpoint",
+        "202, because scopes are only logged",
+        "422, because the scope check happens during body validation"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A request presents an API key with an unknown key id and another presents a known key id with a wrong secret. What does ApiKeyAuthenticator do?",
+      "choices": [
+        "Raises different errors so support can tell them apart in the response",
+        "Returns immediately for the unknown id without hashing, because there is no record to compare against",
+        "Hashes the presented secret and compares it in constant time in both cases, then raises the same AuthError message",
+        "Falls back to checking the key against the bearer token verifier"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.authentication",
+    "backend.security.session_and_token_handling",
+    "backend.security.authorization_checks",
+    "backend.api.status_codes_and_error_responses",
+    "backend.observability.logging_sensitive_data"
+  ]
+}

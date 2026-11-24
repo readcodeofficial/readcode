@@ -1,0 +1,51 @@
+{
+  "id": "49212068-f7ef-4624-9eff-5f4334fd4885",
+  "title": "Reference-counted ticket pool",
+  "name": "Ticket pool refcounting",
+  "createdAt": "2026-11-24T04:16:37.827Z",
+  "durationMinutes": 13,
+  "language": "C",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code uses atomic operations and memory ordering? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Many threads call ticket_create concurrently on the same pool. What does the memory_order_relaxed fetch_add on next_id guarantee?",
+      "choices": [
+        "Each ticket gets a unique id, but the operation does not order surrounding reads and writes relative to other threads",
+        "Ids are handed out in the order in which the threads started the call",
+        "Ids are unique only if the pool is not closing",
+        "Ids are unique only when the surrounding code holds a mutex"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "pool_try_reserve_slot uses a compare-exchange loop. Two threads race for the last free slot (queued == max_queued - 1). What happens?",
+      "choices": [
+        "Both succeed, and queued exceeds max_queued by one",
+        "Both fail, because compare-exchange fails for concurrent callers",
+        "One succeeds; the other's compare-exchange fails, reloads current into the local variable, sees the limit reached, and returns false",
+        "One succeeds; the other spins until a slot is released and then succeeds"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "ticket_retain increments refs with memory_order_relaxed. Under which usage is that acceptable?",
+      "choices": [
+        "Only when called from the thread that created the ticket",
+        "Whenever the caller already owns a reference, because the count cannot reach zero during the increment and the increment needs no ordering for data the caller can already see",
+        "Whenever the ticket was found through a lock-free lookup by id, even if no reference is owned yet",
+        "Never; every atomic increment needs release semantics"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.atomic_operations",
+    "backend.concurrency.race_conditions",
+    "backend.resources.memory_leaks",
+    "backend.messaging.backpressure"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "e7d047c0-3c57-4d27-b74a-a60674ab92d1",
+  "title": "Courier batch dispatcher",
+  "name": "Courier batch dispatcher",
+  "createdAt": "2026-11-24T04:16:38.296Z",
+  "durationMinutes": 12,
+  "language": "C",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code propagates errors between its functions? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "One order in the middle of the batch has a latitude of 123.0. What is the state afterwards?",
+      "choices": [
+        "Orders before it are assigned and courier loads incremented; later orders are skipped",
+        "All orders are assigned except the invalid one, which is skipped",
+        "dispatch_batch returns -EINVAL before any courier load is changed, and *out is NULL",
+        "dispatch_batch returns -EINVAL but leaves a partially filled array in *out for the caller to free"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Every courier is at capacity when a batch of 5 valid orders arrives. What does run_dispatch_cycle do?",
+      "choices": [
+        "Returns a negative error because no courier could take the orders",
+        "Returns 0, prints that 5 of 5 orders were left unassigned, and does not publish",
+        "Publishes five empty assignments and returns 5",
+        "Blocks until a courier frees capacity"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "publish_assignments fails after dispatch_batch succeeded with 3 assignments. Which statement about run_dispatch_cycle is correct?",
+      "choices": [
+        "It leaks the assignments array because it returns before freeing",
+        "It frees the array, returns the negative error from publish_assignments, and the couriers' loads stay incremented",
+        "It rolls the three loads back before returning",
+        "It returns 3 so that the caller treats the batch as successful"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.error_propagation",
+    "backend.errors.cleanup_on_error_paths",
+    "backend.resources.memory_leaks"
+  ]
+}

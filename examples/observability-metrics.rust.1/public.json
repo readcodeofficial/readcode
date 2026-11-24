@@ -1,0 +1,50 @@
+{
+  "id": "4a005fdc-1a99-4292-ac55-c9771ba7f69e",
+  "title": "Parcel tracking API metrics",
+  "name": "Tracking API metrics",
+  "createdAt": "2026-11-24T04:16:38.658Z",
+  "durationMinutes": 12,
+  "language": "Rust",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code records HTTP request metrics? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client disconnects while a request is being handled and the server drops the handler future. What happens to the in-flight gauge?",
+      "choices": [
+        "It stays incremented forever, because the code after `next.run(req).await` never runs",
+        "It is decremented by InFlightGuard's Drop implementation when the future is dropped",
+        "It is reset by `metrics::render()` on the next scrape",
+        "It is decremented by the status counter code in `track`"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A request takes 300 ms. Which histogram buckets (le) of tracking_http_request_duration_seconds are incremented for it?",
+      "choices": [
+        "Only le=0.5",
+        "Every bucket up to le=0.25",
+        "Every bucket with le of 0.5 and above, including +Inf",
+        "Only le=0.25 and le=0.5"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does main() call `metrics::init()` before building the router?",
+      "choices": [
+        "It makes registration happen at startup, so a failure such as a duplicate metric name panics immediately instead of on the first request that touches the metric",
+        "Without it the metrics would never be registered, because Lazy statics are registered at program start",
+        "It resets all counters to zero so that they restart on each deploy",
+        "It starts a background thread that gathers the metrics"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.metrics",
+    "backend.resources.memory_leaks",
+    "backend.resources.context_cancellation"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "There is no defect. DriverPool uses a std::sync::Mutex, but every method is synchronous and drops the guard before returning, so the lock is never held across an .await and cannot block an executor thread for long or make a future non-Send. The reservation is wrapped in a Drop guard, so if dispatch is cancelled while awaiting the offer (timeout, shutdown abort) the driver goes back to Available. The run loop uses cancel-safe awaits (Semaphore::acquire_owned and mpsc::recv) inside select!, acquires the permit before taking a request so work in flight is bounded, reaps finished tasks with try_join_next so the JoinSet does not grow, and aborts and awaits the remaining tasks on shutdown.",
+    "Aborting the task drops the dispatch future at its await point; the local Reservation is dropped with it and its Drop impl calls pool.release because it is still armed. Only the success path disarms it. The driver is therefore not stuck in Offered, and it is not OnTrip since confirm was never reached. Nothing in the pool resets a stale Offered state on location updates, so that is not what rescues the driver.",
+    "Each method locks, mutates and returns without awaiting, so the guard cannot outlive a suspension point and cannot be held while other tasks wait on it for long. Tokio does not substitute mutexes, a HashMap is not lock-free, and unwrap has no effect on Send; holding a std guard across an await would be the real problem.",
+    "The loop acquires an owned permit first and only then calls rx.recv(); the permit moves into the spawned task and is released when it ends. Excess requests stay queued in the mpsc channel, which pushes back on producers once it is full. Tasks are not spawned unboundedly, requests are not dropped, and OFFER_TIMEOUT only bounds a single offer."
+  ]
+}

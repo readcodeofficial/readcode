@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "app/services/access/role_administration.rb",
+        "startLine": 19,
+        "endLine": 20
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "In revoke_role the cache entry is deleted inside the database transaction, before it commits. Between the delete and the commit, a concurrent request calling Authorizer#allowed? misses the cache, runs PermissionSet.build, reads the still-committed assignment (the revoke is not yet visible to other transactions), and writes the old permission set back into the cache for up to 15 minutes. After the commit nothing deletes it again, so the user keeps the revoked role until the TTL expires. grant_role does it correctly by expiring after the transaction block has returned. Moving the expire call after the transaction (or into an after_commit hook) closes the window.",
+    "update_group_roles collects the member ids inside the transaction and, after it has committed, calls PermissionCache.expire_many, which deletes each member's key in slices of 500. The first option describes the behavior without that call. Assigning role_ids does not touch the cache; there is no callback in the code that does. VERSION is a constant used only to namespace keys and does not change at runtime.",
+    "Rails extends the life of an expired entry by race_condition_ttl while the first caller regenerates it, so concurrent callers get the stale value instead of all running the block. It does not shorten the TTL, does not validate entry age against the database, and does not delay writes.",
+    "Neither PermissionCache.fetch nor the Authorizer rescues errors, and the controller only rescues Access::Authorizer::Denied. An exception raised by the cache client would propagate as a 500 (unless the configured cache store itself swallows errors, which is not shown). The block-runs-anyway behavior would require explicit error handling. The 403 path is only reached when allowed? returns false."
+  ]
+}

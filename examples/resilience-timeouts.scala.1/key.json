@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/scala/telemetry/IngestService.scala",
+        "startLine": 33,
+        "endLine": 33
+      }
+    },
+    3,
+    0,
+    2
+  ],
+  "explanations": [
+    "The calibration call and the sink write both have a .timeout, but the device registry lookup in enrich does not. enrich runs for every reading in the batch inside parTraverseN, and ingest waits for all of them before it writes anything. If the registry hangs, or just becomes very slow, a single stuck lookup blocks the whole batch, the consumer's evalMap never reaches commit or retry, and the partition stalls with no error to alert on. The lookup needs its own timeout (and a fallback or an error) like the other two calls.",
+    "offsetFor is wrapped in .timeout(150.millis), which raises a TimeoutException when exceeded and cancels the call; handleErrorWith catches it, logs a warning, increments a metric and substitutes (0.0, true), so only the readings are degraded, flagged stale, and the batch continues. The timeout is enforced, not just logged; the error is handled before it reaches the batch; and there is no retry in this code.",
+    "ingest fails with the sink's error, attempt turns it into Left, and the consumer only sleeps for a second and does not call commit, so the source will redeliver the batch (at-least-once delivery). Readings the sink did persist before the timeout may be written again, so writes need to be idempotent. Nothing commits on failure, the stream continues because the error was captured by attempt, and no splitting logic exists.",
+    "lookup returns None for unknown devices, enrich yields None, and flatten removes them from accepted. The number dropped is batch.size - accepted.size, and the metric is incremented that many times with replicateA_. Unknown devices are not errors, are not written with defaults, and never reach the calibration path."
+  ]
+}

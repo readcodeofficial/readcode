@@ -1,0 +1,52 @@
+{
+  "id": "bedccd61-bc0e-4fda-8566-1ae5c8041a17",
+  "title": "Invoice payments with SQLAlchemy",
+  "name": "Invoice payment service",
+  "createdAt": "2026-11-24T04:16:38.078Z",
+  "durationMinutes": 14,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code persists changes made to ORM objects? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does selectinload(Invoice.line_items) in list_open_invoices change about how the query runs?",
+      "choices": [
+        "It joins line_items into the invoice query so a single SQL statement returns both",
+        "It loads the line items of all returned invoices with one extra query, instead of one lazy query per invoice during the list comprehension",
+        "It loads line items only when inv.line_items is first accessed, which is the default behavior",
+        "It deletes line items that are not attached to an open invoice"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two workers call record_payment for the same invoice at the same time, with different payment ids and amounts that together exceed the balance. What happens?",
+      "choices": [
+        "Both payments are applied, because each worker reads the balance before the other commits",
+        "The second worker blocks on the row lock until the first commits, then sees the updated balance and may raise PaymentRejected",
+        "The second worker's commit raises a stale-data error and must be retried by the caller",
+        "Both workers fail because with_for_update takes a table-level lock"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "make_session_factory sets expire_on_commit=False. What is the practical consequence for record_payment's return value?",
+      "choices": [
+        "The returned Invoice can be read after the session commits without triggering a refresh query for its attributes",
+        "Changes made to the Invoice after the commit are automatically flushed",
+        "The commit does not release the connection back to the pool",
+        "The invoice is detached from the session as soon as it is returned"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.orm_pitfalls",
+    "backend.data.n_plus_one_queries",
+    "backend.data.optimistic_vs_pessimistic_locking",
+    "backend.api.idempotency",
+    "backend.data.money_and_ledgers"
+  ]
+}

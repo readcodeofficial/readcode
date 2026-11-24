@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/http.rs",
+        "startLine": 25,
+        "endLine": 25
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "The defect is `let route = req.uri().path().to_owned();`. The route label is filled with the concrete request path, such as /shipments/PKG-83921/scans, rather than the route template (/shipments/:id/scans, available from axum's MatchedPath). Every shipment id creates a new label value, and therefore a new time series for the counter and for each of the histogram series behind it. Cardinality grows without bound, memory in the process and in Prometheus balloons, and queries get slow. Unknown URLs from scanners add junk series too. The label must come from a bounded set, such as the matched route pattern with a fallback like \"unmatched\".",
+    "The decrement is in `Drop` for InFlightGuard, which lives in the middleware future's state; when the future is cancelled and dropped, the guard is dropped and calls IN_FLIGHT.dec(). Had the decrement been written after `next.run(req).await`, a cancelled request would leak a count, which is why the first choice is the mistake the guard avoids. render() only reads and encodes metrics, and the counter code after the await does not run on cancellation.",
+    "Prometheus histogram buckets are cumulative: an observation of 0.3 seconds is counted in every bucket whose upper bound is at least 0.3, which are 0.5, 1.0, 2.5 and +Inf. The value is observed in seconds (as_secs_f64) so it matches the bucket bounds, which are also in seconds.",
+    "`Lazy` runs its closure on first access, and the closures `.expect(...)` the registration. Forcing each one in init() moves any registration panic to process start-up where it is noticed at deploy time. Without init() the metrics would still register, but on first use, which for rarely hit metrics such as SCANS_INGESTED could be in the middle of production traffic. Counters start at zero anyway and no thread is started."
+  ]
+}

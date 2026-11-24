@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "billing/service.py",
+        "startLine": 78,
+        "endLine": 78
+      }
+    },
+    1,
+    1,
+    0
+  ],
+  "explanations": [
+    "escalate_dunning mutates the JSON dict in place (invoice.meta[\"dunning_level\"] = level + 1). The meta column is a plain JSON type without MutableDict tracking, so SQLAlchemy never sees an attribute assignment and does not mark the object dirty. session.commit() then issues no UPDATE and the dunning level silently never advances, so customers are never escalated. record_payment shows the correct pattern: it assigns a new dict to invoice.meta, which is tracked. The fix is to assign a new dict (or use MutableDict.as_mutable / flag_modified).",
+    "selectinload issues a second SELECT ... WHERE invoice_id IN (...) for all invoices from the first query, so the comprehension does not trigger a lazy load per invoice. It is not a join (first choice describes joinedload). Loading on first access is the default lazy='select', which is exactly what the option replaces. It never deletes anything.",
+    "with_for_update() emits SELECT ... FOR UPDATE, which locks the invoice row. The second transaction waits until the first commits (or rolls back), and then reads the fresh paid_cents, so the overpayment check sees the real balance. Without that clause the first choice would be possible. No version column is used, so there is no stale-data error. FOR UPDATE is a row lock, not a table lock.",
+    "By default a commit expires every loaded instance, so touching an attribute afterwards issues a new SELECT (and fails if the session is closed). With expire_on_commit=False the loaded attribute values stay in place, so callers can read the invoice after commit. It does not auto-flush later changes, does not affect connection release, and the object remains attached to the session until it is closed."
+  ]
+}

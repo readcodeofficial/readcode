@@ -1,0 +1,51 @@
+{
+  "id": "e492ae5f-67f0-4c27-af3e-886d08c02050",
+  "title": "Billing API authorization middleware and routes",
+  "name": "Billing API routes",
+  "createdAt": "2026-11-24T04:16:39.031Z",
+  "durationMinutes": 12,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how these routes decide whether the caller may access a given record? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A caller whose token has roles [\"billing_admin\"] and scope \"invoices:read\" only sends POST /payments/:id/refunds for a payment in their own account. What is the response?",
+      "choices": [
+        "201, because billing_admin is sufficient to issue refunds.",
+        "403 with insufficient_scope, because requireScope(\"refunds:write\") fails after the role check passes.",
+        "401, because the token lacks the refund scope.",
+        "404, because the payment lookup does not find the record."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "GET /invoices/:invoiceId for an invoice that exists but belongs to another account returns 404 rather than 403. What is the effect of that choice?",
+      "choices": [
+        "It avoids disclosing whether an invoice ID exists in other accounts, since a missing record and a foreign record look identical.",
+        "It reveals that the invoice exists but is off limits to the caller.",
+        "It is a bug because 404 is only for routes that do not exist.",
+        "It lets the caller retry with a different token to obtain access."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A user with only the \"viewer\" role and the token scope \"invoices:read\" calls each endpoint for resources in their own account. Which calls succeed?",
+      "choices": [
+        "GET /payments/:id and GET /invoices/:id",
+        "None of them, because every route needs a role",
+        "All of them, because the account matches",
+        "Only GET /invoices and GET /invoices/:id"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.authorization_checks",
+    "backend.security.multi_tenant_isolation",
+    "backend.api.status_codes_and_error_responses",
+    "backend.security.authentication"
+  ]
+}

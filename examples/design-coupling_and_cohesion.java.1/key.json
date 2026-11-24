@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/travel/booking/TaxCalculator.java",
+        "startLine": 19,
+        "endLine": 19
+      }
+    },
+    2,
+    3,
+    1
+  ],
+  "explanations": [
+    "TaxCalculator navigates a three-step chain (booking, passenger, billing address, country code) and assumes every link is present. The calculator is coupled to the internal shape of Booking, and billingAddress is an optional piece of data: for a passenger without one (a guest checkout, say) the call throws NullPointerException and the whole quote fails. The calculator should ask for what it needs (for example a country code, or a method on Booking/Passenger that resolves a tax country with a fallback). The pricing service itself is cohesive: it applies the loyalty discount and delegates the tax rules.",
+    "Booking is an immutable record, and the calculator reads booking.baseFare(), so passing a copy with the discounted fare makes tax apply to the reduced amount. Nothing mutates the original, and the discount is applied before tax rather than after. No validation takes place.",
+    "getOrDefault falls back to DEFAULT_RATE (0.05) for an unknown country, and hasInternationalSegment() adds INTL_SURCHARGE (0.02), giving 0.07. An unknown country is not an error.",
+    "Both collaborators are constructor parameters, and loyalty is expressed through the nested LoyaltyLookup interface, so any implementation or a lambda can be supplied. Nothing is constructed internally, there is no static state, and there is no inheritance."
+  ]
+}

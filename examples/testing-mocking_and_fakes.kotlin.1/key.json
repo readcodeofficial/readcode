@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    0,
+    1,
+    2
+  ],
+  "explanations": [
+    "There is no defect. State-bearing collaborators (directory, offer gateway, assignment store) are small in-memory fakes whose behavior matches the real contracts: the directory applies the radius, the store's assign is putIfAbsent so a second assignment returns false, and the gateway records every offer so tests can assert on side effects. Only the fire-and-forget metrics interface is mocked, and the relaxed mock is paired with explicit verify calls on the interactions that matter. JUnit 5 creates a new test instance per method, so each test gets fresh fakes. The registration order of drivers in the first test is the reverse of their distance on purpose, so the sort is actually exercised.",
+    "A relaxed MockK mock returns default values for unstubbed calls instead of throwing, so extra or unexpected calls such as an additional offerTimedOut() are invisible unless a verify says otherwise. The strict-mock option describes the non-relaxed default. verify(exactly = n) is honored regardless of stubbing. Nothing requires every method to be called.",
+    "The ScriptedOfferGateway returns TimedOut by default and records each call, so the result alone does not reveal which drivers were contacted or in what order. The recorded list pins the ordering by distance and the stop at first acceptance. Data class equality compares all properties. The result is produced after the offers, not before. The Assigned comparison does not depend on the list.",
+    "JUnit 5 defaults to a per-method lifecycle: a new DispatchServiceTest instance, with fresh fakes, is built for every test. MockK only manages its own mocks and does not touch hand-written fakes. The fakes are mutable (lists and maps). No test clears state, and test order is not relied upon."
+  ]
+}

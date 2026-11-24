@@ -1,0 +1,52 @@
+{
+  "id": "72bd6ba1-3d59-44fb-bc5c-81e7ad514a93",
+  "title": "User deactivation events via transactional outbox",
+  "name": "User deactivation relay",
+  "createdAt": "2026-11-24T04:16:38.226Z",
+  "durationMinutes": 14,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps the identity database and the downstream session service consistent? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does DeactivateUser insert the outbox row in the same transaction as the user update?",
+      "choices": [
+        "So the broker receives the event before the database commits",
+        "So the event can be published by the request handler without a relay",
+        "So the status change and the record of the event to publish commit or roll back together, avoiding a dual write",
+        "To make the UPDATE hold its row lock for longer"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What happens when DeactivateUser is called for a user who is already deactivated?",
+      "choices": [
+        "It returns ErrNotActive and nothing is written, because the UPDATE matches no row and no event is inserted",
+        "A second event is added to the outbox and the sessions are revoked again",
+        "It returns nil after updating deactivated_at again",
+        "The transaction fails with a unique constraint violation on the outbox"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The session service receives the same deactivation message twice. What does SessionRevoker.Handle do the second time?",
+      "choices": [
+        "Deletes the user's sessions again, which is harmless but also deletes sessions created after the first run",
+        "Rolls back because of the primary key conflict",
+        "Returns an error so the broker redelivers the message",
+        "Inserts nothing into processed_events, sees zero rows affected, and commits without touching sessions"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.distributed.cross_service_consistency",
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.deduplication",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.messaging.queues_and_consumers"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "TicketEventPublisher.scala",
+        "startLine": 21,
+        "endLine": 21
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The publisher keys each record by event.agentId instead of event.ticketId. Kafka only guarantees ordering within a partition, and the partition is chosen from the key, so events for one ticket that are written by different agents (assignment, reply, reassignment) land on different partitions and are consumed in arbitrary relative order. The consumer assumes per-ticket order (it groups by ticketId and applies sequentially), and its seq check then silently drops any older event that arrives after a newer one, so state updates are lost. Keying by ticketId keeps all events for a ticket on one partition.",
+    "events.groupBy(_.ticketId) builds one list per ticket and each list is folded into a chain of futures (prev.map(...)), so events within a ticket are sequential. The separate chains are started independently and run concurrently. The first choice ignores the futures, the third would be true only without the foldLeft chain, and groupBy gives no ordering guarantee between keys.",
+    "Future.sequence fails when any chain fails, so Await.result throws before commitSync() and the poll loop exits. Offsets stay uncommitted, so after restart the batch is delivered again (at-least-once). The events that already succeeded are applied again only if their seq is greater than the stored last-applied seq, which it is not, so applyIfNewer makes redelivery harmless. There is no per-ticket retry, auto-commit is disabled, and nothing is skipped.",
+    "An idempotent producer attaches producer id and sequence numbers per partition so the broker discards duplicates caused by internal retries and keeps the order of in-flight batches. It does not span partitions, does not deduplicate events a restarted application publishes again as new records, and does not give exactly-once effects in the downstream store, which is why the consumer keeps its own seq check."
+  ]
+}

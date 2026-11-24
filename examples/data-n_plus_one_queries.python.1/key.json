@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "There is no defect. Orders, their warehouses (many-to-one, joinedload) and their lines (one-to-many, selectinload) are loaded with a fixed number of statements, and stock is fetched with one IN query per chunk of up to 500 distinct SKUs, not per order or per line. The per-order loop only reads already-loaded attributes and an in-memory dictionary. The limit is applied to the orders statement; because only the many-to-one relationship is joined, the LIMIT does not truncate any collection.",
+    "load_recent_orders joins the warehouse into the orders statement (joinedload) and loads all lines for all fetched orders with a single selectinload query. 300 distinct SKUs fit in one chunk of 500, so load_available runs one statement. Total 3. The 43 option assumes lazy loading of lines per order, which the lazy='raise' mapping and the selectinload option rule out. The 6 option assumes warehouses are loaded one at a time, but they come from the join. The 161 option assumes per-line and per-SKU queries, but stock is queried by chunks of SKUs.",
+    "OrderLine.product is declared with lazy=\"raise\", so touching it when it was not loaded by an option raises instead of lazily querying. This turns an accidental N+1 into an immediate failure. The silent-extra-SELECT option describes the default lazy='select' behavior, which is not configured. Lazy loads are never batched across instances automatically. The stock query selects StockItem columns, not Product entities, so nothing is in the identity map.",
+    "available.get((warehouse_id, sku), 0) falls back to 0 for a missing key, and 0 >= quantity is False for any positive quantity, so the line is reported as not in stock. The code uses .get rather than indexing, so no KeyError occurs. Nothing treats a missing row as untracked, and orders are never filtered out by stock."
+  ]
+}

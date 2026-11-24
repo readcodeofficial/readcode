@@ -1,0 +1,51 @@
+{
+  "id": "fcb48375-c160-4436-97c0-e5143e3aa36c",
+  "title": "Flight seat hold inventory",
+  "name": "Flight seat inventory",
+  "createdAt": "2026-11-24T04:16:37.890Z",
+  "durationMinutes": 14,
+  "language": "C",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code protects the shared seat count from concurrent reservations? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does inventory_reserve use atomic_fetch_add for the hold id even though the mutex is already held when the id is assigned?",
+      "choices": [
+        "It is required because pthread mutexes do not provide memory ordering",
+        "It is redundant here: every access to the counter happens inside the critical section, so a plain increment would behave the same",
+        "Without it, two holds could receive the same id because the mutex does not cover that line",
+        "It makes the hold id visible to other threads before the hold slot is filled"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A caller reserves 2 seats and gets hold id 7, then calls inventory_release(inv, 7) twice. What do the calls return and what happens to availability?",
+      "choices": [
+        "The first returns 2; the second blocks because the hold is gone",
+        "Both return 0 because release only works from the thread that reserved",
+        "Both return 2 and the seats are returned twice",
+        "The first returns 2 and restores the seats; the second returns 0 and changes nothing"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "When all MAX_HOLDS slots are in use and seats remain, what does a further reservation do?",
+      "choices": [
+        "It returns RESERVE_HOLD_TABLE_FULL after releasing the mutex, leaving the seat count unchanged",
+        "It waits on the mutex until another thread releases a hold",
+        "It returns RESERVE_SOLD_OUT because no slot is free",
+        "It overwrites the oldest hold"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.race_conditions",
+    "backend.concurrency.atomic_operations",
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.errors.cleanup_on_error_paths"
+  ]
+}

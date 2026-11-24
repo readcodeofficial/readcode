@@ -1,0 +1,52 @@
+{
+  "id": "997d8e2a-1d8c-4ed5-911d-a3d1ef56050b",
+  "title": "Shipment scan queue consumer",
+  "name": "Shipment scan consumer",
+  "createdAt": "2026-11-24T04:16:38.512Z",
+  "durationMinutes": 13,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this consumer settles messages from the queue? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A message whose body is not valid JSON is received. What happens to it?",
+      "choices": [
+        "It is abandoned, and retried until the entity's maximum delivery count is reached",
+        "It is dead-lettered immediately with reason `MalformedPayload`, because redelivering the same bytes cannot succeed",
+        "It is completed and discarded after a log line",
+        "The processor stops, because the JsonException escapes the handler"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The same scan event is delivered twice (at-least-once delivery) and the second copy arrives after the first was fully processed. What is the effect on the database?",
+      "choices": [
+        "A duplicate row is added to scan_events and the shipment is updated twice",
+        "The second INSERT throws a unique violation, which the consumer dead-letters",
+        "The transaction is rolled back and the message is abandoned until it expires",
+        "No new row is written and the shipments update is skipped, since the INSERT reports 0 rows"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "With MaxConcurrentCalls = 8, two scans for the same shipment are handled concurrently, and the older scan happens to commit last. What is the shipment's status afterwards?",
+      "choices": [
+        "The status from the newer scan, because the UPDATE only applies when last_scan_at is older than the incoming ScannedAt",
+        "The status from whichever message was dequeued last",
+        "Undefined, because the two transactions deadlock and one is dropped",
+        "The status from the older scan, because it committed last"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.queues_and_consumers",
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.deduplication",
+    "backend.messaging.message_ordering",
+    "backend.messaging.dead_letter_queues"
+  ]
+}

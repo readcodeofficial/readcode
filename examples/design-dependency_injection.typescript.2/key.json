@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/container.ts",
+        "startLine": 58,
+        "endLine": 58
+      }
+    },
+    1,
+    3,
+    2
+  ],
+  "explanations": [
+    "buildContainer is called once at startup, so one RequestScope instance is shared by the single AttributionService and mutated by the middleware on every request. While one request awaits a database call, another request overwrites scope.tenantId, so the first request can continue with the wrong tenant: conversions are read from or written for another advertiser's data. Per-request state must be created per request (a scope or container built inside the middleware, or the tenant passed as arguments), while stateless dependencies such as the pool, clock and stores can stay shared.",
+    "buildContainer prefers overrides.clock, overrides.clicks and overrides.store and otherwise constructs the Postgres-backed implementations, so tests can inject fakes without touching the service. It is a one-time constructor injection, not a registry or hot swap, and has nothing to do with tenants.",
+    "windowDays defaults to 7, and the age is computed from the injected clock; 9 days exceeds the window so the method returns 'expired' (the server maps this to HTTP 200). The click is found, so it is not unknown, and nothing is thrown.",
+    "The insert uses ON CONFLICT (tenant_id, click_id) DO NOTHING, so the duplicate is dropped without an error, but recordConversion does not inspect the result and still returns 'attributed' (201). Neither a unique violation nor a different outcome occurs."
+  ]
+}

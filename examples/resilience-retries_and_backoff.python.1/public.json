@@ -1,0 +1,51 @@
+{
+  "id": "dfd6223c-1965-4eae-8b2d-563772b03d94",
+  "title": "Carrier API client with retries",
+  "name": "Carrier label client",
+  "createdAt": "2026-11-24T04:16:38.800Z",
+  "durationMinutes": 12,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code makes its carrier calls safe to retry? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "get_rates fails its third attempt with a 503 that has no Retry-After header, using the default policy. Within what range is the sleep before the fourth attempt?",
+      "choices": [
+        "Exactly 2.0 seconds.",
+        "Between 0 and 2.0 seconds, chosen at random.",
+        "Between 0 and 8.0 seconds, chosen at random.",
+        "Between 0 and 4.0 seconds, chosen at random."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which responses from the carrier cause the client to retry rather than raise immediately?",
+      "choices": [
+        "Any 4xx or 5xx status.",
+        "Only network-level failures such as connection errors and timeouts.",
+        "Connection errors and timeouts, plus 429, 502, 503 and 504 responses; a 400 or 500 is raised immediately.",
+        "Every failure, until max_attempts is reached."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The carrier answers 429 with `Retry-After: 30` on the first attempt. With the default policy (max_delay 8, total_budget 20), what does retry_call do?",
+      "choices": [
+        "It sleeps 30 seconds, then retries.",
+        "It sleeps 8 seconds (the hint is capped to max_delay) and retries.",
+        "It raises RetryExhausted immediately because the hint exceeds the budget.",
+        "It ignores the header and sleeps a random time up to 0.5 seconds."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.retries_and_backoff",
+    "backend.api.idempotency",
+    "backend.resilience.timeouts",
+    "backend.integrations.third_party_adapters"
+  ]
+}

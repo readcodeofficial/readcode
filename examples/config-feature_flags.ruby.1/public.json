@@ -1,0 +1,51 @@
+{
+  "id": "07f8fb52-dde3-4ef7-bae5-fd70b6f141f7",
+  "title": "Feature flag evaluation for playback",
+  "name": "Playback feature flags",
+  "createdAt": "2026-11-24T04:16:37.975Z",
+  "durationMinutes": 12,
+  "language": "Ruby",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code decides which users fall inside a percentage rollout? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A flag is enabled: true with rollout_percent 0, allow_plans [\"premium\"], and the caller passes plan: \"premium\" for a user not in allow_users. What does enabled? return?",
+      "choices": [
+        "false, because a rollout of 0 percent disables the flag for everyone",
+        "true, because the plan allow-list is checked before the percentage rollout",
+        "false, because allow_plans is only consulted when rollout_percent is above 0",
+        "true, but only if the user id is also in allow_users"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The flag store becomes unavailable after the service has been running for hours. What does enabled? do on subsequent calls?",
+      "choices": [
+        "It raises, because load_flags propagates the store error to the caller",
+        "It returns false for every flag, because @flags is cleared when a refresh fails",
+        "It keeps evaluating against the last successfully loaded flags and retries the store on every call, logging a warning each time",
+        "It keeps evaluating against the last loaded flags and does not retry until the process restarts"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is the read of @flags in lookup wrapped in @mutex.synchronize while load_flags runs outside the mutex?",
+      "choices": [
+        "So that the slow store call does not block request threads that are reading flags, while swapping in the new hash stays atomic with respect to readers",
+        "So that only one thread at a time can ever call the store, preventing duplicate refreshes",
+        "Because Ruby hashes cannot be read without a lock",
+        "So that the TTL is measured only while the lock is held"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.config.feature_flags",
+    "backend.caching.ttls_and_expiry",
+    "backend.resilience.graceful_degradation",
+    "backend.concurrency.shared_state_in_request_handlers"
+  ]
+}

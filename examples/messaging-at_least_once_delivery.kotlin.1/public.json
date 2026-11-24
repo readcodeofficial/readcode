@@ -1,0 +1,51 @@
+{
+  "id": "0f1938e4-44aa-4717-be5a-61caed725167",
+  "title": "Feed fan-out Kafka consumer",
+  "name": "Feed fan-out consumer",
+  "createdAt": "2026-11-24T04:16:38.379Z",
+  "durationMinutes": 13,
+  "language": "Kotlin",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code preserves at-least-once delivery when processing fails? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A poll returns three records for one partition and the second one's handling throws an exception. What does the consumer do?",
+      "choices": [
+        "Commits offsets past the second record and continues with the third.",
+        "Commits nothing for the batch, seeks back to the last committed offset, pauses, and the three records are polled again.",
+        "Skips the failing record and commits the other two.",
+        "Stops the consumer permanently so an operator can intervene."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The application crashes after handleBatch completes but before commitSync. What is the consequence on restart?",
+      "choices": [
+        "Nothing is redelivered, because the work was completed.",
+        "Only the last record of the batch is redelivered.",
+        "The batch is redelivered to this or another group member, because the committed offset still points before it.",
+        "The consumer group's offsets reset to the latest position."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is it important that nextOffsets commits `offset + 1` for the last record of each partition?",
+      "choices": [
+        "Kafka rejects a commit equal to an already-delivered offset.",
+        "The committed offset is the position of the next record to read; committing the record's own offset would redeliver that record after a restart.",
+        "It is required so that the offsets of different partitions stay in sync.",
+        "It skips one record so the consumer never reprocesses a poison message."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.queues_and_consumers",
+    "backend.messaging.deduplication",
+    "backend.errors.cleanup_on_error_paths"
+  ]
+}

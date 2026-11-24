@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/io/sensorgrid/replication/QuorumReplicator.java",
+        "startLine": 43,
+        "endLine": 43
+      }
+    },
+    1,
+    2,
+    3
+  ],
+  "explanations": [
+    "The defect is the quorum size `(replicas.size() + 1) / 2`. Integer division gives a strict majority only for odd cluster sizes (3 gives 2, 5 gives 3). For an even size it is exactly half: with 4 replicas the quorum is 2, with 2 replicas it is 1. Two disjoint halves can then each acknowledge a write, so after a partition or a leader change a new leader may be elected by a group that never saw an acknowledged write, and acknowledged telemetry can be lost or diverge. The majority is `replicas.size() / 2 + 1`.",
+    "A rejection carrying a newer term is handled in its own branch: it sets `leader` to false and completes the future exceptionally with NotLeaderException, instead of being counted as an ordinary failure. Future calls to replicate() then fail immediately. If the future had already reached quorum, completeExceptionally has no effect. There is no retry and no repair flag in the code.",
+    "The class only counts acknowledgements; it has no rollback or compensation path. A replica that acknowledged (or applied the append just before timing out) keeps the entry, so the caller's failure result means 'not confirmed durable', not 'not written'. Nothing retries; a caller retry would call replicate() again and get a fresh sequence number.",
+    "`sequence.incrementAndGet()` runs before any replica is contacted and is never decremented, so a failed write leaves a hole in the numbering. Replicas receive the sequence in the Entry and the counter is never reset or reused. Consumers of the log must therefore tolerate gaps."
+  ]
+}

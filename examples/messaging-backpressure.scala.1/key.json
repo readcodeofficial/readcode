@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/scala/clinic/scheduling/intake/BookingIntake.scala",
+        "startLine": 59,
+        "endLine": 59
+      }
+    },
+    2,
+    1,
+    0
+  ],
+  "explanations": [
+    "The defect is `OverflowStrategy.dropHead`. When the 512-slot buffer is full, dropHead evicts the oldest queued request to make room for the new one, and `offer` still completes with `Enqueued`. The HTTP layer therefore returns 202 for the new request, while a booking that was already acknowledged to an earlier patient is silently discarded and never reserved. The `Dropped` branch and the 429 with Retry-After can never fire, so clients get no signal to slow down. `OverflowStrategy.dropNew` (offer reports `Dropped`, mapped to 429) or `backpressure` (offer future completes only when space frees up, with a cap on pending offers) would push the overload back to the caller instead of losing accepted work.",
+    "mapAsync(8) keeps at most 8 futures running and stops pulling from upstream when all 8 are pending. The queue buffer holds requests that have not yet been pulled, not in-flight calls. The throttle limits the rate of the notify stage but not how many calls run concurrently. Requests are not started on submit; they wait in the buffer until the stream demands them.",
+    "The failure is caught inside the mapAsync function by `recoverWith`, which logs and then parks the request and yields None, which `collect` filters out. Because the future never fails, the stream is not terminated. There is no retry loop, and the request is not merely logged because `parked.park` is awaited as part of the recovery.",
+    "throttle(50, 1.second) delays elements so the sustained rate is bounded, and because Akka Streams propagates demand upstream, a slow notify stage causes reserve and ultimately the queue buffer to fill rather than losing elements at the throttle. mapAsync(2) allows two concurrent calls, not unlimited, and it emits results in input order (mapAsyncUnordered would not). Throttle in its default shaping mode delays elements; it does not drop them."
+  ]
+}

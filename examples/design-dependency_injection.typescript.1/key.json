@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/wiring.ts",
+        "startLine": 21,
+        "endLine": 22
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "QueryService is registered as a singleton but depends on IndexResolver, which is scoped and wraps the per-request RequestContext. The container builds a singleton by calling the factory with the scope that asked first (reg.factory(this)), so the first request's IndexResolver, and with it that request's tenantId, gets captured inside the cached QueryService. Every later request, from any tenant, then queries the first tenant's indexes: a cross-tenant data leak. QueryService should be scoped (or take the resolver per call), and the container could reject singletons that depend on scoped services.",
+    "For singleton lifetimes resolve() reads and writes this.root.cache, and createScope passes the original root along, so every scope shares the one cache. The scope's own cache is used only for scoped lifetimes, there is no root-only restriction for singletons (only scoped ones are rejected from the root), and the scope's registry copy plays no part in singleton caching.",
+    "In resolve(), the scoped branch checks this.root === this first and throws before calling the factory, so nothing is constructed or cached. It never reaches the RequestContext lookup, which would also have failed with a different error, and it never returns a partially built object.",
+    "The scoped branch stores the instance in this.cache, which belongs to the scope container, so repeated lookups in the same scope return it and other scopes build their own. Only transient registrations call the factory every time, only singletons use the root cache, and a cache hit just returns the stored value without throwing."
+  ]
+}

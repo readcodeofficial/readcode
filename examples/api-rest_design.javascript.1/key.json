@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/routes.js",
+        "startLine": 88,
+        "endLine": 88
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "Cancelling an appointment is registered as GET /:id/cancel. GET is defined as safe: browsers, link prefetchers, email scanners, crawlers and caching proxies assume they can issue it freely, and it is retried automatically. Any of those hitting the URL cancels a patient's appointment, and because the store also bumps the ETag version it silently invalidates If-Match tokens held by clients. Cancellation should use a state-changing method (for example DELETE /:id, or PATCH/POST setting the status to cancelled). The other routes use methods correctly: POST returns 201 with Location, and the PUT is guarded by If-Match.",
+    "The store throws SlotConflictError and the POST handler catches exactly that class and answers 409 with a problem document. Another option is wrong: nothing returns the existing record. Another option is wrong: validation only checks required fields and a parseable date, which pass. Another option is wrong: only unexpected errors are rethrown to the app-level handler, which would produce 500.",
+    "The limit is parsed and clamped with Math.min(..., MAX_PAGE), so 1000 becomes 100. A next URL is emitted only when rows remain beyond the page. The request is not rejected, not unbounded, and the default of 20 applies only when the parameter is missing or not a number.",
+    "A's reschedule calls store.reschedule, which increments the version, so the current ETag is \"2\". B's header \"1\" does not equal store.etag(), so the handler returns 412 Precondition Failed before updating. Another option is wrong because the precondition check runs first. Another option is wrong: 409 is only used by creation. Another option is wrong: the appointment still exists."
+  ]
+}

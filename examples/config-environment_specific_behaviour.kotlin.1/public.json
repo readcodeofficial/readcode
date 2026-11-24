@@ -1,0 +1,51 @@
+{
+  "id": "3c0f6a07-2b2f-435f-90f1-bbc3813292ed",
+  "title": "Environment-aware configuration for a file sync service",
+  "name": "Sync service config",
+  "createdAt": "2026-11-24T04:16:37.942Z",
+  "durationMinutes": 11,
+  "language": "Kotlin",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code chooses settings for different environments? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The service is deployed to a new cluster where the operator forgets to set APP_ENV. What happens at startup?",
+      "choices": [
+        "It starts in LOCAL mode with debug endpoints and TLS verification disabled",
+        "It starts in PRODUCTION mode because that is the safest default",
+        "It prints an error and exits with status 78, since Environment.parse throws a ConfigException",
+        "It starts with an empty configuration and fails on the first request"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In STAGING, STORAGE_ENDPOINT is not set but STORAGE_BUCKET and KMS_KEY_ID are. What is the resulting storage configuration?",
+      "choices": [
+        "Startup fails because an endpoint is required outside LOCAL",
+        "The endpoint falls back to http://localhost:9000",
+        "The endpoint is the empty string, and requests fail at runtime",
+        "The endpoint is null, which leaves the storage client to use its default service endpoint, with TLS verification enabled and virtual-host style access"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "An operator sets SYNC_POLL_SECONDS=\"fast\" in PRODUCTION. What happens at startup?",
+      "choices": [
+        "The value is ignored and the production default of 30 seconds is used",
+        "A ConfigException is thrown by the integer helper, main() prints it and the process exits with status 78",
+        "A NumberFormatException escapes and the JVM crashes with a stack trace",
+        "The value is clamped to the nearest valid interval"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.config.environment_specific_behaviour",
+    "backend.config.defaults_and_validation",
+    "backend.config.configuration_loading",
+    "backend.security.encryption_at_rest_and_in_transit"
+  ]
+}

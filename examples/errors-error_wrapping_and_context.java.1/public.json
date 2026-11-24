@@ -1,0 +1,50 @@
+{
+  "id": "c90df725-5d9e-42c3-b6b5-d75293a356bf",
+  "title": "Bearer token authentication service",
+  "name": "Bearer token authenticator",
+  "createdAt": "2026-11-24T04:16:38.334Z",
+  "durationMinutes": 12,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code wraps lower-level exceptions and preserves their context? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The directory is unreachable and findBySubject throws a DirectoryException. What does a caller of handle() observe, and what ends up in the logs?",
+      "choices": [
+        "It returns 500, and the log records the exception with an INTERNAL code",
+        "It returns 503, and the log contains an error entry with the DIRECTORY_UNAVAILABLE code and the full cause chain including the DirectoryException",
+        "It returns 401, and the log contains an info entry with the failure reason",
+        "It returns 503, and only the message \"directory lookup failed for realm ...\" is logged"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The directory client throws an unchecked IllegalStateException from inside findBySubject. What happens?",
+      "choices": [
+        "It is caught, wrapped as AuthException(INTERNAL) with the original as cause, and handle returns 500",
+        "It propagates out of authenticate unchanged, since only checked exceptions are caught",
+        "It is swallowed and authenticate returns a null account",
+        "It is reported as DIRECTORY_UNAVAILABLE because RuntimeException is a subclass of Exception"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The directory returns Optional.empty for the token's subject. Which code and handling result?",
+      "choices": [
+        "DIRECTORY_UNAVAILABLE, logged at error level with a stack trace",
+        "INTERNAL, because orElseThrow with an AuthException is caught by the RuntimeException clause",
+        "ACCOUNT_DISABLED, because a missing account is treated as disabled",
+        "INVALID_TOKEN, logged at info level with the reason, and handle returns 401"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.error_wrapping_and_context",
+    "backend.errors.error_propagation",
+    "backend.api.status_codes_and_error_responses"
+  ]
+}

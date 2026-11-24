@@ -1,0 +1,49 @@
+{
+  "id": "6db6dc2b-db17-4ee0-9730-78c8a033ea34",
+  "title": "Recent orders with stock availability",
+  "name": "Order history report",
+  "createdAt": "2026-11-24T04:16:38.053Z",
+  "durationMinutes": 10,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code loads related data for the order report? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A customer has 40 recent orders from 2 warehouses, 120 order lines in total, and 300 distinct SKUs across them. How many SQL statements does recent_order_views issue?",
+      "choices": [
+        "43: one for the orders, one per order for its lines, and one for the stock rows",
+        "3: one for orders joined with warehouses, one for all lines, one for the stock rows",
+        "6: one for orders, one for each of the 2 warehouses, one for lines, and two for stock",
+        "161: one for orders, one per line, and one per distinct SKU"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A developer adds `line.product.title` inside the inner list comprehension of recent_order_views, without touching the loader options. What happens?",
+      "choices": [
+        "Each access silently issues one extra SELECT, so the report still works but slows down",
+        "SQLAlchemy batches the lookups into one query on the first access, because the session already holds the lines",
+        "The product titles are returned from the identity map because the SKUs were already queried for stock",
+        "An InvalidRequestError is raised on the first access, since the relationship is mapped with lazy=\"raise\" and was not eagerly loaded"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "An order contains a SKU that has no stock_items row for the order's warehouse. What does the corresponding LineView report?",
+      "choices": [
+        "in_stock is False, and no error is raised",
+        "A KeyError propagates out of recent_order_views",
+        "in_stock is True, because a missing row means stock is untracked",
+        "The whole order is omitted from the result"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.n_plus_one_queries",
+    "backend.data.orm_pitfalls"
+  ]
+}

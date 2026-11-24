@@ -1,0 +1,50 @@
+{
+  "id": "24ed0327-7dc1-4472-b03a-7ab764a42f6c",
+  "title": "Pipeline trigger endpoint with request validation",
+  "name": "Pipeline trigger endpoint",
+  "createdAt": "2026-11-24T04:16:37.709Z",
+  "durationMinutes": 12,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code validates the incoming trigger request? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client sends {\"projectSlug\":\"web\",\"ref\":\"main\",\"variables\":{\"db_url\":\"x\"}}. What does the endpoint do?",
+      "choices": [
+        "Returns 202 Accepted because the variable name is only checked for length",
+        "Returns a validation problem for field variables.db_url because lowercase names are rejected",
+        "Returns 404 because ProjectSlug is too short to match any project",
+        "Throws a KeyNotFoundException because Variables was not bound from JSON"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the endpoint compare request.Parallelism with project.MaxParallelism separately from the request validation step?",
+      "choices": [
+        "Attribute validators cannot compare a number against a constant",
+        "It is a duplicate of the [Range] attribute and is never reached",
+        "DataAnnotations skip integer properties unless they are nullable",
+        "The limit depends on the project loaded from the catalog, which is not known when the request body is validated"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does the endpoint store as the Ref of the queued run?",
+      "choices": [
+        "The request value with leading and trailing whitespace removed",
+        "The raw request value, unchanged",
+        "The default branch of the project, because Ref is optional",
+        "The request value upper-cased for consistent matching"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.request_validation",
+    "backend.api.status_codes_and_error_responses",
+    "backend.security.input_sanitization"
+  ]
+}

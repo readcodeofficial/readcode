@@ -1,0 +1,51 @@
+{
+  "id": "76373a0b-5482-4937-92a1-357159f41a37",
+  "title": "Manifest uploader over TCP",
+  "name": "Manifest uploader client",
+  "createdAt": "2026-11-24T04:16:38.876Z",
+  "durationMinutes": 12,
+  "language": "C",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code manages file and socket descriptors? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "upload_manifest is called with a path that does not exist. What happens?",
+      "choices": [
+        "It resolves the host and connects first, then reports the open failure from the done label",
+        "It returns UPLOAD_ERR_IO, because fopen failures are reported as read errors",
+        "It returns UPLOAD_ERR_OPEN immediately, without calling dial()",
+        "It jumps to done and calls fclose(NULL), which is harmless"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "fread() returns a short count partway through the file because of a disk read error. What does upload_manifest do?",
+      "choices": [
+        "It reports UPLOAD_ERR_IO via ferror(fp), after which done closes the socket and the file",
+        "It sends the remaining bytes as zeros so the receiver sees the declared length",
+        "It treats the short read as end of file, half-closes the socket and returns UPLOAD_OK",
+        "It returns immediately with UPLOAD_ERR_IO and leaves the socket to be closed on process exit"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The receiver stops reading, its TCP window fills, and the SO_SNDTIMEO of 10 seconds expires during send(). What does the caller of upload_manifest observe?",
+      "choices": [
+        "send blocks forever, because SO_SNDTIMEO applies only to connect",
+        "send_all retries forever, because EAGAIN is treated like EINTR",
+        "The process receives SIGPIPE and terminates",
+        "send fails, send_all returns -1, and upload_manifest returns UPLOAD_ERR_SEND, possibly after part of the file was delivered"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.file_and_socket_handle_leaks",
+    "backend.errors.cleanup_on_error_paths",
+    "backend.resilience.timeouts",
+    "backend.resilience.retries_and_backoff"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "Services/CampaignReportService.cs",
+        "startLine": 36,
+        "endLine": 36
+      }
+    },
+    3,
+    2,
+    0
+  ],
+  "explanations": [
+    "The service layer reads the advertiser identity straight from IHttpContextAccessor, so business logic now depends on the web layer and on a request being in flight. Called from a background job, hosted service or test there is no HttpContext (null, so a NullReferenceException) and the claim lookup also assumes the claim exists. The controller should resolve the advertiser from its User and pass it to the service as an argument, keeping the service transport-agnostic. The repository correctly scopes the campaign lookup by advertiser and the controller correctly limits itself to input checks and mapping results to status codes.",
+    "The service iterates every day from `from` to `to` and, when the dictionary built from the repository rows has no entry, adds a zero-filled DailyMetrics. Days is therefore always dense. Missing days do not produce NotFound; that result is reserved for a campaign that is not found for the advertiser. Nothing is carried forward.",
+    "FirstOrDefaultAsync with both predicates returns null for another advertiser's campaign, and the service then returns null, which the controller maps to 404. The primary key alone already identifies the row, EF Core has no such requirement, and no caching is involved.",
+    "The guard returns BadRequest when to < from (or the span exceeds 92 days) before any service call, so neither the service nor the database is touched. It does not swap dates, and no exception is thrown for this case."
+  ]
+}

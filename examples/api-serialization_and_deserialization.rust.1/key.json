@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/models.rs",
+        "startLine": 51,
+        "endLine": 53
+      }
+    },
+    2,
+    3,
+    0
+  ],
+  "explanations": [
+    "ProfileUpdate is shared by the self-service route (PATCH /users/me) and the admin route (PATCH /users/:id), and UserRecord::apply copies `roles` from it unconditionally. Only update_user performs an Admin check; update_me does not, so any authenticated member can send {\"roles\": [\"admin\"]} to /users/me and grant themselves admin (mass assignment). Unlike CreateUserRequest, ProfileUpdate does not use deny_unknown_fields, and it exposes a privileged field to an unprivileged path. The role-changing part should live in a separate, admin-only request type or be rejected in update_me.",
+    "CreateUserRequest is marked #[serde(deny_unknown_fields)], so serde errors on `roles` and the Json extractor rejects the request (422) before create_user runs. It is not silently ignored, it is not the UserRecord type being deserialized, and the 403 in create_user is about the caller's role, which is never evaluated here.",
+    "With `Option<String>` and #[serde(default)], both a missing key and an explicit null produce None, and apply only changes fields that are Some. Distinguishing 'clear' from 'leave alone' would need Option<Option<T>> or a custom deserializer. Null is accepted for Option, nothing is turned into the text \"null\", and nothing is cleared.",
+    "skip_serializing on the field removes it from every response that serializes UserRecord, including create and both update routes. Role uses rename_all = \"snake_case\", giving strings like \"member\", not indexes. created_at uses time::serde::rfc3339, so it is an RFC 3339 string, not an integer."
+  ]
+}

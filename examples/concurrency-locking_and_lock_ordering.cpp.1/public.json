@@ -1,0 +1,50 @@
+{
+  "id": "645c5dd8-9098-41b9-8c80-daa7d58f904f",
+  "title": "Credit transfers between principals",
+  "name": "Principal credit transfers",
+  "createdAt": "2026-11-24T04:16:37.870Z",
+  "durationMinutes": 12,
+  "language": "C++",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code acquires and orders locks? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Thread 1 calls transfer_credits(dir, \"alice\", \"bob\", 5) while thread 2 calls transfer_credits(dir, \"bob\", \"alice\", 7) at the same moment. What is the outcome?",
+      "choices": [
+        "A deadlock is likely, because each thread locks its source principal first and then waits for the other thread's source",
+        "Both calls complete; std::scoped_lock acquires both mutexes without a lock-order cycle, so the transfers serialize",
+        "One call fails with SameAccount because the two ids overlap",
+        "Both calls complete only because the directory's shared_mutex serializes them"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "transfer_credits looks up both principals through the directory and then locks them after find() has returned. What is the effect of that design?",
+      "choices": [
+        "A principal removed from the directory between lookup and locking would cause a use-after-free",
+        "The directory lock is held for the whole transfer, which limits concurrency across unrelated accounts",
+        "Transfers never wait on the directory lock while holding a principal lock, and the shared_ptr copies keep both objects alive even if one is removed concurrently",
+        "Credits can be double-spent because the balance check happens before the lock is taken"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "ids_with_role takes the directory's shared lock and then locks each principal's mutex in turn. Under what condition is this safe against deadlock with the other functions in this file?",
+      "choices": [
+        "Only if no other thread ever calls create() or remove()",
+        "Only because shared_lock allows many readers, so readers never block each other",
+        "Whenever no code path acquires the directory lock while already holding a principal mutex, which holds for every function here",
+        "Only because lock_guard is released at the end of each loop iteration"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.concurrency.deadlocks",
+    "backend.concurrency.race_conditions"
+  ]
+}

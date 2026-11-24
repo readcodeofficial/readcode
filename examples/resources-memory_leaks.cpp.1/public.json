@@ -1,0 +1,51 @@
+{
+  "id": "a8ac967f-103e-4c4b-9a9c-91e27285a49e",
+  "title": "Subscription billing run",
+  "name": "Subscription billing registry",
+  "createdAt": "2026-11-24T04:16:38.921Z",
+  "durationMinutes": 13,
+  "language": "C++",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code manages object lifetimes and memory? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A billing run is iterating over an account while another thread calls removeSubscription for one of its subscriptions. What is guaranteed?",
+      "choices": [
+        "The run may read freed memory, because erase destroys the subscription immediately",
+        "The removal blocks until the run finishes because the registry mutex is held",
+        "The run always charges the removed subscription one last time",
+        "The run sees either the old or new set of subscriptions consistently, because it works on a copy or under the account mutex, and any subscription it already holds stays alive"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "runBilling hits a PaymentError for one account in the middle of the registry. What happens?",
+      "choices": [
+        "The exception propagates and no later account is billed",
+        "The account is added to failedAccounts and the loop continues with the next account",
+        "The charge is retried immediately with the same idempotency key until it succeeds",
+        "The registry removes the account"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does AccountRegistry::close move the shared_ptr out of the map and call cancelAll after releasing the registry mutex?",
+      "choices": [
+        "To avoid holding the registry lock while taking the account lock, which keeps the lock scope small and avoids lock nesting",
+        "Because std::unordered_map::erase requires the element to be moved first",
+        "Because cancelAll would deadlock if called while the map is locked, even from the same thread",
+        "To make sure the Account is destroyed before the function returns"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.memory_leaks",
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.errors.error_propagation",
+    "backend.api.idempotency"
+  ]
+}

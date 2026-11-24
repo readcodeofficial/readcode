@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "directory/okta.py",
+        "startLine": 59,
+        "endLine": 59
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "Provider statuses are mapped through a dictionary whose fallback is UserStatus.ACTIVE. The provider has other states (for example LOCKED_OUT, PASSWORD_EXPIRED, STAGED, RECOVERY) that are not in _STATUS_MAP, and it can add more at any time. Any such user is silently treated as active, so the sync upserts them and never revokes their sessions: an access control check fails open at the integration boundary. The adapter should fail closed, either mapping unknown values to a non-active status or raising so the unknown value is noticed.",
+    "On a 401 with attempts left, the code sets self._token = None and continues the loop; the next iteration calls _access_token, which sees no cached token and requests a new one, and the same URL (the next page link) is retried. It does not raise on the first 401, does not reuse the expired token, and never resets url in iter_users.",
+    "Accounts that the store knows about but that did not appear in the iterated listing are candidates for deletion upstream. get_user returns None on 404, in which case the account is revoked and disabled. The loop covers only the difference between the two sets, so the cost is one request per account that was not seen, not per account overall. It does not upsert anything and has nothing to do with groups or rate limiting.",
+    "_request retries RequestException and, on the last attempt, wraps it in DirectoryUnavailable. Because iter_users is a generator, users from earlier pages were already yielded and handled by sync_directory before the error is raised in the middle of iteration, which aborts the run before the 'missing' pass. The raw exception is not exposed, and nothing converts the failure into an empty result."
+  ]
+}

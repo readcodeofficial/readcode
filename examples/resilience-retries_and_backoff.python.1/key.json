@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "carrier/client.py",
+        "startLine": 40,
+        "endLine": 40
+      }
+    },
+    1,
+    2,
+    1
+  ],
+  "explanations": [
+    "The Idempotency-Key is generated inside attempt(), which retry_call invokes once per try, so every retry carries a fresh UUID. If the first POST /labels reaches the carrier and succeeds but the response times out (a read Timeout is retried), the retry looks like a brand-new request and the carrier creates and bills a second label. The key must be generated once, outside attempt(), and reused for all attempts of the same logical operation.",
+    "The ceiling is min(max_delay, base_delay * 2 ** (attempt - 1)) = min(8, 0.5 * 4) = 2.0 for attempt 3, and the delay is drawn uniformly from [0, ceiling] (full jitter), so it is not a fixed 2.0. 4.0 would be the ceiling for attempt 4, and 8.0 is only the cap that is reached later.",
+    "HTTPError is retried only if the status is in RETRYABLE_STATUS ({429, 502, 503, 504}); otherwise the bare `raise` propagates it, so 400, 404 and also 500 are not retried. ConnectionError and Timeout are always retried. Both kinds stop at max_attempts.",
+    "The hint is capped: delay = max(random(0, 0.5), min(30, 8)) = 8. Since now + 8 is still within the 20-second budget, it sleeps 8 seconds and tries again. The header is honored (not ignored), but never beyond max_delay, and the budget check only fails when the elapsed time plus delay exceeds 20 seconds."
+  ]
+}

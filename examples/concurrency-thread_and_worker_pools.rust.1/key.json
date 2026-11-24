@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/pool.rs",
+        "startLine": 50,
+        "endLine": 50
+      }
+    },
+    0,
+    2,
+    3
+  ],
+  "explanations": [
+    "In `while let Ok(job) = receiver.lock().unwrap().recv()` the MutexGuard is a temporary in the scrutinee expression, and temporaries in a `while let` scrutinee live until the end of the loop body. The lock is therefore held while job() runs, so only one worker executes at a time and the other three just wait on the mutex: the pool has the parallelism of one thread, and 12 tickets with a 150 ms blocking call take about 1.8 s instead of about 0.45 s. The fix is to take the job in a separate statement (`let job = receiver.lock().unwrap().recv();`) so the guard is dropped before running it. Shutdown via dropping the sender and joining is otherwise correct.",
+    "Drop takes the Sender out of the Option and drops it; when all senders are gone and queued jobs are consumed, recv() returns Err, the `while let Ok` loop ends, and join() returns. There is no flag and Rust threads cannot be aborted. The workers themselves hold the Arc clones, so it does not reach zero first.",
+    "A panic unwinds and ends the worker thread; nothing catches it or respawns a worker, so capacity shrinks by one. In Drop, join() returns Err and the code prints that the worker panicked. The process does not abort (default unwind) and submit has already returned.",
+    "WorkerPool::drop closes the channel and joins every worker; workers finish every job still queued before recv() fails. Only then is the counter read, so it reports 12. Jobs are not cancelled, and the Arc keeps the atomic alive regardless."
+  ]
+}

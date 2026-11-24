@@ -1,0 +1,51 @@
+{
+  "id": "ae8859c8-f84a-4706-9e7f-1bf651c3bc1f",
+  "title": "Booking pricing and tax",
+  "name": "Booking tax pricing",
+  "createdAt": "2026-11-24T04:16:38.130Z",
+  "durationMinutes": 11,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how TaxCalculator depends on the Booking model? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "BookingPricingService builds a new Booking with the discounted fare before calling the tax calculator. What does this accomplish?",
+      "choices": [
+        "Tax is computed on the base fare and the discount is applied afterwards",
+        "It validates the booking before pricing",
+        "Tax is computed on the discounted fare, while the original booking object stays unchanged",
+        "The original booking is mutated so later callers see the lower fare"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "For a booking whose passenger has a billing address in a country absent from rateByCountry and that includes an international segment, what rate does TaxCalculator apply?",
+      "choices": [
+        "0.02 only, the surcharge",
+        "It throws because the country is unknown",
+        "0.05 only",
+        "0.07, the default rate plus the international surcharge"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which statement best describes the dependency between BookingPricingService and its collaborators?",
+      "choices": [
+        "It constructs its own TaxCalculator and loyalty client, so neither can be replaced in tests",
+        "It receives both through its constructor and depends on a small interface for loyalty, so the loyalty source can vary independently",
+        "It depends on a static singleton for loyalty discounts",
+        "It subclasses TaxCalculator to reuse the rate table"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.coupling_and_cohesion",
+    "backend.design.interface_design",
+    "backend.data.money_and_ledgers",
+    "backend.design.dependency_injection"
+  ]
+}

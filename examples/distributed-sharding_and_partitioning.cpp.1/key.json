@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/shard_ring.cpp",
+        "startLine": 10,
+        "endLine": 10
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "The ring positions and key lookups use std::hash<std::string>, whose algorithm is unspecified by the standard. It differs between standard library implementations (libstdc++ vs libc++ vs MSVC), versions, and platforms, and is allowed to be randomized per process. Other services, a differently built binary, or a restarted process may therefore place the same node or key at a different point on the ring, so the same customer or warehouse is routed to different shards. A fixed, specified hash such as xxHash, MurmurHash3 or FNV-1a over the bytes must be used for anything persisted or shared between processes.",
+    "Adding a node inserts only its own virtual points. Each key whose clockwise-next point is now one of those new points changes owner, which is about 1/(N+1) of the keyspace here, and every such key moves to the new node; keys never move between existing nodes. This is the benefit of the ring over hash-modulo-N, which would reassign nearly everything. Removal is a separate operation and is not needed for ownership to change.",
+    "With 128 virtual points per node, walking clockwise can yield the same physical node more than once in a row. The set ensures the returned replicas are distinct nodes, which is what replication needs. The result order is clockwise order, not sorted; the lock is taken once regardless; and the iterator concern does not apply because the shared lock prevents concurrent modification during the walk.",
+    "If the cluster has fewer distinct nodes than the requested replication factor, `out.size() < count` would never become false. The step bound limits the walk to one full circle, after which every node has been seen and the function returns what it found, which can be fewer than `count`. It does not guarantee exactly `count` results, it still starts at lower_bound of the key, and removed nodes have already had their points erased."
+  ]
+}

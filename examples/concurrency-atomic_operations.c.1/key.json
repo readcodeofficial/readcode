@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "ticket_pool.c",
+        "startLine": 61,
+        "endLine": 61
+      }
+    },
+    0,
+    2,
+    1
+  ],
+  "explanations": [
+    "ticket_release decrements the reference count with memory_order_relaxed and then frees the ticket. A relaxed decrement does not order the other threads' earlier writes to the ticket (for example updates to subject or body made while they held a reference) before the thread that sees the count reach zero and frees the memory. The releasing decrement needs release semantics, and the thread that drops the last reference needs an acquire (memory_order_acq_rel on the decrement, or a release decrement followed by an acquire fence before free). Otherwise the final thread can free and reuse memory while writes from other threads are not yet visible, which is a data race and can corrupt the heap. The retain increment can be relaxed; that is not the problem.",
+    "Atomic read-modify-write operations are always atomic, whatever the memory order, so no two callers can observe the same previous value and ids are unique. Relaxed only gives up ordering with other memory operations. It does not promise ordering between threads' start times, and uniqueness does not depend on the closing flag or on any mutex.",
+    "atomic_compare_exchange_weak_explicit stores current + 1 only if queued still equals current. The loser's attempt fails and writes the updated value of queued into current, so the loop re-evaluates current >= max_queued and returns false instead of spinning. A weak compare-exchange may also fail spuriously, which just causes one more iteration. The limit is therefore never exceeded, and a failed call does not wait for a release.",
+    "Taking a new reference from an existing one cannot race with the object being freed, because the existing reference keeps the count above zero. The increment itself needs no ordering relative to other memory, since the data is already visible to the caller. Retaining without owning a reference (third choice) would race with the final release and be a use-after-free. The restriction to the creating thread and the 'never relaxed' rule are not required."
+  ]
+}

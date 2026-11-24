@@ -1,0 +1,50 @@
+{
+  "id": "b5f04b20-36b3-4af8-a0fe-b9fc81987794",
+  "title": "Flight booking service and its ports",
+  "name": "Flight booking orchestration",
+  "createdAt": "2026-11-24T04:16:38.181Z",
+  "durationMinutes": 11,
+  "language": "Scala",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how BookingService uses the SeatInventory and PaymentGateway interfaces and handles their failures? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The seat commit fails with CommitFailure.HoldExpired after the customer has been charged. What happens in BookingService.book?",
+      "choices": [
+        "The charge is kept and the caller receives a Booking, since payment is the source of truth",
+        "The booking is retried with a fresh hold before anything is reported",
+        "The charge is refunded (or flagged for manual review if the refund fails), the hold is released, and the caller receives BookingError.HoldExpired",
+        "The caller receives BookingError.HoldExpired and the charge stays in place until the reference is reused"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "inventory.release(hold) is called on every failure path after a hold was taken, including when the hold has already expired. Which interface property makes that safe?",
+      "choices": [
+        "hold() returns an Either, so release can only be reached with a valid hold",
+        "The SeatHold case class is immutable, so releasing it twice has no effect",
+        "release is declared to return Unit, and Scala ignores exceptions from Unit methods",
+        "The contract on release says it is safe for holds that were committed, expired or never existed"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A new case object HoldFailure.RegionClosed is added to the sealed trait, and no other file changes. What is the effect on BookingService?",
+      "choices": [
+        "fromHold now has a non-exhaustive match, which the compiler reports as a warning (an error with fatal warnings), instead of failing at runtime",
+        "The code compiles silently and RegionClosed is mapped to TryAgain by the last case",
+        "The code compiles, and a MatchError is thrown the first time RegionClosed occurs, with no compiler diagnostic",
+        "The new case is ignored by the sealed trait until it is registered in the companion object"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.interface_design",
+    "backend.errors.error_propagation",
+    "backend.design.coupling_and_cohesion"
+  ]
+}

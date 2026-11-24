@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "There is no defect. The check-then-act sequence (slot status check, overlap check, insert) is protected by PESSIMISTIC_WRITE locks on the patient row and the slot row, always acquired in the same order (patient, then slot), so concurrent bookings of one slot or by one patient serialize rather than deadlock or double-book. READ_COMMITTED is sufficient because each statement after acquiring the locks sees committed data. The retry loop lives in BookingService, a different bean from the @Transactional method, so each attempt goes through the Spring proxy and gets a fresh transaction; retrying inside the failed transaction, or from a self-call, would not work. The checked BookingException is covered by rollbackFor = Exception.class, and business failures are not retried.",
+    "findForUpdate takes a PESSIMISTIC_WRITE lock on the slot row, so the second transaction blocks until the first commits, then reads the committed BOOKED status and throws BookingException(SLOT_TAKEN). The overwrite scenario (A) is prevented by the lock. SLOT_TAKEN is a BookingException, not a PessimisticLockingFailureException, so it is not retried (B). A lock failure only happens if the 3 second lock timeout elapses (D).",
+    "After a lock failure the surrounding transaction is marked rollback-only and cannot be reused. Calling booker.book from another bean goes through the transactional proxy, opening a new transaction per attempt. Classes can have many transactional methods (B), sleeping in a transaction is discouraged for holding locks and connections but not forbidden by the spec (C), and BookingService has no isolation configuration at all (D).",
+    "Both requests lock the same Patient row before doing anything else, so they run one after the other. Under READ_COMMITTED the second request's existsOverlapping query sees the first request's committed CONFIRMED appointment and throws PATIENT_DOUBLE_BOOKED. The slots are different rows, so no slot-level constraint is involved (A), isolation level alone does not stop concurrent inserts (C), and a plain count query takes no row locks (B)."
+  ]
+}

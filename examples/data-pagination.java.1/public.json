@@ -1,0 +1,50 @@
+{
+  "id": "f6af0fd8-5017-4a90-a681-8aa8020723f7",
+  "title": "Keyset-paginated ticket queue listing",
+  "name": "Ticket queue listing",
+  "createdAt": "2026-11-24T04:16:38.092Z",
+  "durationMinutes": 12,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code pages through a queue's tickets across successive requests? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The query asks for pageSize + 1 rows even though at most pageSize are returned. What is the purpose?",
+      "choices": [
+        "It lets the code detect whether another page exists without a separate COUNT query.",
+        "It compensates for the cursor row itself being included in the next page.",
+        "It prefetches the first row of the next page so it can be cached.",
+        "It guards against rows deleted between the query and the response."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Compared with LIMIT/OFFSET paging, what is the main behavioral benefit of this cursor approach while new tickets keep arriving in the queue?",
+      "choices": [
+        "Total result counts stay exact across pages.",
+        "Each request is cheaper because the database skips the ORDER BY.",
+        "A client paging forward does not see already-returned tickets shifted onto later pages by newly created ones.",
+        "Clients can jump directly to an arbitrary page number."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client sends `?cursor=abc` where `abc` is not a valid token. What happens?",
+      "choices": [
+        "The cursor is ignored and the first page is returned.",
+        "TicketCursor.decode throws InvalidCursorException before any SQL runs, and the controller answers 400 with error invalid_cursor.",
+        "The database query fails and a TicketStoreException is thrown.",
+        "A NumberFormatException propagates and the client receives a 500."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.pagination",
+    "backend.api.rest_design",
+    "backend.api.request_validation"
+  ]
+}

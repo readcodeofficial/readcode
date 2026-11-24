@@ -1,0 +1,50 @@
+{
+  "id": "0af86b00-6574-4130-9adf-36a8f7bf779c",
+  "title": "Order pricing and partial refunds in integer cents",
+  "name": "Order refund calculator",
+  "createdAt": "2026-11-24T04:16:38.031Z",
+  "durationMinutes": 14,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code computes money amounts for orders and refunds? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does priceOrder distribute the discount and tax across lines with allocate instead of rounding each line's share?",
+      "choices": [
+        "The per-line parts must add up to exactly the order-level discount and tax, which independent rounding does not guarantee",
+        "Math.round is not available for numbers above 2^31",
+        "allocate converts cents to floating-point dollars for display",
+        "It guarantees that every line receives an equal share"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A refund request fails on the network after the gateway actually processed it, and the client retries the same request. Why is the customer not refunded twice?",
+      "choices": [
+        "planRefund throws because the refunded quantity was already updated",
+        "The gateway rejects any refund smaller than the captured amount",
+        "The idempotency key is derived from the order id and the number of refunds already recorded, so the retry sends the same key and the gateway can deduplicate it",
+        "store.recordRefund is called before gateway.refund so the retry sees it"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which input makes planRefund throw before any money moves?",
+      "choices": [
+        "Refunding fewer units of a line than remain, after an earlier partial refund of that line",
+        "Refunding an order that has a discount applied",
+        "Requesting a quantity of exactly the original line quantity",
+        "Requesting more units of a SKU than have been bought and not yet refunded"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.money_and_ledgers",
+    "backend.api.idempotency",
+    "backend.integrations.third_party_adapters"
+  ]
+}

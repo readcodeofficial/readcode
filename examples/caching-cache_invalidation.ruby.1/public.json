@@ -1,0 +1,50 @@
+{
+  "id": "f92f9e02-fe3b-4c00-a0cd-48cd9fea6cf5",
+  "title": "Role administration with cached permissions",
+  "name": "Permission cache administration",
+  "createdAt": "2026-11-24T04:16:37.787Z",
+  "durationMinutes": 12,
+  "language": "Ruby",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps the permission cache consistent with role changes? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A user is a member of a group, and an administrator changes that group's roles through update_group_roles. When do the group members' cached permission sets stop reflecting the old roles?",
+      "choices": [
+        "Only when each member's 15 minute entry expires, because the group change does not touch the cache",
+        "After the transaction commits, when expire_many deletes the entries of all members that were read in the transaction",
+        "Immediately inside the transaction, because assigning role_ids triggers a cache delete on every membership",
+        "Never until the next deploy, because the cache key includes the VERSION constant"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What is the purpose of race_condition_ttl: 10.seconds in PermissionCache.fetch?",
+      "choices": [
+        "It makes every entry expire 10 seconds earlier than TTL to leave a safety margin",
+        "It rejects reads of entries older than 10 seconds when the database is reachable",
+        "When an entry has just expired, one caller recomputes it while others briefly keep receiving the stale value, which avoids many callers rebuilding the permission set at once",
+        "It delays cache writes by 10 seconds so that in-flight transactions can finish first"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Authorizer#allowed? is called on every authenticated request. If the cache store becomes unreachable and Rails.cache.fetch raises, what happens to the request?",
+      "choices": [
+        "The exception propagates out of allowed? and require!, and nothing in this code rescues it, so the request fails with a server error",
+        "The request is denied with 403 Forbidden because the Denied error is raised",
+        "The block runs anyway, so permissions are rebuilt from the database and the request proceeds",
+        "The permission set is treated as empty and allowed? returns false"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.caching.cache_invalidation",
+    "backend.caching.stale_reads",
+    "backend.data.transactions_and_isolation_levels"
+  ]
+}

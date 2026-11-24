@@ -1,0 +1,51 @@
+{
+  "id": "1bebcd63-2846-4bec-ad55-9ecf6ecddeec",
+  "title": "CI job runner with atomic admission control",
+  "name": "CI job runner pool",
+  "createdAt": "2026-11-24T04:16:37.846Z",
+  "durationMinutes": 12,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code enforces the concurrency limit and updates its shared counters? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "An operator calls the reload endpoint, which lowers MaxConcurrent and JobTimeout, while several jobs are mid-run. What happens to those in-flight jobs?",
+      "choices": [
+        "They are cancelled immediately because the new limits no longer allow them",
+        "They keep running but their timeout is re-evaluated against the new JobTimeout on the next tick",
+        "They keep running with the Limits pointer they were started with, including the old timeout; only later submissions see the new values",
+        "The reload blocks until running reaches zero, then swaps the pointer"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Snapshot reads Succeeded, Failed and TotalNanos with separate atomic loads. What can a caller of Snapshot observe?",
+      "choices": [
+        "A mean run time computed from counters sampled at slightly different moments, so it can be marginally off, but each value is a valid whole number",
+        "A torn int64 value on 32-bit platforms, since the loads are independent",
+        "A data race that the Go race detector would report",
+        "A panic from division by zero whenever a job finishes between the loads"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The HTTP handler passes r.Context() to Submit, and the client disconnects right after receiving 202 Accepted. What happens to the job?",
+      "choices": [
+        "It is cancelled, because the job context derives from the request context",
+        "It is cancelled only if the client disconnects before the goroutine starts",
+        "It keeps running, but without any deadline since the request context is dropped",
+        "It keeps running; context.WithoutCancel detaches it from the request's cancellation while keeping its values, and only JobTimeout can stop it"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.atomic_operations",
+    "backend.concurrency.race_conditions",
+    "backend.resilience.timeouts",
+    "backend.resources.context_cancellation"
+  ]
+}

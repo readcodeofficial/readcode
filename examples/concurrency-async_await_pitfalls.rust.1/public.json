@@ -1,0 +1,52 @@
+{
+  "id": "b1faa8bf-93b4-4744-afef-9b6fd4eb224b",
+  "title": "Ride dispatcher with driver reservations",
+  "name": "Ride dispatch loop",
+  "createdAt": "2026-11-24T04:16:37.811Z",
+  "durationMinutes": 14,
+  "language": "Rust",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles async tasks, locks held across awaits, or cancellation? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A dispatch task is aborted by shutdown while it is awaiting the driver's answer to an offer. What state is that driver left in?",
+      "choices": [
+        "Offered for the ride, forever, because the abort skipped the cleanup code",
+        "Available again, because dropping the future drops the Reservation, which releases the driver",
+        "OnTrip, because the offer was already sent",
+        "Offered until the driver sends their next location update, which resets the state"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why can DriverPool safely use std::sync::Mutex in code running on a tokio runtime?",
+      "choices": [
+        "tokio replaces std mutexes with async ones at compile time",
+        "unwrap on lock() makes the guard Send across tasks",
+        "The HashMap inside is lock-free, so the Mutex is never contended",
+        "Critical sections are short, synchronous, and never contain an .await, so the guard is never held while the task is suspended"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Thousands of ride requests arrive in a burst. How does Dispatcher::run limit the load on the driver gateway?",
+      "choices": [
+        "It takes a semaphore permit before receiving the next request, so at most max_in_flight dispatches run and the rest wait in the channel",
+        "It spawns a task per request but each task waits for a free driver before calling the gateway",
+        "It drops requests that arrive while max_in_flight dispatches are running",
+        "It relies on OFFER_TIMEOUT to cancel the extra tasks"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.async_await_pitfalls",
+    "backend.resources.context_cancellation",
+    "backend.messaging.backpressure",
+    "backend.resilience.graceful_shutdown",
+    "backend.resilience.timeouts"
+  ]
+}

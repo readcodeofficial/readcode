@@ -1,0 +1,52 @@
+{
+  "id": "2a5d316b-1af4-4945-93ef-b2030dcc0a3d",
+  "title": "Feed service health endpoints",
+  "name": "Feed health probes",
+  "createdAt": "2026-11-24T04:16:38.596Z",
+  "durationMinutes": 11,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how the health endpoints are wired up for use by an orchestrator? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The Redis ping hangs for 10 seconds while Postgres answers instantly. About how long does a readiness request take and what status does it return?",
+      "choices": [
+        "About 800 ms, returning 200 because Postgres is healthy",
+        "About 1.6 s, because the checks run one after another",
+        "About 10 seconds, returning 200 once Redis answers",
+        "About 800 ms, returning 503 with the redis check marked not ok"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does the shutdown sequence in Server.Run do about traffic from the load balancer?",
+      "choices": [
+        "It makes readiness return 503, waits 5 seconds so the balancer stops routing, then calls Shutdown with a 20 second limit",
+        "It waits for ctx to be cancelled again before shutting down",
+        "It relies on liveness failing to remove the pod from the balancer",
+        "It immediately closes the listener, so in-flight requests are dropped"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is the results slice in run safe to write from several goroutines without a mutex?",
+      "choices": [
+        "The compiler serializes writes inside closures",
+        "Go slices are internally synchronized",
+        "Each goroutine writes only to its own index, and wg.Wait establishes happens-before before the slice is read",
+        "The goroutines run one at a time because of the context"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.health_checks",
+    "backend.resilience.graceful_shutdown",
+    "backend.resilience.timeouts",
+    "backend.resources.context_cancellation",
+    "backend.concurrency.shared_state_in_request_handlers"
+  ]
+}

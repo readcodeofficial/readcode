@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    0,
+    1,
+    2
+  ],
+  "explanations": [
+    "There is no defect. The unbounded part of the data (the event history) lives in its own collection keyed by event id, while the shipment document embeds only a bounded window of the latest 50 events (via $push with $sort and $slice) plus a counter, so documents cannot grow toward the 16 MB limit and the common read is a single-document fetch. Inserting the event and updating the shipment happen in one transaction, and the event id as _id makes redelivery a duplicate-key error that aborts the transaction and is reported as not recorded, so the counter cannot be double incremented. The status update is guarded by statusAt so late events cannot move the status backwards. The history endpoint paginates by a time cursor with a limit cap rather than using skip.",
+    "The event id is used as _id, so the second insertOne throws code 11000 inside the transaction, which aborts the pushes and increments performed in it. The catch block turns that into false, and the router answers 200 with recorded: false. No auto-generated ids are used, and the duplicate-key error does not reach the error handler.",
+    "recentEvents is capped at 50 by $slice, and eventCount is a running counter, so the summary read touches one bounded document with a projection. The full history exists only in shipment_events and is reached through the paginated history endpoint. Because only the bounded window is embedded, the document does not approach the size limit.",
+    "The query has equality predicates on carrierId and status followed by a range on lastEventAt and a sort on lastEventAt, which matches the index field order, so no in-memory sort is needed. Compound indexes serve sorts on trailing fields after equality prefixes. trackingNumber is unrelated, and index maintenance on updates does not stop the index from being used for reads."
+  ]
+}

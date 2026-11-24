@@ -1,0 +1,50 @@
+{
+  "id": "7afb684c-31d3-4dd4-96e6-51edf98cd9f2",
+  "title": "Matchmaking queue publisher and consumer with tracing",
+  "name": "Matchmaking request pipeline",
+  "createdAt": "2026-11-24T04:16:38.688Z",
+  "durationMinutes": 12,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code propagates and records distributed traces across the queue? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "In EnqueueAsync, why is MatchmakingTelemetry.Inject called with the activity started by StartActivity rather than relying on Activity.Current at publish time inside the bus?",
+      "choices": [
+        "The bus runs on another thread, so Activity.Current is always null there",
+        "The headers are built before PublishAsync is awaited, so the injected traceparent identifies the producer span, which becomes the parent of the consumer side",
+        "Inject needs a Dictionary and cannot read Activity.Current",
+        "StartActivity only records the span if Inject has been called on it"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In ProcessOneAsync, a pool call throws an InvalidOperationException. What does the trace and the caller see?",
+      "choices": [
+        "The place_request span is marked Error with the message, a warning is logged, and the method returns false so the batch continues",
+        "The exception propagates, the batch stops, and the place_request span is left unfinished",
+        "The exception is logged and the span is marked Ok because the exception was handled",
+        "Only the batch span is marked Error, and the place_request span has no status"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A caller cancels the token while TryPlaceAsync is awaiting. How does this code treat the cancellation?",
+      "choices": [
+        "It is logged as a warning and the message counts as not placed",
+        "It is recorded as an Error span and swallowed, so the remaining messages are still processed",
+        "It is rethrown by its own catch block, so it is not turned into a logged failure, and the using declarations still end the spans",
+        "It is converted into a TimeoutException before leaving ProcessOneAsync"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.tracing",
+    "backend.messaging.queues_and_consumers",
+    "backend.errors.panics_and_exceptions_at_boundaries"
+  ]
+}

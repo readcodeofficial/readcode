@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/com/helpdesk/tickets/TicketRepository.java",
+        "startLine": 33,
+        "endLine": 33
+      }
+    },
+    0,
+    2,
+    1
+  ],
+  "explanations": [
+    "The cursor carries both created_at and id, and the ORDER BY uses (created_at DESC, id DESC), but the continuation filter only compares created_at (`AND created_at < ?`). The id half of the cursor is never used. When several tickets share the same created_at (bulk imports, email batches, coarse timestamps) and a page boundary falls between them, every remaining ticket with that exact timestamp is excluded from the next page and is silently never returned. The filter should be a row comparison such as (created_at, id) < (?, ?).",
+    "The extra row is only used for `hasMore = rows.size() > pageSize`; it is trimmed off by subList and never returned. Nothing re-includes the cursor row, nothing is cached, and deletions are not compensated for.",
+    "New tickets sort to the front (created_at DESC), so with OFFSET every insert would push earlier rows down and cause duplicates on the next page. The cursor anchors on a position in the ordering instead. The ORDER BY is still required, no total count is computed, and random page access is not possible with an opaque cursor.",
+    "decode runs at the top of listOpenTickets, before a connection is acquired. A Base64 failure is an IllegalArgumentException, a missing ':' gives StringIndexOutOfBoundsException, and NumberFormatException is a subclass of IllegalArgumentException; all are converted to InvalidCursorException and mapped to 400 by the @ExceptionHandler. The cursor is not silently ignored and the database is never reached."
+  ]
+}

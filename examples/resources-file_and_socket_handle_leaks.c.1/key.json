@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "manifest_upload.c",
+        "startLine": 33,
+        "endLine": 35
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "In dial(), when connect() fails for one of the resolved addresses the loop continues without closing the socket that was just created; the next iteration overwrites fd, so the descriptor is lost. Hosts commonly resolve to several addresses (for example IPv6 and IPv4), and when every connect fails the last socket is also leaked. main retries connect failures up to four times per manifest, so a long list of manifests against an unreachable server leaks several descriptors per file until the process hits the per-process descriptor limit and later calls fail with EMFILE. The fix is to close(fd) before continuing. The other paths are correct: the setsockopt failure closes the descriptor, and upload_manifest funnels every exit after the fopen through the done label.",
+    "fopen is called before dial. A NULL result returns UPLOAD_ERR_OPEN directly, before any socket exists and before the goto done paths that call fclose(fp). fclose on a NULL FILE pointer is not harmless in general, which is why the early return matters. Connection is never attempted, and open failures use their own status code.",
+    "The while loop ends when fread returns 0. Because the loop cannot distinguish end of file from error, the code checks ferror(fp) afterwards and sets UPLOAD_ERR_IO before going to done, which closes the descriptor and the FILE. Without that check the truncated upload would be reported as success. Nothing pads the data, and the function does not return before the cleanup label.",
+    "On timeout send returns -1 with EAGAIN or EWOULDBLOCK. send_all only retries EINTR, so it returns -1, and upload_manifest maps that to UPLOAD_ERR_SEND. Earlier chunks may already have reached the receiver. SO_SNDTIMEO covers send, not just connect. MSG_NOSIGNAL prevents SIGPIPE, though that signal concerns writes to a closed peer, not a timeout."
+  ]
+}

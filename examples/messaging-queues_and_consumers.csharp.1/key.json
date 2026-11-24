@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/Tracking/ShipmentScanConsumer.cs",
+        "startLine": 66,
+        "endLine": 66
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The defect is the `CompleteMessageAsync` call that runs before `RecordScanAsync`. Completing removes the message from the queue, so if the store call then fails, the process crashes, or the database is down, the scan is gone and nothing will redeliver it. The `TransientStoreException` branch that calls `AbandonMessageAsync` is also ineffective: the message has already been settled, so the abandon throws (the lock is gone) rather than putting the message back for retry. The message should be completed only after the store call succeeds, and abandoned (or left to its lock to expire) when it fails.",
+    "The Deserialize call is wrapped in a try/catch for JsonException; the catch dead-letters the message with a reason and returns. The same payload would fail the same way every time, so retrying (abandon) wastes deliveries. It is neither completed silently nor allowed to escape, and a handler exception would not stop the processor in any case.",
+    "scan_events is keyed on scan_id and the INSERT uses ON CONFLICT DO NOTHING, so the second attempt affects 0 rows. The UPDATE of shipments is guarded by `inserted == 1`, so it is skipped and the transaction commits cleanly, so nothing is thrown and nothing is rolled back or dead-lettered.",
+    "The UPDATE has `last_scan_at IS NULL OR last_scan_at < @ScannedAt`, so a scan older than what is already recorded does not overwrite the shipment's current status, though its row still lands in scan_events. Commit order and dequeue order do not matter. Row locks on the shipments row serialize the two updates, they do not deadlock, since each transaction touches the row once."
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "c911a6f7-5df9-4947-ad81-9dddddadc0b1",
+  "title": "Notification service configuration loader",
+  "name": "Notification config loader",
+  "createdAt": "2026-11-24T04:16:37.927Z",
+  "durationMinutes": 12,
+  "language": "Kotlin",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles malformed or missing configuration values? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The deployment sets neither FCM_CREDENTIALS_PATH nor SMS_API_KEY. What does the service do at startup?",
+      "choices": [
+        "It throws on the first missing variable, naming only SMS_GATEWAY_URL or whichever is checked first",
+        "It starts with empty credentials and fails on the first notification it sends",
+        "It collects every problem found, throws one ConfigException listing them, and Main exits with code 78 after printing the list",
+        "It falls back to defaults for both values and logs a warning"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "QUIET_HOURS is left unset and the default '22-7' is used. How does QuietHours.contains treat hours 23 and 3?",
+      "choices": [
+        "Both are inside quiet hours, because start > end is treated as a window that wraps past midnight",
+        "Neither is inside quiet hours, because 22 is greater than 7 and the range is empty",
+        "Only 23 is inside quiet hours; 3 is excluded because it is below the start hour",
+        "Both are rejected because parseQuietHours only accepts start less than end"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does ConfigLoader take an env: Map<String, String> constructor argument instead of calling System.getenv inside?",
+      "choices": [
+        "Because System.getenv is not thread-safe",
+        "So that the loader can be exercised with arbitrary maps in tests and the process environment is read in exactly one place, Main",
+        "Because Kotlin does not allow reading environment variables in a class",
+        "So that environment variables can be modified at runtime without restarting the service"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.config.configuration_loading",
+    "backend.config.defaults_and_validation",
+    "backend.config.environment_specific_behaviour",
+    "backend.errors.error_propagation"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/refunds.ts",
+        "startLine": 46,
+        "endLine": 46
+      }
+    },
+    0,
+    2,
+    3
+  ],
+  "explanations": [
+    "The per-unit refund amount is computed by rounding line.paidCents * quantity / line.quantity independently for every refund request. Rounding is not consistent across partial refunds: a line that paid 200 cents for 3 units refunds 67 + 67 + 67 = 201 cents when returned one unit at a time, so cumulatively the customer receives more than the line paid (or less, for other values). The line's refundedCents is tracked but never used. The final refund of a line should return the remaining paid amount (paidCents - refundedCents) instead of a rounded proportion, or use allocate() across units. The order-level cap only catches the overshoot once the whole order is exceeded, and the extra cents come out of the merchant's pocket in the meantime.",
+    "allocate uses the largest remainder method: it floors each share and hands the leftover cents to the lines with the largest fractional parts, so the shares sum exactly to the total. Rounding each share independently can drift by a cent or more. Math.round has no 2^31 limit, allocate works purely in integer cents, and shares are proportional to the weights, not equal.",
+    "The key is built from order.id and order.refundCount + 1. If the first attempt did not get to recordRefund, the retry computes the same key, and the gateway treats it as a repeat of the same operation. The store is updated after the gateway call, not before, so planRefund does not see a prior refund, and nothing rejects refunds based on size.",
+    "planRefund checks quantity against line.quantity - line.refundedQuantity and throws a RangeError when it is exceeded. A full-quantity request is allowed when nothing has been refunded, discounts are already folded into paidCents, a partial refund of fewer units than remain passes the check."
+  ]
+}

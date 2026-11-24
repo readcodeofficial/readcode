@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/kotlin/com/pulse/feed/consumer/FeedEventProcessor.kt",
+        "startLine": 36,
+        "endLine": 36
+      }
+    },
+    1,
+    2,
+    1
+  ],
+  "explanations": [
+    "The consumer correctly commits only after the whole batch succeeds and rewinds on failure, so failed records are redelivered. But the processor records the event id as processed (markIfNew) before the timeline inserts happen. If followersOf or any insert throws, the batch is rewound and the event is redelivered, yet markIfNew now returns false and process returns early, so the event is never fanned out (or only partially). The effect and its dedupe marker are not atomic; the marker must be written after the work succeeds, or in the same transaction as the inserts, with the inserts themselves idempotent.",
+    "The exception is thrown out of handleBatch before commitSync runs, so nothing in the batch is committed. The catch block calls rewind, which seeks each partition back to its committed offset, then sleeps for retryPause. The next poll redelivers all three records, including the first, which has already been processed once. There is no skip logic and the loop keeps running.",
+    "Offsets are committed manually (enable.auto.commit=false) only after processing, so the committed position still precedes the batch and the whole batch is redelivered. That is the at-least-once guarantee and is why the processor needs an idempotency guard. auto.offset.reset only matters when no committed offset exists.",
+    "A committed offset denotes the next message the group will consume. Committing the last handled record's own offset would cause it to be read again after a rebalance or restart. Kafka does not reject the equal value, partitions are tracked independently, and +1 does not skip any unprocessed record."
+  ]
+}

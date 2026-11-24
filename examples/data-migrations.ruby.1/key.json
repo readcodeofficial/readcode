@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    1,
+    0
+  ],
+  "explanations": [
+    "There is no defect. The column is added as nullable with no default, which is a metadata-only change; the index is built concurrently, which requires disabling the DDL transaction; the backfill runs in bounded batches with a pause and is restricted to rows still NULL, so it is idempotent and safe to resume; the NOT NULL rule is added as an unvalidated check constraint (a brief lock) and validated separately, where the scan does not block writes. The model assigns the zone for new rows before the constraint is validated, so no new NULLs appear during the backfill.",
+    "With disable_ddl_transaction! nothing is rolled back automatically; add_column and add_index use if_not_exists, so a re-run tolerates the existing column. A concurrent index build that is interrupted can leave an INVALID index with the same name, and if_not_exists would then see it as existing, so an operator may need to drop it manually. The migration does not run in a transaction, and duplicate indexes cannot be created under the same name.",
+    "Application models evolve; a migration that depends on Order would run today's callbacks and validations (for example before_validation) against a schema as it was when the migration was written. A minimal class bound to the table keeps the migration stable. in_batches works on any relation, schema loading is unaffected, and foreign keys are enforced by the database regardless of the class.",
+    "add_check_constraint with validate: false creates the constraint without scanning existing rows, so it only takes a short lock and enforces the rule for new writes. validate_check_constraint then scans existing rows with a lock that allows concurrent writes. The reverse order would fail on existing NULLs; a direct SET NOT NULL scans the table under a strong lock; and a callback is not a guarantee, since writes may bypass models."
+  ]
+}

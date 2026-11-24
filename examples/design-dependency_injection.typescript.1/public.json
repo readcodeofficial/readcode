@@ -1,0 +1,50 @@
+{
+  "id": "03abae82-88a0-495e-8983-f95ad8de3dab",
+  "title": "Tenant-scoped search query service with a DI container",
+  "name": "Search query service",
+  "createdAt": "2026-11-24T04:16:38.149Z",
+  "durationMinutes": 12,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how the services are registered and wired together for tenant-scoped requests? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Both MetricsToken and SearchBackendToken are singletons whose factories ignore the container. Resolving them from a request scope returns what?",
+      "choices": [
+        "A new instance per scope, because scopes copy the registry",
+        "The same instance every time, because singletons are cached on the root container regardless of which scope resolves them",
+        "An error, because singletons may only be resolved from the root",
+        "The same instance per scope, because scope caches are consulted first"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A developer calls root.resolve(IndexResolverToken) directly, outside any request scope. What happens?",
+      "choices": [
+        "It returns an IndexResolver built with an undefined RequestContext",
+        "It succeeds and caches the resolver on the root for later requests",
+        "It throws because RequestContextToken is not registered on the root, but only after constructing IndexResolver",
+        "It throws because scoped services cannot be resolved from the root container"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Within one request, QueryService is resolved by the handler and, separately, some other code asks the same scope for IndexResolverToken twice. What do the two IndexResolver lookups return?",
+      "choices": [
+        "The same instance, cached in that scope's own cache, and a different instance in a different scope",
+        "Two different instances, because every resolve calls the factory",
+        "The same instance across all scopes, because the root cache is shared",
+        "The first returns an instance and the second throws because the token is already cached"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.dependency_injection",
+    "backend.concurrency.shared_state_in_request_handlers",
+    "backend.security.multi_tenant_isolation"
+  ]
+}

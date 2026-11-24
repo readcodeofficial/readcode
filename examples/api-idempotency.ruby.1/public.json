@@ -1,0 +1,51 @@
+{
+  "id": "0cd1dfca-c353-413e-b2b9-d90ffb236245",
+  "title": "Idempotent payroll run submission",
+  "name": "Payroll run submission",
+  "createdAt": "2026-11-24T04:16:37.675Z",
+  "durationMinutes": 12,
+  "language": "Ruby",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code makes payroll run submission idempotent? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client retries a request with the same Idempotency-Key but a different list of employee_ids. What does it receive?",
+      "choices": [
+        "The stored response from the first request, because the key matches",
+        "A 422 response with an error saying the key was used with a different request",
+        "A 201 response for a new payroll run built from the new employee list",
+        "A 409 response because the pay period is already closed"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is the lookup done on `scope` (\"company:<id>\") plus `key` rather than on `key` alone?",
+      "choices": [
+        "It makes the SHA-256 fingerprint shorter and cheaper to compute",
+        "It lets the purge job delete one company's records without touching others",
+        "It stops one company's key from replaying or conflicting with another company's request that happens to use the same key string",
+        "It makes the unique index unnecessary, since scoped keys cannot collide"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "While PayrollDisbursement#call is running, a database error is raised after several payments have been created. The client then retries with the same key. What happens?",
+      "choices": [
+        "The retry replays a stored 500 response, since the key was recorded on the first attempt",
+        "The retry sees the partially created payments and skips them",
+        "The retry runs the disbursement again from scratch, because the transaction rolled back and no response was stored for the key",
+        "The retry is rejected with a 422 because the key was already seen"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.idempotency",
+    "backend.concurrency.race_conditions",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.security.multi_tenant_isolation"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "id": "adfb42cd-9ca6-45b6-9df0-5577d71b3b5d",
+  "title": "Conversion attribution service",
+  "name": "Conversion attribution service",
+  "createdAt": "2026-11-24T04:16:38.164Z",
+  "durationMinutes": 12,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how the container wires per-request information into the services? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "What do the optional ContainerOverrides provide?",
+      "choices": [
+        "Per-tenant configuration",
+        "A way to swap the clock and stores for fakes when building the container, such as in tests",
+        "Runtime hot-swapping of services after startup",
+        "A global registry that services can query lazily"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A click was recorded 9 days ago and the service has the default configuration. What does recordConversion return?",
+      "choices": [
+        "'unknown_click'",
+        "It throws an error",
+        "'attributed', because the click exists",
+        "'expired'"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The same click id is posted twice in quick succession for the same tenant and is within the window. What do the database writes do?",
+      "choices": [
+        "The second call returns 'unknown_click'",
+        "Two rows are stored, doubling the reported value",
+        "The second INSERT is silently ignored via ON CONFLICT DO NOTHING, though the API still reports 'attributed'",
+        "The second INSERT fails with a unique violation and returns 500"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.dependency_injection",
+    "backend.concurrency.shared_state_in_request_handlers",
+    "backend.security.multi_tenant_isolation",
+    "backend.api.idempotency",
+    "backend.testing.mocking_and_fakes"
+  ]
+}

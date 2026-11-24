@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    3,
+    1,
+    0
+  ],
+  "explanations": [
+    "There is no defect. Every node delivers only through the pub/sub subscription, so a user with sockets on several nodes receives each event once per socket and there is no second local delivery path. Slow consumers are terminated once bufferedAmount passes the cap instead of letting the send buffer grow, dead peers are removed by the ping/pong sweep, and detach() removes the Set and the map entry when the last socket closes, so nothing leaks. Iterating over a copy of the Set (spread) is safe even though close handlers mutate it. Malformed or incomplete events are dropped with a log line rather than throwing inside the subscriber callback.",
+    "publishSessionEvent only calls publisher.publish; delivery happens in onMessage on every node that subscribed, and each node sends to the sockets in its own map. So each socket gets exactly one copy. There is no direct local send that would duplicate it (first choice), the subscription reaches every node (third choice), and sendToUser iterates all sockets for the user, not just the first (fourth choice).",
+    "bufferedAmount (400 KB) exceeds MAX_BUFFERED_BYTES (256 KB), so the loop logs, calls ws.terminate() and continues with the next socket. Closing with 4001 is reserved for revocation, queuing without bound is what the check prevents, and the socket is not kept connected after the drop; its close handler then removes it from the map.",
+    "ws.terminate() and close events trigger detach(), which deletes from the Set and may delete the map entry entirely. Looping over a copy keeps the iteration independent of those mutations. Sets are iterable, the copy has no effect on parallelism, and duplicates are impossible in a Set either way."
+  ]
+}

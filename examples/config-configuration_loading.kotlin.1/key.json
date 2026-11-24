@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "config/ConfigLoader.kt",
+        "startLine": 24,
+        "endLine": 24
+      }
+    },
+    2,
+    0,
+    1
+  ],
+  "explanations": [
+    "SMS_MAX_PER_SECOND is parsed with toIntOrNull() ?: DEFAULT_SMS_RATE. A malformed value such as '5O' or '80rps' is silently replaced by the default of 50 and never reported, so the service starts and sends at a different rate than the operator intended, with no log line pointing at the typo. optionalInt, used for the push settings, handles the same situation correctly by recording a problem when the text is not an integer. The SMS rate should go through the same helper so a bad value fails startup with a clear message.",
+    "required() records a problem and returns a placeholder instead of throwing, so load() keeps going and reports all problems together; the check at the end throws a single ConfigException, which Main catches, prints and turns into exit code 78. There is no default for either variable, so the third and fourth choices do not match the code, and the loader does not stop at the first failure.",
+    "When startHour > endHour the function uses hour >= startHour || hour < endHour, so 23 (>= 22) and 3 (< 7) are both quiet. parseQuietHours validates only that each value is in 0..23, not their order, so the wrapped window is accepted and the second and fourth choices are wrong. The third choice ignores the 'hour < endHour' half of the condition.",
+    "Main passes System.getenv() once, and the loader itself only reads from the map it was given, so a test can supply any map without touching the real environment. System.getenv is thread-safe, Kotlin can read it freely, and the map is a snapshot taken at startup, so runtime changes are not picked up."
+  ]
+}

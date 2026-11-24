@@ -1,0 +1,51 @@
+{
+  "id": "6525bf3e-1de6-46ed-b10b-26f6dc707ff1",
+  "title": "Ad campaign stats store",
+  "name": "Campaign stats store",
+  "createdAt": "2026-11-24T04:16:37.988Z",
+  "durationMinutes": 13,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code manages database connections from the pool? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Suppose MaxOpenConns is 10 and all 10 connections are in use when another handler calls QueryContext. What happens to that call?",
+      "choices": [
+        "It opens an 11th connection because MaxIdleConns allows it.",
+        "It returns an error immediately with a 'too many connections' message.",
+        "It waits for a connection to be released until its context is done, then fails with the context's error.",
+        "It runs on one of the busy connections at the same time."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does g.SetLimit(4) in ForAdvertisers accomplish for the connection pool?",
+      "choices": [
+        "It caps the number of rows fetched per advertiser at four.",
+        "It retries each failed advertiser query up to four times.",
+        "It limits the pool to four connections for the whole process.",
+        "It bounds one report request to at most four concurrent queries, so one large request cannot take every connection."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does RecordBatch call `defer tx.Rollback()` even though it ends with tx.Commit()?",
+      "choices": [
+        "Rollback after a successful Commit undoes the inserts, so it must be removed.",
+        "If any step returns early, the deferred Rollback releases the transaction's connection back to the pool; after a successful Commit it returns sql.ErrTxDone and does nothing.",
+        "Commit alone does not release the connection, only Rollback does.",
+        "It is required for ON CONFLICT upserts to be applied."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.connection_pooling",
+    "backend.resources.file_and_socket_handle_leaks",
+    "backend.resilience.timeouts",
+    "backend.data.transactions_and_isolation_levels"
+  ]
+}

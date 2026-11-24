@@ -1,0 +1,52 @@
+{
+  "id": "288c6124-055b-4464-b8c0-b3ed10b72c75",
+  "title": "Okta directory adapter and account sync",
+  "name": "Directory sync adapter",
+  "createdAt": "2026-11-24T04:16:38.358Z",
+  "durationMinutes": 13,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how the adapter translates the provider's data into the application's domain model? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A sync run is in the middle of pagination when the access token expires and the provider answers 401. What does _request do?",
+      "choices": [
+        "Raises immediately, aborting the sync run",
+        "Drops the cached token and retries the same request, which fetches a new token via _access_token, as long as attempts remain",
+        "Retries with the same expired token after sleeping",
+        "Restarts pagination from the first page with a new token"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The sync loops over store.known_external_ids() - seen and calls get_user for each. What does this second pass accomplish, and what is its cost?",
+      "choices": [
+        "It re-syncs active users that failed in the first pass, at the cost of duplicate upserts",
+        "It is only a safety net for rate limiting and normally does nothing",
+        "It validates every account's groups, at the cost of one API call per account",
+        "It detects accounts that disappeared from the listing and disables them, at the cost of one extra API call per missing account"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "requests raises a RequestException when the directory times out during a listing. How does the caller of iter_users see this?",
+      "choices": [
+        "A DirectoryUnavailable is raised after the final attempt, and users already yielded to the sync have been processed",
+        "The raw RequestException propagates after the final attempt",
+        "An empty list is returned and the sync treats all stored accounts as missing",
+        "The generator swallows the error and ends iteration cleanly"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.integrations.third_party_adapters",
+    "backend.security.authentication",
+    "backend.resilience.retries_and_backoff",
+    "backend.resilience.timeouts",
+    "backend.api.status_codes_and_error_responses"
+  ]
+}

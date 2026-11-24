@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "relay.go",
+        "startLine": 83,
+        "endLine": 86
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "The relay marks each outbox row as published before calling pub.Publish. If Publish fails (broker down, timeout) or the process dies between the two statements, the row is already marked published_at and drain will never select it again, so the deactivation event is silently lost and the user's sessions are never revoked in the session service. The mark must happen after a successful Publish (accepting that a crash between the two causes a duplicate, which the consumer's processed_events table already absorbs), giving at-least-once delivery instead of at-most-once.",
+    "Writing the state change and the outbox row in one local transaction means there is never a committed deactivation without a pending event, nor an event for a rolled-back deactivation. The broker is not involved in the transaction, so the first option is wrong; a relay is still needed to read the outbox; and holding locks longer is a cost, not a goal.",
+    "The WHERE clause includes status = 'active', so for an already deactivated user RowsAffected is 0 and the function returns ErrNotActive before inserting into the outbox. The deactivation time is not overwritten, no duplicate event is created, and no unique constraint is involved because the insert is never attempted.",
+    "The insert into processed_events uses ON CONFLICT DO NOTHING keyed by the message ID, so the duplicate affects 0 rows and Handle commits and returns nil without deleting sessions. It does not run the delete a second time, does not error, and the conflict is swallowed by ON CONFLICT rather than rolling back."
+  ]
+}

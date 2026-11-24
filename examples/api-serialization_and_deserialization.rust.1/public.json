@@ -1,0 +1,50 @@
+{
+  "id": "cd877224-00ef-4594-ba22-89a80b18c601",
+  "title": "User profile API with serde models",
+  "name": "User profile endpoints",
+  "createdAt": "2026-11-24T04:16:37.749Z",
+  "durationMinutes": 12,
+  "language": "Rust",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how request bodies are deserialized and applied to user records? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A caller POSTs to /users with a body that also contains `\"roles\": [\"admin\"]`. What does the extractor do?",
+      "choices": [
+        "The extra field is ignored and the user is created with no roles.",
+        "The extra field is applied because UserRecord has a roles field.",
+        "Deserialization fails because of deny_unknown_fields and axum responds with a 4xx before the handler body runs.",
+        "The handler returns 403 because roles are not allowed."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client sends PATCH /users/me with `{\"display_name\": null}`. What is the effect on the stored record?",
+      "choices": [
+        "display_name is cleared to an empty string.",
+        "The request is rejected because null is not a valid String.",
+        "The display name becomes the string \"null\".",
+        "display_name is unchanged, because null and an absent field both deserialize to None."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which statement about the JSON returned in the responses is correct?",
+      "choices": [
+        "password_hash is omitted because of skip_serializing, and roles appear as lowercase strings such as \"member\".",
+        "password_hash is included but redacted, and roles appear as numeric enum indexes.",
+        "password_hash is omitted only on create; update responses include it.",
+        "created_at is serialized as a Unix timestamp integer."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.serialization_and_deserialization",
+    "backend.security.authorization_checks",
+    "backend.api.request_validation"
+  ]
+}

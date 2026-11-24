@@ -1,0 +1,49 @@
+{
+  "id": "3da1c00a-fdb4-4f35-8660-49b37da6fe67",
+  "title": "Ride dispatch with fakes and a metrics mock",
+  "name": "Ride dispatch service",
+  "createdAt": "2026-11-24T04:16:39.075Z",
+  "durationMinutes": 12,
+  "language": "Kotlin",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how these tests use fakes and mocks to exercise the dispatch service, or in the service they test? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The metrics mock is created with relaxed = true. What does that mean for these tests?",
+      "choices": [
+        "Calls to metrics methods that are never verified do not fail a test; only the explicit verify(...) assertions can fail",
+        "Any call to a metrics method not stubbed with every { ... } throws, so the tests prove no other metric is emitted",
+        "The mock records calls but verify(exactly = n) is ignored unless the answer is also stubbed",
+        "The service must call every method on the metrics interface at least once or the test fails"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In the first test, why does the test assert on gateway.offered instead of relying only on the returned DispatchResult?",
+      "choices": [
+        "Because assertEquals on a data class compares only the first field, so extra offers would be missed",
+        "Because the fake gateway answers TimedOut for unscripted drivers, a service that sent extra offers could still return the same result, and only the recorded offers show it",
+        "Because the result is computed before any offer is sent, so it cannot reflect which drivers were contacted",
+        "Because Assigned(\"mid\") is not comparable with the returned value unless the offers list matches"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The fakes and mocks are plain properties of DispatchServiceTest with no @BeforeEach and no @TestInstance annotation. Why doesn't state such as gateway.offered leak from one test to the next?",
+      "choices": [
+        "MockK resets every fake registered in the class after each test",
+        "The fakes are immutable, so there is no state to leak",
+        "JUnit 5 creates a new instance of the test class for each test method by default, so the property initializers run again",
+        "The tests run in alphabetical order, and each one ends by clearing the lists"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.mocking_and_fakes",
+    "backend.testing.unit_test_design"
+  ]
+}

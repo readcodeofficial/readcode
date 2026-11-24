@@ -1,0 +1,52 @@
+{
+  "id": "26e5b9e0-56cc-4e3c-8d7b-68655f94f7c4",
+  "title": "HLS playlist renderer with latency histogram",
+  "name": "Playlist rendering service",
+  "createdAt": "2026-11-24T04:16:38.712Z",
+  "durationMinutes": 13,
+  "language": "C++",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles its hot path (rendering, caching and timing playlist requests)? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two threads call get(100) at the same moment on a cold cache. What happens?",
+      "choices": [
+        "The second thread blocks until the first finishes rendering, so the playlist is built once.",
+        "Both may render the playlist, but only the first inserted entry is kept and both callers get a valid pointer to cached content.",
+        "The shared_mutex deadlocks because a shared lock is held while a unique lock is requested.",
+        "The second thread's insertion overwrites the first, invalidating the pointer the first caller holds."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "After the cache reaches max_entries_ and is cleared, what happens to a playlist string a request thread obtained earlier and is still writing to a socket?",
+      "choices": [
+        "It becomes a dangling reference and the thread must copy it first.",
+        "It is freed immediately by clear(), so the write fails.",
+        "It remains valid, because the shared_ptr keeps the string alive until the last holder releases it.",
+        "It is moved into the new cache generation."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A render that takes 300 microseconds is recorded by LatencyHistogram. Which bucket is incremented?",
+      "choices": [
+        "Bucket 300, one per microsecond.",
+        "Bucket 9",
+        "Bucket 7",
+        "Bucket 8"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.performance.profiling_and_hot_paths",
+    "backend.concurrency.race_conditions",
+    "backend.concurrency.atomic_operations",
+    "backend.observability.metrics",
+    "backend.caching.cache_aside_vs_write_through"
+  ]
+}

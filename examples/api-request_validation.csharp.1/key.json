@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "Validation/RequestValidator.cs",
+        "startLine": 17,
+        "endLine": 17
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The defect is the call to Validator.TryValidateObject(request, context, results) in RequestValidator.Validate. The overload without validateAllProperties: true only checks [Required] on properties (plus IValidatableObject), and ignores [RegularExpression], [StringLength], [Range] and [MaxLength]. Only the presence of ProjectSlug and Ref is enforced, so a slug with odd characters, TimeoutMinutes of 100000, or Parallelism of 0 or -5 pass validation and reach the queue (Parallelism is only compared against the upper project limit). The fix is TryValidateObject(request, context, results, validateAllProperties: true).",
+    "ValidateVariables yields a failure for any key that is not UPPER_SNAKE_CASE, and IsValidVariableName requires only A-Z, 0-9 and underscore, so 'db_url' fails and the endpoint returns Results.ValidationProblem with the key variables.db_url. It is not accepted (A) and the project lookup is never reached (C) because failures are returned first. Variables is initialised to an empty dictionary and bound from JSON, so there is no exception (D).",
+    "The per-project limit is data looked up after validation through IProjectCatalog, so it cannot be expressed as a static attribute on the request model; it is a business rule checked after the lookup, returning 422. Attributes can compare against constants (A is wrong), they do validate non-nullable ints (C is wrong), and the check is reachable whenever the project's limit is lower than 8 (B is wrong).",
+    "The PipelineRun is built with request.Ref!.Trim(), so surrounding whitespace is removed before the run is created and queued. The value is not left raw (B), Ref is [Required] rather than optional with a default (C), and no case conversion occurs (D)."
+  ]
+}

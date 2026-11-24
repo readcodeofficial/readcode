@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    3,
+    1
+  ],
+  "explanations": [
+    "There is no defect. The risky-looking choices are handled safely: an unset or unrecognized APP_ENV throws instead of defaulting to a lenient environment, relaxed settings (TLS verification off, path-style access, debug endpoints, local defaults for bucket and key) apply only to LOCAL, STAGING and PRODUCTION require the bucket and KMS key, and production explicitly rejects a staging key alias. Numeric settings are range-checked, and the process exits with a clear message on invalid configuration.",
+    "Environment.parse uses the Elvis operator to throw ConfigException(\"APP_ENV is not set\") for null, load() propagates it, and main() catches it, prints the message and exits with 78. There is no default environment, so neither LOCAL nor PRODUCTION is chosen, and no partially built config is used.",
+    "Outside LOCAL, endpoint = source(\"STORAGE_ENDPOINT\") is nullable and no fallback is applied, so the storage client uses its default endpoint for the real service. verifyTls is true and pathStyleAccess is false. Only the LOCAL branch supplies a localhost default, and nothing converts a missing value into an empty string.",
+    "The setting is present, so it goes through integer(), which uses toLongOrNull and throws ConfigException with a message naming the variable when parsing fails. main() catches ConfigException, prints it, and exits with 78. The default is used only when the variable is absent, not when it is malformed; the toLongOrNull call avoids a NumberFormatException; and nothing clamps values."
+  ]
+}

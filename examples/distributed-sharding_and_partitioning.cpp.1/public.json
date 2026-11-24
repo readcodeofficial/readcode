@@ -1,0 +1,50 @@
+{
+  "id": "30e39e3f-4aa4-4b25-9408-91cfb7cedbdf",
+  "title": "Consistent-hash shard router for orders and inventory",
+  "name": "Order shard router",
+  "createdAt": "2026-11-24T04:16:38.267Z",
+  "durationMinutes": 13,
+  "language": "C++",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code maps keys to shards? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A new shard node is added to a ring with 5 nodes and 128 virtual nodes each. Roughly what happens to key ownership?",
+      "choices": [
+        "Nearly all keys are reassigned, since the modulus changes",
+        "About half of the keys move between existing nodes",
+        "Only about a sixth of keys move, and they all move to the new node",
+        "No keys move until remove_node is called for an old node"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Inside replicas(), why is the std::set of seen node names needed?",
+      "choices": [
+        "Because consecutive ring points often belong to the same physical node via virtual nodes, so without it the same node could be returned several times",
+        "To keep the result sorted by node name",
+        "To avoid taking the shared lock twice",
+        "Because std::map iterators are invalidated when a node is added"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The loop in replicas() is bounded by `steps < ring_.size()`. What does that bound guarantee?",
+      "choices": [
+        "The function returns exactly `count` replicas",
+        "The function skips virtual nodes that belong to removed shards",
+        "The walk starts at the first point of the ring rather than at the key's position",
+        "The walk visits each ring point at most once, so with fewer than `count` distinct nodes it returns all of them instead of looping forever"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.distributed.sharding_and_partitioning",
+    "backend.distributed.replication_and_consensus",
+    "backend.concurrency.locking_and_lock_ordering"
+  ]
+}

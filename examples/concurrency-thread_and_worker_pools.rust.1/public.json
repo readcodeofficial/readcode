@@ -1,0 +1,51 @@
+{
+  "id": "dc4fcbde-6fd5-433b-81e9-067844275daa",
+  "title": "Ticket routing worker pool",
+  "name": "Ticket worker pool",
+  "createdAt": "2026-11-24T04:16:37.907Z",
+  "durationMinutes": 12,
+  "language": "Rust",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how the worker threads pull and run jobs from the shared queue? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "What causes the worker threads to exit when the WorkerPool is dropped?",
+      "choices": [
+        "The sender is dropped, so recv() returns Err once the queue is empty and the worker loop ends",
+        "The pool calls handle.abort() on every thread",
+        "The Arc around the receiver reaching zero strong references terminates the threads",
+        "Each worker checks a shutdown flag between jobs"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A job closure panics while running on a worker thread. What happens to the pool?",
+      "choices": [
+        "The panic is converted into an Err returned from submit",
+        "Only that job is lost and the worker keeps serving the queue",
+        "The panicking worker thread terminates; the pool does not replace it, and the panic is reported when Drop joins it",
+        "The whole process aborts immediately"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In main, why is the pool dropped explicitly before the final println of the routed count?",
+      "choices": [
+        "The AtomicUsize is only valid until the pool is gone",
+        "It cancels jobs that have not started",
+        "Dropping releases memory so the count is accurate",
+        "Drop waits for all workers to finish queued jobs, so every increment has happened before the count is read"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.thread_and_worker_pools",
+    "backend.resilience.graceful_shutdown",
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.errors.panics_and_exceptions_at_boundaries"
+  ]
+}

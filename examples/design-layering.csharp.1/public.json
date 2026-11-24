@@ -1,0 +1,51 @@
+{
+  "id": "7b1525da-ca8f-4fe8-96cb-77a55fa04c53",
+  "title": "Campaign daily report endpoint",
+  "name": "Campaign report service",
+  "createdAt": "2026-11-24T04:16:38.201Z",
+  "durationMinutes": 12,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how responsibilities are divided between the controller, service and repository layers? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A requested date range contains days with no stored metrics. What does the report contain for those days?",
+      "choices": [
+        "The request fails with NotFound",
+        "The previous day's values are carried forward",
+        "They are omitted, so Days may be shorter than the range",
+        "A DailyMetrics entry with zero impressions, clicks and spend"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the repository query filter campaigns by both Id and AdvertiserId?",
+      "choices": [
+        "To allow the daily rows query to be cached per advertiser",
+        "To make the lookup use the primary key index",
+        "So a campaign belonging to a different advertiser is indistinguishable from one that does not exist",
+        "Because EF Core requires every filter to include the owner column"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What is the effect of the controller's range check on a request where `to` is before `from`?",
+      "choices": [
+        "The controller returns 400 without calling the service",
+        "The controller swaps the dates and continues",
+        "An exception propagates and the framework returns 500",
+        "The service is called and returns an empty report"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.layering",
+    "backend.security.multi_tenant_isolation",
+    "backend.api.request_validation",
+    "backend.design.dependency_injection"
+  ]
+}

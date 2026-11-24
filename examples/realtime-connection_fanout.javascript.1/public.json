@@ -1,0 +1,52 @@
+{
+  "id": "3f0ca263-c9ea-4d96-b031-d167832df0b3",
+  "title": "Session event fanout over WebSockets",
+  "name": "Session event hub",
+  "createdAt": "2026-11-24T04:16:38.755Z",
+  "durationMinutes": 13,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code fans events out to connected sockets and cleans up connections? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A user has tabs open on two different server nodes and an event is published once through publishSessionEvent. How many copies of the message does each of the user's sockets receive?",
+      "choices": [
+        "Two, because both the publishing node and the subscription deliver it",
+        "None on the second node, because socketsByUser is per-process",
+        "One per node, but only the first socket on each node",
+        "One, because every node delivers only from the subscription callback to its own local sockets"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client on a poor mobile connection stops reading, and 400 KB of events accumulate in its socket's send queue. What happens at the next event for that user?",
+      "choices": [
+        "The event is queued as well, since ws.send buffers without limit",
+        "sendToUser terminates that socket and skips it, while other sockets of the user still get the event",
+        "All of the user's sockets are closed with code 4001",
+        "The event is dropped for that socket only, and the socket stays connected"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A user's sockets close one by one while the hub is iterating over that user's sockets in sendToUser. Why does the code spread the Set into an array before looping?",
+      "choices": [
+        "So that the loop works on a stable snapshot while close handlers and terminate() calls remove sockets from the live Set",
+        "Because a Set cannot be iterated with for...of",
+        "Because it makes sends to different sockets run in parallel",
+        "To avoid sending the same message to a socket twice"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.realtime.connection_fanout",
+    "backend.resources.unbounded_buffers",
+    "backend.resources.memory_leaks",
+    "backend.messaging.backpressure",
+    "backend.security.session_and_token_handling"
+  ]
+}

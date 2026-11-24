@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/routes.ts",
+        "startLine": 40,
+        "endLine": 40
+      }
+    },
+    1,
+    0,
+    3
+  ],
+  "explanations": [
+    "The refund route checks the caller's role and scope but then loads the payment with findById, which is not scoped to the caller's account. Every other route uses a findByIdForAccount lookup so that records from other accounts look like 404s. Any billing_admin in tenant A who knows or guesses a payment ID from tenant B can issue a refund against it (an insecure direct object reference / broken object-level authorization). The lookup should be payments.findByIdForAccount(req.params.paymentId, req.auth!.accountId).",
+    "Both middlewares must pass. requireRole(\"billing_admin\") succeeds, then requireScope(\"refunds:write\") fails with 403 insufficient_scope; the handler never runs. 401 is only returned when no valid identity is present, and the lookup is never reached.",
+    "findByIdForAccount returns null both when the ID does not exist and when it belongs to a different account, so the route cannot distinguish them and responds 404 to both. That prevents ID enumeration across tenants. Returning 403 would be the option that leaks existence.",
+    "The invoice routes are guarded only by requireScope(\"invoices:read\"), which the token satisfies. GET /payments/:id requires the support or billing_admin role, so a viewer gets 403, and the refund route requires billing_admin plus the refunds:write scope. Matching the account does not bypass role checks."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    1,
+    2,
+    2
+  ],
+  "explanations": [
+    "There is no defect. The two-principal case in transfer_credits uses std::scoped_lock, which acquires both mutexes with a deadlock-avoidance algorithm, so opposite-direction transfers (A to B and B to A) cannot deadlock. The from_id == to_id check returns before locking, so the same non-recursive mutex is never locked twice. The directory lock is released inside find() before any principal lock is taken, and ids_with_role is the only path holding both kinds, always taking the directory lock first, so there is a single consistent order. The shared_ptr copies keep a principal alive even if remove() runs concurrently.",
+    "std::scoped_lock(from->mu, to->mu) locks multiple mutexes with a deadlock-avoidance algorithm (as std::lock does), regardless of argument order, so the opposite-direction calls cannot form a cycle. The first choice would be true for two sequential lock_guards, which this code does not use. SameAccount only fires when the two ids are equal, which they are not here. The directory mutex is not held during the transfer (find() releases it on return), so it does not serialize anything.",
+    "find() returns a std::shared_ptr and its shared_lock is released at the end of the call, so the transfer never holds the directory lock while waiting on principal locks. The shared_ptr copies keep the objects alive, so there is no use-after-free (first choice is wrong). The directory lock is not held for the transfer (second choice is wrong). The balance check is inside the scoped_lock, after both mutexes are held, so a double-spend is not possible (fourth choice is wrong).",
+    "Deadlock requires a cycle in the wait-for order. ids_with_role always goes directory then principal, and no function here takes the directory lock while holding a principal mutex (transfer_credits and grant_role call find(), which releases the directory lock before they lock anything), so no cycle exists. create() and remove() may run concurrently; they simply wait for the shared lock to be released. Reader concurrency and per-iteration release alone would not prevent a cycle if some other path used the opposite order."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "lib/streaming/feature_flags.rb",
+        "startLine": 35,
+        "endLine": 35
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "The rollout bucket is computed from the user id alone: Zlib.crc32(user_id.to_s) % 100. Every flag therefore maps a given user to the same bucket, so the users in the first 5 percent of one flag are exactly the users in the first 5 percent of every other flag. The same small cohort receives every experimental feature (UHD, low-latency HLS, the new player UI) while everyone else receives none, which skews experiments and concentrates risk on the same viewers. The flag key should be part of the hash input, for example Zlib.crc32(\"#{key}:#{user_id}\"). The hashing is otherwise deterministic across processes, which is correct.",
+    "enabled? checks the master switch, then allow_users, then allow_plans, and only then falls through to in_rollout?. The plan match returns true before the percentage is looked at. The first and third choices wrongly make the percentage a gate in front of the allow-lists, and the fourth requires both lists, while each is an independent shortcut.",
+    "refresh_if_stale rescues StandardError and logs it. Because @flags and @loaded_at are only updated after load_flags succeeds, the old flags stay in place and @loaded_at stays stale, so every call sees staleness and tries the store again (and logs again). The error does not reach the caller, the flags are not cleared, and there is no restart-only behavior.",
+    "The store call (the slow part) happens before the mutex is taken, and only the quick assignment of @flags and @loaded_at is done under the lock, so readers are not stalled by network time. The code does not prevent several threads from refreshing at once after expiry (second choice is wrong). Ruby hashes can be read without a lock, the lock is here to give consistent access to the pair of variables being replaced. The TTL comparison uses the injected clock, independent of the lock."
+  ]
+}

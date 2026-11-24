@@ -1,0 +1,52 @@
+{
+  "id": "3b274c3d-10a9-42b3-9c69-23040d7583f8",
+  "title": "Ticket event pipeline over Kafka",
+  "name": "Ticket event pipeline",
+  "createdAt": "2026-11-24T04:16:38.447Z",
+  "durationMinutes": 15,
+  "language": "Scala",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code preserves the order of events for a ticket? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "In one poll, the consumer receives events for tickets T1 and T2 interleaved. How does it process them?",
+      "choices": [
+        "All events are applied strictly one at a time in the order polled",
+        "Events of the same ticket are applied sequentially, while different tickets are processed concurrently with no ordering between them",
+        "Every event is applied concurrently, using the seq field to resolve conflicts",
+        "T1 events are applied first, then T2 events, because groupBy orders keys"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "One ticket's handler throws inside store.apply while the other tickets in the batch succeed. What happens next?",
+      "choices": [
+        "The failed event is skipped and the offsets are committed for the whole batch",
+        "The consumer retries only the failed ticket in a loop until it succeeds",
+        "Auto-commit already committed the offsets, so the batch is never seen again",
+        "Await.result rethrows, commitSync is not reached, and after the consumer restarts or rebalances the batch is redelivered, so the already-applied events are protected from reapplication only by the seq check"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does ENABLE_IDEMPOTENCE_CONFIG = true on the producer add to ordering behavior?",
+      "choices": [
+        "Retries of a failed send within the producer cannot create duplicates or reorder records already written to the same partition",
+        "Records with the same key are guaranteed to reach different consumers in order",
+        "The consumer no longer needs to track sequence numbers because the broker deduplicates across restarts of the producer application",
+        "Messages are delivered exactly once to the downstream database"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.message_ordering",
+    "backend.messaging.queues_and_consumers",
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.deduplication",
+    "backend.concurrency.async_await_pitfalls"
+  ]
+}

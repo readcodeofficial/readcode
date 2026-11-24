@@ -1,0 +1,51 @@
+{
+  "id": "a5d3e6a0-8735-416d-927d-d6ecb6a3191a",
+  "title": "Appointment booking with pessimistic locks",
+  "name": "Appointment booking service",
+  "createdAt": "2026-11-24T04:16:38.113Z",
+  "durationMinutes": 12,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles concurrent bookings and transaction boundaries? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two requests try to book the same open slot for different patients at the same moment. What is the outcome?",
+      "choices": [
+        "Both transactions read OPEN and the later commit overwrites the earlier one",
+        "One request books the slot; the other is retried by BookingService until it succeeds",
+        "One request books the slot; the other waits on the slot row lock and then fails with SLOT_TAKEN",
+        "Both fail with a PessimisticLockingFailureException and one is retried"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is the retry loop in BookingService rather than inside AppointmentBooker.book?",
+      "choices": [
+        "A retry inside the transactional method would reuse a transaction that is already failed, while a call through another bean starts a new one each attempt",
+        "Spring only allows one @Transactional method per class",
+        "Thread.sleep is forbidden inside a transaction by the JPA specification",
+        "BookingService needs to run at a stricter isolation level than the booker"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A patient double-clicks and the client sends two requests for two different open slots that overlap in time. Why can both not be confirmed?",
+      "choices": [
+        "The unique index on slots prevents it",
+        "The overlap query locks every appointment row belonging to the patient",
+        "READ_COMMITTED isolation forbids two inserts by one patient",
+        "Each request locks the patient row first, so the second runs its overlap check only after the first has committed and sees the new appointment"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.transactions_and_isolation_levels",
+    "backend.data.optimistic_vs_pessimistic_locking",
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.resilience.retries_and_backoff"
+  ]
+}

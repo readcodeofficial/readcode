@@ -1,0 +1,50 @@
+{
+  "id": "34778ce1-4076-4868-b2ac-1b8ebd34a9cd",
+  "title": "Shipment tracking on MongoDB",
+  "name": "Shipment tracking store",
+  "createdAt": "2026-11-24T04:16:38.063Z",
+  "durationMinutes": 12,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code models shipments and their tracking events in MongoDB? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The same event (same id) is delivered twice by the carrier integration. What happens on the second delivery?",
+      "choices": [
+        "The events insert fails with a duplicate key error, the transaction aborts so eventCount is not incremented again, and recordEvent returns false",
+        "eventCount is incremented a second time, but the event document is stored only once",
+        "A second event document is stored with an auto-generated _id and the embedded window shows it twice",
+        "The error is rethrown to the router and the client receives a 500"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A shipment accumulates 10,000 tracking events over its life. What does GET /shipments/:id return and cost?",
+      "choices": [
+        "All 10,000 events, read from the embedded array in one large document",
+        "The 50 latest events plus totalEvents 10000, served from one small document read",
+        "The 50 latest events, found by querying shipment_events and counting with countDocuments",
+        "An error once the document passes the 16 MB limit"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which statement about the shipments index on { carrierId: 1, status: 1, lastEventAt: -1 } is correct for listStuck?",
+      "choices": [
+        "It is unused, because the query also sorts and sorting always needs a separate index",
+        "It only helps if the query also filters on trackingNumber",
+        "It serves the equality filters on carrierId and status and the range and sort on lastEventAt",
+        "It is unused because lastEventAt is updated with $max, which bypasses indexes"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.nosql_modeling",
+    "backend.api.idempotency",
+    "backend.data.pagination"
+  ]
+}

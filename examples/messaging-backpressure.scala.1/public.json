@@ -1,0 +1,52 @@
+{
+  "id": "f918f9fe-d1ac-46c6-8afa-f0e66afffee8",
+  "title": "Booking intake with bounded buffer",
+  "name": "Booking request intake",
+  "createdAt": "2026-11-24T04:16:38.412Z",
+  "durationMinutes": 12,
+  "language": "Scala",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code applies backpressure to incoming booking requests? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The slot service becomes very slow. What limits how many reservations are in flight at once?",
+      "choices": [
+        "The 512-element queue buffer, which holds in-flight reservations",
+        "The throttle of 50 elements per second, which also bounds concurrent calls",
+        "The `mapAsync(reserveParallelism)` stage, which allows at most 8 outstanding reserve calls",
+        "Nothing: each submitted request starts its own reserve call immediately"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A call to `slots.reserve` fails with an exception for one request while others are healthy. What happens to the stream and to that request?",
+      "choices": [
+        "The stream fails and is torn down, so the queue stops accepting offers",
+        "The request is handed to `ParkedRequests` and the stream keeps processing later requests",
+        "The request is retried automatically with the same parallelism until it succeeds",
+        "The request is silently skipped and only logged as a warning"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which statement about the notification stage is correct?",
+      "choices": [
+        "It can send at most about 50 confirmations per second sustained, and when it falls behind it stops demanding from the reserve stage",
+        "It sends confirmations in parallel with unlimited concurrency since the throttle only delays the first element",
+        "It sends confirmations out of order because mapAsync(2) emits results as they complete",
+        "It drops confirmations above 50 per second to protect the notifier"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.backpressure",
+    "backend.messaging.queues_and_consumers",
+    "backend.resilience.rate_limiting",
+    "backend.api.status_codes_and_error_responses",
+    "backend.resilience.graceful_degradation"
+  ]
+}

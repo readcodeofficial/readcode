@@ -1,0 +1,52 @@
+{
+  "id": "aa7ea3ca-d118-49d7-8e47-a63fb0577079",
+  "title": "Telemetry batch ingestion with enrichment and sink",
+  "name": "Telemetry ingest service",
+  "createdAt": "2026-11-24T04:16:38.830Z",
+  "durationMinutes": 13,
+  "language": "Scala",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code bounds the time spent waiting on its downstream dependencies? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The calibration service starts responding in 400ms instead of 20ms. What is the effect on ingestion?",
+      "choices": [
+        "Batches take 400ms longer per reading, because timeouts are only logged",
+        "The calibration call is retried until it responds within the limit",
+        "The whole batch fails with a TimeoutException and is retried",
+        "Affected readings are enriched with offset 0.0 and marked stale after the 150ms timeout, and the batch continues"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The time-series sink fails with a timeout partway through writing a batch. What does the consumer do next?",
+      "choices": [
+        "Waits one second without committing, so the batch is delivered again, which means the sink must tolerate duplicates",
+        "Commits the batch anyway so the stream is not blocked",
+        "Terminates the stream and the process exits",
+        "Splits the batch and writes each half separately"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Readings with a deviceId that the registry does not know are handled by which path?",
+      "choices": [
+        "They fail the batch, since the registry returns an error",
+        "They are written with a default site and stale = true",
+        "They are dropped from the batch before writing, and counted by a metric whose value is the number of dropped readings",
+        "They are retried through the calibration fallback"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.timeouts",
+    "backend.resilience.graceful_degradation",
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.queues_and_consumers",
+    "backend.observability.metrics"
+  ]
+}

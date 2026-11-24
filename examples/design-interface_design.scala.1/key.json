@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    3,
+    0
+  ],
+  "explanations": [
+    "There is no defect. Every collaborator reports expected failures as sealed values, and the interfaces state that Unavailable means nothing was applied, so mapping it to TryAgain is safe. A hold is released on every failure after it was taken, and release is documented as safe for expired or unknown holds. The charge uses the booking reference as an idempotency key, so a retried request cannot double charge. When the charge succeeds but the commit fails, the charge is refunded, and a failed refund is handed to manual review instead of being dropped. Anything the code does not release explicitly is bounded by the hold TTL.",
+    "payAndCommit calls refundOrFlag on any commit failure and returns Left(fromCommit(failure)); book then sees outcome.isLeft and calls inventory.release, which is safe even for an expired hold. Nothing retries with a new hold, no Booking is returned on the Left path, and the receipt is not left charged unless the refund fails, in which case it is flagged.",
+    "The interface documents release as tolerant of expired or unknown holds, which is what lets the service call it unconditionally on failure. Either on hold() does not say anything about expiry later. Immutability of the case class says nothing about the inventory side effect. Unit-returning methods can still throw.",
+    "HoldFailure is sealed and fromHold matches on it without a wildcard, so the compiler can check exhaustiveness and flags the missing case. The TryAgain mapping belongs only to Unavailable, not to a catch-all. The compile-time diagnostic is the point of sealing, so the silent MatchError option is wrong, and no registration step exists for sealed hierarchies."
+  ]
+}

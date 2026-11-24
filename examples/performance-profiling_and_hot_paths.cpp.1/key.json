@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    1,
+    2,
+    3
+  ],
+  "explanations": [
+    "There is no defect. Rendering happens outside the lock, so concurrent misses for the same key may render twice, but try_emplace keeps the first inserted value and every caller receives a valid shared_ptr, so the duplication is only wasted work. The cache returns shared_ptr<const std::string>, so clear() on eviction cannot invalidate a playlist a caller is still using. The string is pre-sized with reserve and numbers are formatted with to_chars, avoiding repeated reallocation and stream overhead. The relaxed atomics are fine because the histogram buckets are independent counters read only for reporting.",
+    "The shared lock is released at the end of the inner block before rendering, and rendering holds no lock, so both threads can render. try_emplace does not overwrite an existing key; the later thread receives the first thread's entry. No lock is held while upgrading, so there is no deadlock, and shared_ptr ownership keeps any returned string alive.",
+    "clear() only drops the cache's reference. Each caller holds its own shared_ptr<const std::string>, so the string is destroyed after the last reference goes away. Returning a raw reference or string_view from the cache would have the dangling problem described; here it does not occur. The data is const, so concurrent readers are safe.",
+    "record() halves 300 repeatedly while us > 1: 300 -> 150 -> 75 -> 37 -> 18 -> 9 -> 4 -> 2 -> 1, which is 8 shifts, so idx = 8, meaning [256, 512) microseconds. There are only 16 buckets, so index 300 does not exist, and 9 or 7 would correspond to different ranges."
+  ]
+}

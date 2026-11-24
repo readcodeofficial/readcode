@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "store/stats.go",
+        "startLine": 41,
+        "endLine": 43
+      }
+    },
+    2,
+    3,
+    1
+  ],
+  "explanations": [
+    "ForAdvertiser has no `defer rows.Close()`; it closes rows manually on the success and rows.Err paths, but the rows.Scan error path returns without closing. An un-closed *sql.Rows keeps its connection checked out of the pool. A scan failure (for example a driver type mismatch or an unexpected NULL) leaks one connection per occurrence, and with MaxOpenConns capped, a handful of such requests exhaust the pool and every later query blocks until its context deadline. Using `defer rows.Close()` right after the error check fixes it.",
+    "database/sql blocks callers when MaxOpenConns is reached and they wait on the context. The handler's 2-second timeout is therefore the effective bound on how long a request waits for a connection; on expiry the error satisfies errors.Is(err, context.DeadlineExceeded) and Daily returns 504. MaxIdleConns only controls how many idle connections are kept; a connection cannot be shared by two statements at once.",
+    "errgroup's limit restricts how many goroutines run at once within this call, so a single request holds at most four connections. Other requests still compete for the rest of the pool. It does not change rows fetched, add retries, or resize the pool, which is configured by MaxOpenConns.",
+    "A transaction pins one connection until Commit or Rollback. Early returns (prepare or exec failures) would otherwise leave it pinned, so the deferred Rollback covers them. After a successful Commit, Rollback is a harmless no-op returning ErrTxDone, and the committed inserts are not undone. Commit does release the connection, and upserts do not depend on Rollback."
+  ]
+}

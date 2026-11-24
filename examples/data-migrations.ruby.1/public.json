@@ -1,0 +1,50 @@
+{
+  "id": "0297a6a4-36b2-403f-bfc0-cdb80a7782b3",
+  "title": "Adding delivery zones to a large orders table",
+  "name": "Orders delivery zone migration",
+  "createdAt": "2026-11-24T04:16:38.007Z",
+  "durationMinutes": 12,
+  "language": "Ruby",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how these migrations add and populate the new column on a large, busy table? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The deploy is interrupted halfway through the index build in the first migration, and it is re-run. What happens?",
+      "choices": [
+        "The migration fails because the column already exists",
+        "The whole migration runs in a transaction and was rolled back, so it starts cleanly",
+        "The add_column is skipped via if_not_exists, and the index creation is retried; a leftover invalid index from the interrupted build is not dropped automatically by this code",
+        "The index is recreated twice, producing duplicates"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the backfill define MigrationOrder inside the migration instead of using the application's Order model?",
+      "choices": [
+        "To avoid loading the database schema",
+        "To keep the migration independent of later changes to the Order model, such as new callbacks, validations or renamed associations that would run or break on old migrations",
+        "Because Order cannot be queried with in_batches",
+        "To bypass the table's foreign keys"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "While the backfill is running, new orders keep being created. How is the NOT NULL rule reached safely?",
+      "choices": [
+        "The constraint is added NOT VALID, so only new and updated rows are checked immediately and existing rows are checked later, during the separate validation step",
+        "The constraint is validated first, so any new NULL row would be rejected during the backfill",
+        "The column is changed to NOT NULL in the backfill migration itself, which rewrites the table",
+        "The model's before_validation callback makes the database constraint unnecessary"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.migrations",
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.data.orm_pitfalls"
+  ]
+}

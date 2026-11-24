@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "dispatch.c",
+        "startLine": 25,
+        "endLine": 25
+      }
+    },
+    2,
+    1,
+    1
+  ],
+  "explanations": [
+    "The defect is `return ENOENT;` in courier_pick. The whole module reports errors as negative errno values (-ENOENT, -EINVAL, -ENOMEM), and dispatch_batch tells them apart with `idx == -ENOENT` and `idx < 0`. A positive ENOENT (2) when the courier list is empty is indistinguishable from the valid index 2, so dispatch_batch increments `couriers[2].load` and reads `couriers[2].id`, which is out of bounds when there are no couriers. The result is memory corruption or a crash instead of every order being left unassigned. The fix is `return -ENOENT;`.",
+    "All orders are validated in a first loop, before the result array is allocated and before any load is incremented, so the whole batch is rejected with nothing mutated. *out is set to NULL at the top and only assigned on success, so the caller has nothing to free. The other choices describe a design that validates and assigns in one pass, which this code does not do.",
+    "courier_pick returns -ENOENT when every courier is full; dispatch_batch treats that as 'skip this order' and continues, so the batch succeeds with 0 assignments. In run_dispatch_cycle rc is 0, so the unassigned message is printed with 5 of 5, the `rc > 0` guard skips publishing, and free(assignments) runs on the way out. Running out of capacity is not an error condition, nothing is published with empty entries, and the code never waits.",
+    "In the failure branch the code frees `assignments` and returns prc, so there is no leak and the caller sees the negative errno. Nothing in this code decrements courier->load, so those increments from dispatch_batch persist even though the assignments were not published. The function does not return rc in that branch, so the caller does not see success."
+  ]
+}

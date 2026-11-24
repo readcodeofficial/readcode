@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/com/acme/identity/auth/AuthService.java",
+        "startLine": 36,
+        "endLine": 36
+      }
+    },
+    1,
+    0,
+    3
+  ],
+  "explanations": [
+    "When token verification fails, authenticate wraps the TokenParseException in an AuthException using the two-argument constructor, so the original exception is not attached as the cause. Only its message text survives. TokenVerifier deliberately sets a cause for parse failures and signature check failures (NumberFormatException, Base64 decoding errors, GeneralSecurityException), and those stack traces and types are lost at this boundary. Because 401 results are logged with the message only, operators cannot tell a misconfigured signing provider from garbage input. The fix is to pass e as the third argument. The directory and runtime-exception wrappers, in contrast, keep their causes.",
+    "The DirectoryException is caught and rethrown as AuthException with DIRECTORY_UNAVAILABLE and the original exception as cause. handle maps the code to 503 and, because the status is at least 500, calls log.error with the exception object, so the stack trace and causes are logged. INTERNAL is only used for unexpected runtime exceptions, 401 is used for token problems, and the message-only logging happens for statuses below 500.",
+    "The catch (RuntimeException e) clause wraps it as INTERNAL with the original as cause; handle then logs it at error level and returns 500. The DirectoryException clause does not catch it, since IllegalStateException is not a DirectoryException. Nothing returns null.",
+    "orElseThrow throws an AuthException with INVALID_TOKEN. AuthException is a checked exception, not a RuntimeException, so neither catch block in that try statement intercepts it, and it propagates unchanged to handle, which logs below 500 at info level and returns 401. It is not mapped to the directory or disabled codes."
+  ]
+}

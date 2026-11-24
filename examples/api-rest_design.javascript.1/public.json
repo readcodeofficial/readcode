@@ -1,0 +1,52 @@
+{
+  "id": "c48a6bf9-fa22-4221-a913-0daf62091e9e",
+  "title": "Appointment scheduling REST API",
+  "name": "Appointment booking API",
+  "createdAt": "2026-11-24T04:16:37.727Z",
+  "durationMinutes": 12,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this API maps its operations onto HTTP methods and resources? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client POSTs a valid appointment for a provider and time that already hold a non-cancelled booking. What does the client receive?",
+      "choices": [
+        "500, because the store throws and the router does not catch it",
+        "201 with the existing appointment's representation, since creation is idempotent per slot",
+        "409 with an application/problem+json body describing the unavailable slot",
+        "422, because the request body failed validation"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client lists appointments with GET /v1/appointments?limit=1000. What happens?",
+      "choices": [
+        "Up to 100 items are returned, with a next link when more rows remain",
+        "All matching rows are returned in a single page",
+        "20 items are returned, the default, ignoring the larger value",
+        "400 is returned because the limit exceeds the maximum"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two clients read the same appointment (ETag \"1\"). Client A reschedules it with If-Match: \"1\" and succeeds. Client B then sends its own reschedule with If-Match: \"1\". What does B get?",
+      "choices": [
+        "404, because the old representation no longer exists",
+        "200, since the last write wins",
+        "409, because the slot is taken",
+        "412 with a problem document, because the ETag no longer matches"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.rest_design",
+    "backend.api.status_codes_and_error_responses",
+    "backend.data.pagination",
+    "backend.data.optimistic_vs_pessimistic_locking",
+    "backend.api.request_validation"
+  ]
+}

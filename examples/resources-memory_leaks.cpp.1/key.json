@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "billing.h",
+        "startLine": 32,
+        "endLine": 32
+      }
+    },
+    3,
+    1,
+    0
+  ],
+  "explanations": [
+    "Subscription stores a std::shared_ptr<Account> back to its owner while Account owns its subscriptions through shared_ptr in subs_. That is a reference cycle: Account -> Subscription -> Account. When AccountRegistry::close erases the registry's reference, each remaining subscription still holds one, so the reference count never reaches zero and neither the Account nor its Subscriptions are ever destroyed. Every closed account that had at least one subscription leaks permanently, and since runBilling and the registry never see it again the leak is invisible until memory grows. The back reference should be a std::weak_ptr<Account> (locked when needed) or a plain account id.",
+    "monthlyTotalCents holds the account mutex while summing, and subscriptions() returns a copy of the shared_ptr vector, so a holder keeps its Subscription alive even after erase removes it from subs_. removeSubscription also marks it cancelled first, so a later total excludes it. Nothing is freed while referenced, charges are not forced for removed subscriptions, and the registry mutex is not held during billing.",
+    "The try/catch is inside the loop, so a PaymentError for one account is recorded in summary.failedAccounts and the loop continues. It does not propagate out of runBilling, there is no retry loop in the function, and the registry is only read through a snapshot.",
+    "Taking the account mutex while holding the registry mutex would nest two locks; moving the pointer out lets the registry lock be released first, so close never holds both. erase does not require a prior move, the call would not self-deadlock because the two mutexes are different, and destruction timing depends on remaining references, not on this move."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    3,
+    0,
+    2
+  ],
+  "explanations": [
+    "There is no defect. Reading the unverified header is safe because it is only used to pick a key from a locally configured allowlist; the algorithm is pinned to RS256 in jwt.decode, so a token cannot choose alg=none or switch to HS256 using the public key as an HMAC secret. Signature, expiry, issuer and audience are all checked and required claims enforced. API key secrets are stored as hashes and compared with hmac.compare_digest, with a dummy digest for unknown key ids so the work done is similar, and the callback signature check uses a timestamp tolerance and constant-time comparison. Clients get a generic 401 while the reason goes only to the log.",
+    "verify() looks the kid up in self._public_keys, which comes from configuration, and passes algorithms=ALLOWED_ALGORITHMS to jwt.decode, so alg=none or a symmetric algorithm are refused whatever the header says. The header is not encrypted, PyJWT does not skip checks when exp is present, and there is no header-versus-claims comparison.",
+    "current_principal succeeds, since the token verifies, and require_scope then raises 403 as the principal lacks the scope. 401 is reserved for failed authentication, the scope is enforced rather than only logged, and body validation is unrelated to authorization.",
+    "For an unknown id the code compares against _DUMMY_DIGEST after hashing the presented secret, so the work is the same as for a known id, and both failures raise AuthError('api key rejected'). It does not return early, it does not distinguish the cases, and there is no fallback to the JWT verifier."
+  ]
+}

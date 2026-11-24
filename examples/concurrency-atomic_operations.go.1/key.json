@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "runner/pool.go",
+        "startLine": 50,
+        "endLine": 53
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "The admission check in Submit is a check-then-act sequence made of two separately atomic operations: running.Load() compares against the limit and running.Add(1) increments later. Each call is atomic, but the pair is not. Under a burst of triggers, many goroutines can all observe a value below MaxConcurrent before any of them increments, so more than MaxConcurrent jobs run at once. The fix is to reserve the slot first (n := running.Add(1); if n > max { running.Add(-1); return ErrAtCapacity }) or to use a CompareAndSwap loop.",
+    "Submit loads the *Limits pointer once and passes it to execute, which builds the timeout from lim.JobTimeout at start. SetLimits only stores a new pointer, so running jobs are unaffected. Nothing cancels jobs on reload, nothing re-reads limits during a job, and SetLimits does a single atomic store without waiting.",
+    "Each field is an atomic.Int64, so every individual load is race-free and never torn, including on 32-bit platforms, where the atomic types guarantee alignment. The loads are not taken together, so a job may be counted in TotalNanos but not yet in Succeeded, making the mean slightly imprecise. The division is guarded by done > 0 and done is computed from values already read, so no zero division can occur.",
+    "execute receives context.WithoutCancel(ctx), which drops the parent's cancellation and deadline but keeps its values. execute then adds its own timeout from lim.JobTimeout, so the job is bounded by that timeout and not by the client connection. The job does still get a deadline (JobTimeout), and cancellation on client disconnect, at any point, would only happen without WithoutCancel."
+  ]
+}

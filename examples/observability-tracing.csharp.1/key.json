@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "MatchRequestConsumer.cs",
+        "startLine": 28,
+        "endLine": 30
+      }
+    },
+    1,
+    0,
+    2
+  ],
+  "explanations": [
+    "HandleBatchAsync builds the consumer span from the trace context of only the first message in the batch (batch[0]) and makes it the parent. Every other message in the batch was published under its own trace, but nothing connects them: their per-message spans become children of the batch span, which belongs to the first message's trace. For those players the trace of the enqueue call ends at the producer span, and the placement work appears inside someone else's trace. The consumer should link each message's context (ActivityLink) to the batch span, or start one consumer span per message with that message's context as the parent. The publisher side is correct: the producer span is created before the headers are injected and carries the error status on failure.",
+    "The traceparent in the headers is created from activity.Context, the producer span, before the message leaves the process, so the consumer's span can be parented to it. Activity.Current flows with the async execution context, so it would not be null on other threads. Inject's dictionary parameter is just the carrier, and recording does not depend on injection.",
+    "The generic catch sets the Error status on the per-message activity, logs a warning and returns false, so HandleBatchAsync moves on to the next message. The using declaration disposes the span in all cases, so it is never left unfinished, and nothing sets the status to Ok. The batch span's status is never set.",
+    "The catch (OperationCanceledException) clause comes before the generic one and rethrows, so cancellation is not logged as a placement failure or turned into a false result. Leaving the method still disposes the activity through the using declaration. The batch handler does not catch it either, so it propagates to the consumer loop."
+  ]
+}

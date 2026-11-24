@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/middleware/auth.js",
+        "startLine": 27,
+        "endLine": 27
+      }
+    },
+    2,
+    0,
+    1
+  ],
+  "explanations": [
+    "The defect is the 401 returned by `requireScope` when the token is valid but lacks the needed scope. 401 means the caller is not authenticated, and clients and SDKs typically react by refreshing the token or re-running the login flow, which yields the same token scopes and the same 401, so they can loop. An authenticated principal that is not permitted to do something should get 403 Forbidden (with the insufficient_scope error body, and optionally a WWW-Authenticate header with error=\"insufficient_scope\"). The other 401s in `authenticate` are correct because there the credentials are missing, invalid or expired.",
+    "The INSERT violates the unique constraint on user_roles, the inner catch recognises SQLSTATE 23505 and throws conflict(...), and errorHandler renders that AppError as 409. Unhandled errors would become a 500, but this one is mapped. The INSERT is not an upsert, so it never silently succeeds, and 400 is only used for body validation failures that occur before the database is reached.",
+    "The route passes the error to next(); it is not an AppError and not a body-parse error, so errorHandler logs it with logger.error (including requestId and path) and returns a fixed 500 body that does not leak internals. The handler never emits 503 or Retry-After, and a failed query throws instead of returning zero rows, so 404 does not apply.",
+    "The first DELETE affects one row, so rowCount is 1 and the route returns 204 with no body. The second affects zero rows, so the route throws notFound('Role assignment'), rendered as 404. DELETE being idempotent refers to the server state, not to the status code; this handler explicitly distinguishes the cases. It never returns a body on success, never uses 410, and a conflict is not possible on a delete."
+  ]
+}
