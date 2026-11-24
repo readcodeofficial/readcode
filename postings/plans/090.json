@@ -3,12 +3,12 @@
   "targets": [
     {
       "label": "backend.security.authorization_checks",
-      "language": "Rust",
+      "language": "Ruby",
       "count": 1
     },
     {
       "label": "backend.security.authorization_checks",
-      "language": "Ruby",
+      "language": "TypeScript",
       "count": 1
     },
     {
@@ -19,41 +19,36 @@
     {
       "label": "backend.concurrency.async_await_pitfalls",
       "language": "Rust",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.concurrency.async_await_pitfalls",
+      "language": "TypeScript",
+      "count": 1
+    },
+    {
+      "label": "backend.messaging.queues_and_consumers",
       "language": "Ruby",
       "count": 1
     },
     {
-      "label": "backend.concurrency.async_await_pitfalls",
+      "label": "backend.messaging.queues_and_consumers",
       "language": "Go",
       "count": 1
     },
     {
-      "label": "backend.messaging.queues_and_consumers",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.queues_and_consumers",
-      "language": "Ruby",
-      "count": 1
-    },
-    {
       "label": "backend.observability.metrics",
       "language": "Rust",
       "count": 1
     },
     {
       "label": "backend.observability.metrics",
-      "language": "Ruby",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.security.multi_tenant_isolation",
-      "language": "Rust",
+      "language": "Ruby",
       "count": 1
     },
     {
@@ -63,7 +58,7 @@
     },
     {
       "label": "backend.api.request_validation",
-      "language": "Rust",
+      "language": "Ruby",
       "count": 1
     },
     {
@@ -78,23 +73,28 @@
     },
     {
       "label": "backend.api.serialization_and_deserialization",
-      "language": "TypeScript",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.messaging.at_least_once_delivery",
-      "language": "Rust",
+      "language": "Ruby",
       "count": 1
     },
     {
       "label": "backend.messaging.at_least_once_delivery",
-      "language": "TypeScript",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.observability.structured_logging",
       "language": "Rust",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.observability.structured_logging",
+      "language": "Go",
+      "count": 1
     }
   ]
 }

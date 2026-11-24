@@ -3,11 +3,6 @@
   "targets": [
     {
       "label": "backend.messaging.queues_and_consumers",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.queues_and_consumers",
       "language": "Java",
       "count": 1
     },
@@ -17,7 +12,7 @@
       "count": 1
     },
     {
-      "label": "backend.observability.metrics",
+      "label": "backend.messaging.queues_and_consumers",
       "language": "TypeScript",
       "count": 1
     },
@@ -32,6 +27,16 @@
       "count": 1
     },
     {
+      "label": "backend.observability.metrics",
+      "language": "TypeScript",
+      "count": 1
+    },
+    {
+      "label": "backend.integrations.third_party_adapters",
+      "language": "Python",
+      "count": 1
+    },
+    {
       "label": "backend.integrations.third_party_adapters",
       "language": "TypeScript",
       "count": 1
@@ -42,16 +47,6 @@
       "count": 1
     },
     {
-      "label": "backend.integrations.third_party_adapters",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.retries_and_backoff",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
       "label": "backend.resilience.retries_and_backoff",
       "language": "Java",
       "count": 1
@@ -59,21 +54,26 @@
     {
       "label": "backend.resilience.retries_and_backoff",
       "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.resilience.retries_and_backoff",
+      "language": "TypeScript",
       "count": 1
     },
     {
       "label": "backend.messaging.at_least_once_delivery",
-      "language": "TypeScript",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.messaging.at_least_once_delivery",
-      "language": "Java",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.resilience.timeouts",
-      "language": "TypeScript",
+      "language": "Java",
       "count": 1
     },
     {
@@ -83,22 +83,22 @@
     },
     {
       "label": "backend.api.idempotency",
-      "language": "TypeScript",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.api.idempotency",
-      "language": "C++",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.observability.tracing",
-      "language": "TypeScript",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.observability.tracing",
-      "language": "C++",
+      "language": "Python",
       "count": 1
     }
   ]

@@ -3,13 +3,8 @@
   "targets": [
     {
       "label": "backend.api.idempotency",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.api.idempotency",
       "language": "Go",
-      "count": 3
+      "count": 2
     },
     {
       "label": "backend.api.idempotency",
@@ -38,18 +33,8 @@
     },
     {
       "label": "backend.api.idempotency",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.api.idempotency",
       "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.api.request_validation",
-      "language": "C",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.api.request_validation",
@@ -69,11 +54,6 @@
     {
       "label": "backend.api.request_validation",
       "language": "JavaScript",
-      "count": 1
-    },
-    {
-      "label": "backend.api.request_validation",
-      "language": "Kotlin",
       "count": 1
     },
     {
@@ -88,32 +68,12 @@
     },
     {
       "label": "backend.api.request_validation",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.api.request_validation",
-      "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.api.request_validation",
       "language": "TypeScript",
       "count": 2
     },
     {
       "label": "backend.api.rest_design",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
-      "language": "C++",
       "count": 1
     },
     {
@@ -129,12 +89,12 @@
     {
       "label": "backend.api.rest_design",
       "language": "JavaScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.api.rest_design",
       "language": "Kotlin",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.api.rest_design",
@@ -148,263 +108,213 @@
     },
     {
       "label": "backend.api.rest_design",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
-      "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
       "language": "TypeScript",
       "count": 2
     },
     {
       "label": "backend.api.serialization_and_deserialization",
+      "language": "C#",
+      "count": 1
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "Java",
+      "count": 2
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "Python",
+      "count": 2
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "Rust",
+      "count": 1
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "Scala",
+      "count": 1
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "TypeScript",
+      "count": 1
+    },
+    {
+      "label": "backend.api.status_codes_and_error_responses",
+      "language": "Java",
+      "count": 2
+    },
+    {
+      "label": "backend.api.status_codes_and_error_responses",
+      "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.api.status_codes_and_error_responses",
+      "language": "Python",
+      "count": 2
+    },
+    {
+      "label": "backend.api.status_codes_and_error_responses",
+      "language": "TypeScript",
+      "count": 1
+    },
+    {
+      "label": "backend.api.versioning",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.api.versioning",
+      "language": "Python",
+      "count": 2
+    },
+    {
+      "label": "backend.api.versioning",
+      "language": "TypeScript",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.cache_aside_vs_write_through",
+      "language": "C#",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.cache_aside_vs_write_through",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.cache_aside_vs_write_through",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.cache_invalidation",
+      "language": "C#",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.cache_invalidation",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.cache_invalidation",
+      "language": "Java",
+      "count": 3
+    },
+    {
+      "label": "backend.caching.cache_invalidation",
+      "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.cache_invalidation",
+      "language": "Python",
+      "count": 2
+    },
+    {
+      "label": "backend.caching.cache_invalidation",
+      "language": "Ruby",
+      "count": 2
+    },
+    {
+      "label": "backend.caching.cache_invalidation",
+      "language": "TypeScript",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.stale_reads",
+      "language": "C#",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.stale_reads",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.stale_reads",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.ttls_and_expiry",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.caching.ttls_and_expiry",
+      "language": "Java",
+      "count": 3
+    },
+    {
+      "label": "backend.caching.ttls_and_expiry",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.async_await_pitfalls",
+      "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.async_await_pitfalls",
+      "language": "Python",
+      "count": 2
+    },
+    {
+      "label": "backend.concurrency.async_await_pitfalls",
+      "language": "Rust",
+      "count": 2
+    },
+    {
+      "label": "backend.concurrency.async_await_pitfalls",
+      "language": "TypeScript",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.atomic_operations",
       "language": "C",
       "count": 1
     },
     {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "Java",
-      "count": 2
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "JavaScript",
-      "count": 1
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.api.status_codes_and_error_responses",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.api.status_codes_and_error_responses",
-      "language": "Java",
-      "count": 2
-    },
-    {
-      "label": "backend.api.status_codes_and_error_responses",
-      "language": "Kotlin",
-      "count": 1
-    },
-    {
-      "label": "backend.api.status_codes_and_error_responses",
-      "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.api.status_codes_and_error_responses",
-      "language": "Ruby",
-      "count": 1
-    },
-    {
-      "label": "backend.api.status_codes_and_error_responses",
-      "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.api.status_codes_and_error_responses",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.api.versioning",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.api.versioning",
-      "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.api.versioning",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_aside_vs_write_through",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_aside_vs_write_through",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_aside_vs_write_through",
-      "language": "Kotlin",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_invalidation",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_invalidation",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_invalidation",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_invalidation",
-      "language": "Java",
-      "count": 3
-    },
-    {
-      "label": "backend.caching.cache_invalidation",
-      "language": "JavaScript",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_invalidation",
-      "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.caching.cache_invalidation",
-      "language": "Ruby",
-      "count": 2
-    },
-    {
-      "label": "backend.caching.cache_invalidation",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_invalidation",
-      "language": "TypeScript",
-      "count": 2
-    },
-    {
-      "label": "backend.caching.stale_reads",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.stale_reads",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.stale_reads",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.stale_reads",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.ttls_and_expiry",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.ttls_and_expiry",
-      "language": "Java",
-      "count": 3
-    },
-    {
-      "label": "backend.caching.ttls_and_expiry",
-      "language": "Kotlin",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.async_await_pitfalls",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.async_await_pitfalls",
-      "language": "JavaScript",
-      "count": 2
-    },
-    {
-      "label": "backend.concurrency.async_await_pitfalls",
-      "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.concurrency.async_await_pitfalls",
-      "language": "Ruby",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.async_await_pitfalls",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.async_await_pitfalls",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
       "label": "backend.concurrency.atomic_operations",
       "language": "C++",
       "count": 3
     },
     {
       "label": "backend.concurrency.atomic_operations",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.atomic_operations",
       "language": "Java",
       "count": 2
     },
     {
       "label": "backend.concurrency.atomic_operations",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.atomic_operations",
       "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.atomic_operations",
-      "language": "TypeScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.concurrency.deadlocks",
@@ -413,6 +323,11 @@
     },
     {
       "label": "backend.concurrency.locking_and_lock_ordering",
+      "language": "C",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.locking_and_lock_ordering",
       "language": "C++",
       "count": 1
     },
@@ -425,16 +340,6 @@
       "label": "backend.concurrency.locking_and_lock_ordering",
       "language": "Java",
       "count": 2
-    },
-    {
-      "label": "backend.concurrency.locking_and_lock_ordering",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.locking_and_lock_ordering",
-      "language": "Scala",
-      "count": 1
     },
     {
       "label": "backend.concurrency.race_conditions",
@@ -469,22 +374,7 @@
     {
       "label": "backend.concurrency.race_conditions",
       "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.race_conditions",
-      "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.race_conditions",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.thread_and_worker_pools",
-      "language": "C",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.concurrency.thread_and_worker_pools",
@@ -512,16 +402,6 @@
       "count": 1
     },
     {
-      "label": "backend.concurrency.thread_and_worker_pools",
-      "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.thread_and_worker_pools",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
       "label": "backend.config.configuration_loading",
       "language": "Go",
       "count": 1
@@ -540,11 +420,6 @@
       "label": "backend.config.configuration_loading",
       "language": "Python",
       "count": 2
-    },
-    {
-      "label": "backend.config.defaults_and_validation",
-      "language": "Go",
-      "count": 1
     },
     {
       "label": "backend.config.defaults_and_validation",
@@ -578,16 +453,6 @@
     },
     {
       "label": "backend.config.feature_flags",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.config.feature_flags",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.config.feature_flags",
       "language": "Go",
       "count": 1
     },
@@ -599,7 +464,7 @@
     {
       "label": "backend.config.feature_flags",
       "language": "JavaScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.config.feature_flags",
@@ -619,16 +484,11 @@
     {
       "label": "backend.config.feature_flags",
       "language": "TypeScript",
-      "count": 4
+      "count": 3
     },
     {
       "label": "backend.data.connection_pooling",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.data.connection_pooling",
-      "language": "C++",
+      "language": "Go",
       "count": 1
     },
     {
@@ -683,42 +543,12 @@
     },
     {
       "label": "backend.data.money_and_ledgers",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.data.money_and_ledgers",
-      "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.data.money_and_ledgers",
       "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.data.n_plus_one_queries",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.data.n_plus_one_queries",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.data.n_plus_one_queries",
-      "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.data.n_plus_one_queries",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.data.n_plus_one_queries",
-      "language": "JavaScript",
       "count": 1
     },
     {
@@ -778,6 +608,11 @@
     },
     {
       "label": "backend.data.pagination",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.data.pagination",
       "language": "JavaScript",
       "count": 1
     },
@@ -829,11 +664,6 @@
     {
       "label": "backend.data.transactions_and_isolation_levels",
       "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.data.transactions_and_isolation_levels",
-      "language": "Scala",
       "count": 1
     },
     {
@@ -853,6 +683,11 @@
     },
     {
       "label": "backend.design.coupling_and_cohesion",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.design.coupling_and_cohesion",
       "language": "Java",
       "count": 1
     },
@@ -873,11 +708,6 @@
     },
     {
       "label": "backend.design.dependency_injection",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.design.dependency_injection",
       "language": "Java",
       "count": 2
     },
@@ -888,18 +718,8 @@
     },
     {
       "label": "backend.design.dependency_injection",
-      "language": "Ruby",
-      "count": 1
-    },
-    {
-      "label": "backend.design.dependency_injection",
       "language": "TypeScript",
       "count": 2
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "C",
-      "count": 1
     },
     {
       "label": "backend.design.interface_design",
@@ -914,26 +734,11 @@
     {
       "label": "backend.design.interface_design",
       "language": "Java",
-      "count": 2
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "JavaScript",
-      "count": 1
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "Kotlin",
-      "count": 1
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "Python",
       "count": 4
     },
     {
       "label": "backend.design.interface_design",
-      "language": "Ruby",
+      "language": "Kotlin",
       "count": 2
     },
     {
@@ -958,11 +763,6 @@
     },
     {
       "label": "backend.design.layering",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.design.layering",
       "language": "Go",
       "count": 1
     },
@@ -970,11 +770,6 @@
       "label": "backend.design.layering",
       "language": "Java",
       "count": 2
-    },
-    {
-      "label": "backend.design.layering",
-      "language": "JavaScript",
-      "count": 1
     },
     {
       "label": "backend.design.layering",
@@ -1018,11 +813,6 @@
     },
     {
       "label": "backend.distributed.replication_and_consensus",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.replication_and_consensus",
       "language": "C++",
       "count": 1
     },
@@ -1034,17 +824,7 @@
     {
       "label": "backend.distributed.replication_and_consensus",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.replication_and_consensus",
-      "language": "Python",
       "count": 2
-    },
-    {
-      "label": "backend.distributed.replication_and_consensus",
-      "language": "Rust",
-      "count": 1
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
@@ -1053,33 +833,23 @@
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
       "language": "C++",
       "count": 1
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
-      "language": "Python",
       "count": 3
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
       "language": "Rust",
-      "count": 1
+      "count": 3
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
@@ -1093,12 +863,17 @@
     },
     {
       "label": "backend.errors.error_propagation",
-      "language": "C#",
+      "language": "C",
       "count": 1
     },
     {
       "label": "backend.errors.error_propagation",
       "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.errors.error_propagation",
+      "language": "Go",
       "count": 1
     },
     {
@@ -1119,7 +894,7 @@
     {
       "label": "backend.errors.error_propagation",
       "language": "TypeScript",
-      "count": 2
+      "count": 1
     },
     {
       "label": "backend.errors.error_wrapping_and_context",
@@ -1134,12 +909,7 @@
     {
       "label": "backend.integrations.third_party_adapters",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.integrations.third_party_adapters",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.integrations.third_party_adapters",
@@ -1155,11 +925,6 @@
       "label": "backend.integrations.third_party_adapters",
       "language": "JavaScript",
       "count": 3
-    },
-    {
-      "label": "backend.integrations.third_party_adapters",
-      "language": "Kotlin",
-      "count": 1
     },
     {
       "label": "backend.integrations.third_party_adapters",
@@ -1179,12 +944,7 @@
     {
       "label": "backend.messaging.at_least_once_delivery",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.at_least_once_delivery",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.messaging.at_least_once_delivery",
@@ -1212,21 +972,6 @@
       "count": 2
     },
     {
-      "label": "backend.messaging.at_least_once_delivery",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.at_least_once_delivery",
-      "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.at_least_once_delivery",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
       "label": "backend.messaging.backpressure",
       "language": "C#",
       "count": 1
@@ -1234,16 +979,11 @@
     {
       "label": "backend.messaging.backpressure",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.messaging.backpressure",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.backpressure",
-      "language": "Python",
       "count": 2
     },
     {
@@ -1277,19 +1017,9 @@
       "count": 3
     },
     {
-      "label": "backend.messaging.deduplication",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.deduplication",
-      "language": "Scala",
-      "count": 1
-    },
-    {
       "label": "backend.messaging.message_ordering",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.messaging.message_ordering",
@@ -1298,18 +1028,13 @@
     },
     {
       "label": "backend.messaging.message_ordering",
-      "language": "Python",
-      "count": 2
+      "language": "Scala",
+      "count": 1
     },
     {
       "label": "backend.messaging.queues_and_consumers",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.queues_and_consumers",
-      "language": "C++",
-      "count": 1
+      "count": 3
     },
     {
       "label": "backend.messaging.queues_and_consumers",
@@ -1338,27 +1063,12 @@
     },
     {
       "label": "backend.messaging.queues_and_consumers",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.queues_and_consumers",
       "language": "Scala",
       "count": 1
     },
     {
       "label": "backend.messaging.queues_and_consumers",
       "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.observability.health_checks",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.observability.health_checks",
-      "language": "C++",
       "count": 1
     },
     {
@@ -1374,12 +1084,7 @@
     {
       "label": "backend.observability.health_checks",
       "language": "Kotlin",
-      "count": 1
-    },
-    {
-      "label": "backend.observability.health_checks",
-      "language": "PHP",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.observability.health_checks",
@@ -1403,7 +1108,7 @@
     },
     {
       "label": "backend.observability.metrics",
-      "language": "C",
+      "language": "C#",
       "count": 1
     },
     {
@@ -1433,18 +1138,8 @@
     },
     {
       "label": "backend.observability.metrics",
-      "language": "PHP",
-      "count": 1
-    },
-    {
-      "label": "backend.observability.metrics",
       "language": "Python",
       "count": 4
-    },
-    {
-      "label": "backend.observability.metrics",
-      "language": "Ruby",
-      "count": 2
     },
     {
       "label": "backend.observability.metrics",
@@ -1479,11 +1174,6 @@
     {
       "label": "backend.observability.structured_logging",
       "language": "Rust",
-      "count": 2
-    },
-    {
-      "label": "backend.observability.structured_logging",
-      "language": "Scala",
       "count": 1
     },
     {
@@ -1494,11 +1184,6 @@
     {
       "label": "backend.observability.tracing",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.observability.tracing",
-      "language": "C++",
       "count": 1
     },
     {
@@ -1524,11 +1209,6 @@
     {
       "label": "backend.performance.profiling_and_hot_paths",
       "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.performance.profiling_and_hot_paths",
-      "language": "C#",
       "count": 1
     },
     {
@@ -1548,12 +1228,12 @@
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
-      "language": "Kotlin",
+      "language": "JavaScript",
       "count": 1
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
-      "language": "PHP",
+      "language": "Kotlin",
       "count": 1
     },
     {
@@ -1569,7 +1249,7 @@
     {
       "label": "backend.performance.profiling_and_hot_paths",
       "language": "Rust",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
@@ -1579,31 +1259,26 @@
     {
       "label": "backend.performance.profiling_and_hot_paths",
       "language": "TypeScript",
-      "count": 2
-    },
-    {
-      "label": "backend.realtime.connection_fanout",
-      "language": "C#",
       "count": 1
     },
     {
       "label": "backend.realtime.connection_fanout",
-      "language": "C++",
+      "language": "C#",
+      "count": 2
+    },
+    {
+      "label": "backend.realtime.connection_fanout",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.realtime.connection_fanout",
       "language": "JavaScript",
-      "count": 2
-    },
-    {
-      "label": "backend.resilience.graceful_degradation",
-      "language": "C",
       "count": 1
     },
     {
       "label": "backend.resilience.graceful_degradation",
-      "language": "C++",
+      "language": "C#",
       "count": 1
     },
     {
@@ -1624,7 +1299,7 @@
     {
       "label": "backend.resilience.graceful_degradation",
       "language": "Kotlin",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.graceful_degradation",
@@ -1638,7 +1313,7 @@
     },
     {
       "label": "backend.resilience.graceful_shutdown",
-      "language": "C",
+      "language": "Go",
       "count": 1
     },
     {
@@ -1654,12 +1329,7 @@
     {
       "label": "backend.resilience.rate_limiting",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.rate_limiting",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.rate_limiting",
@@ -1669,12 +1339,7 @@
     {
       "label": "backend.resilience.rate_limiting",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.rate_limiting",
-      "language": "JavaScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.rate_limiting",
@@ -1698,23 +1363,13 @@
     },
     {
       "label": "backend.resilience.retries_and_backoff",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.retries_and_backoff",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.retries_and_backoff",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.retries_and_backoff",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.retries_and_backoff",
@@ -1724,7 +1379,7 @@
     {
       "label": "backend.resilience.retries_and_backoff",
       "language": "Kotlin",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.retries_and_backoff",
@@ -1753,11 +1408,6 @@
     },
     {
       "label": "backend.resilience.timeouts",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.timeouts",
       "language": "C#",
       "count": 1
     },
@@ -1794,7 +1444,7 @@
     {
       "label": "backend.resilience.timeouts",
       "language": "Ruby",
-      "count": 2
+      "count": 1
     },
     {
       "label": "backend.resilience.timeouts",
@@ -1813,13 +1463,8 @@
     },
     {
       "label": "backend.resources.context_cancellation",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.context_cancellation",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resources.context_cancellation",
@@ -1849,27 +1494,12 @@
     {
       "label": "backend.resources.memory_leaks",
       "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.memory_leaks",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.streaming_large_payloads",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.streaming_large_payloads",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resources.streaming_large_payloads",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resources.streaming_large_payloads",
@@ -1889,7 +1519,7 @@
     {
       "label": "backend.resources.streaming_large_payloads",
       "language": "Scala",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.security.audit_logging",
@@ -1904,11 +1534,6 @@
     {
       "label": "backend.security.audit_logging",
       "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authentication",
-      "language": "Go",
       "count": 1
     },
     {
@@ -1928,23 +1553,8 @@
     },
     {
       "label": "backend.security.authentication",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authentication",
       "language": "TypeScript",
       "count": 2
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "C++",
-      "count": 1
     },
     {
       "label": "backend.security.authorization_checks",
@@ -1970,16 +1580,6 @@
       "label": "backend.security.authorization_checks",
       "language": "Ruby",
       "count": 4
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "Scala",
-      "count": 1
     },
     {
       "label": "backend.security.authorization_checks",
@@ -1988,33 +1588,28 @@
     },
     {
       "label": "backend.security.encryption_at_rest_and_in_transit",
+      "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.security.encryption_at_rest_and_in_transit",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.security.encryption_at_rest_and_in_transit",
       "language": "Java",
-      "count": 1
+      "count": 2
     },
     {
-      "label": "backend.security.encryption_at_rest_and_in_transit",
+      "label": "backend.security.input_sanitization",
       "language": "JavaScript",
-      "count": 1
-    },
-    {
-      "label": "backend.security.encryption_at_rest_and_in_transit",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.security.encryption_at_rest_and_in_transit",
-      "language": "Scala",
       "count": 1
     },
     {
       "label": "backend.security.input_sanitization",
       "language": "Python",
       "count": 3
-    },
-    {
-      "label": "backend.security.input_sanitization",
-      "language": "Rust",
-      "count": 1
     },
     {
       "label": "backend.security.input_sanitization",
@@ -2028,18 +1623,13 @@
     },
     {
       "label": "backend.security.multi_tenant_isolation",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.security.multi_tenant_isolation",
       "language": "Go",
       "count": 1
     },
     {
       "label": "backend.security.multi_tenant_isolation",
       "language": "Java",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.security.multi_tenant_isolation",
@@ -2048,7 +1638,7 @@
     },
     {
       "label": "backend.security.multi_tenant_isolation",
-      "language": "Rust",
+      "language": "Ruby",
       "count": 1
     },
     {
@@ -2088,11 +1678,6 @@
     },
     {
       "label": "backend.security.session_and_token_handling",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.security.session_and_token_handling",
       "language": "TypeScript",
       "count": 2
     },
@@ -2123,17 +1708,7 @@
     },
     {
       "label": "backend.testing.integration_tests",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.integration_tests",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.integration_tests",
-      "language": "C++",
       "count": 1
     },
     {
@@ -2144,12 +1719,17 @@
     {
       "label": "backend.testing.integration_tests",
       "language": "Java",
+      "count": 2
+    },
+    {
+      "label": "backend.testing.integration_tests",
+      "language": "JavaScript",
       "count": 1
     },
     {
       "label": "backend.testing.integration_tests",
       "language": "Kotlin",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.testing.integration_tests",
@@ -2158,22 +1738,12 @@
     },
     {
       "label": "backend.testing.integration_tests",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.mocking_and_fakes",
-      "language": "C",
+      "language": "Ruby",
       "count": 1
     },
     {
       "label": "backend.testing.mocking_and_fakes",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.mocking_and_fakes",
-      "language": "C++",
       "count": 1
     },
     {
@@ -2185,6 +1755,11 @@
       "label": "backend.testing.mocking_and_fakes",
       "language": "Java",
       "count": 2
+    },
+    {
+      "label": "backend.testing.mocking_and_fakes",
+      "language": "JavaScript",
+      "count": 1
     },
     {
       "label": "backend.testing.mocking_and_fakes",
@@ -2198,12 +1773,7 @@
     },
     {
       "label": "backend.testing.mocking_and_fakes",
-      "language": "Ruby",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.unit_test_design",
-      "language": "C",
+      "language": "TypeScript",
       "count": 1
     },
     {
@@ -2214,7 +1784,7 @@
     {
       "label": "backend.testing.unit_test_design",
       "language": "C++",
-      "count": 2
+      "count": 1
     },
     {
       "label": "backend.testing.unit_test_design",
@@ -2224,7 +1794,7 @@
     {
       "label": "backend.testing.unit_test_design",
       "language": "Java",
-      "count": 3
+      "count": 4
     },
     {
       "label": "backend.testing.unit_test_design",
@@ -2234,7 +1804,7 @@
     {
       "label": "backend.testing.unit_test_design",
       "language": "Kotlin",
-      "count": 5
+      "count": 2
     },
     {
       "label": "backend.testing.unit_test_design",
@@ -2245,11 +1815,6 @@
       "label": "backend.testing.unit_test_design",
       "language": "Ruby",
       "count": 2
-    },
-    {
-      "label": "backend.testing.unit_test_design",
-      "language": "Rust",
-      "count": 1
     },
     {
       "label": "backend.testing.unit_test_design",

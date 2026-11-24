@@ -3,13 +3,8 @@
   "targets": [
     {
       "label": "backend.data.money_and_ledgers",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.data.money_and_ledgers",
       "language": "TypeScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.data.money_and_ledgers",
@@ -18,13 +13,8 @@
     },
     {
       "label": "backend.api.idempotency",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.api.idempotency",
       "language": "TypeScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.api.idempotency",
@@ -43,28 +33,18 @@
     },
     {
       "label": "backend.security.authentication",
-      "language": "Rust",
+      "language": "TypeScript",
       "count": 1
     },
     {
       "label": "backend.security.authentication",
-      "language": "TypeScript",
+      "language": "JavaScript",
       "count": 1
     },
     {
       "label": "backend.concurrency.race_conditions",
       "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.race_conditions",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "Rust",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.security.authorization_checks",
@@ -72,18 +52,18 @@
       "count": 1
     },
     {
-      "label": "backend.concurrency.atomic_operations",
-      "language": "Rust",
+      "label": "backend.security.authorization_checks",
+      "language": "JavaScript",
       "count": 1
     },
     {
       "label": "backend.concurrency.atomic_operations",
-      "language": "TypeScript",
-      "count": 1
+      "language": "Rust",
+      "count": 2
     },
     {
       "label": "backend.api.request_validation",
-      "language": "Rust",
+      "language": "TypeScript",
       "count": 1
     },
     {
@@ -93,7 +73,7 @@
     },
     {
       "label": "backend.security.session_and_token_handling",
-      "language": "Rust",
+      "language": "TypeScript",
       "count": 1
     },
     {

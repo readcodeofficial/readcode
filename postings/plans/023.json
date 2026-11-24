@@ -3,8 +3,8 @@
   "targets": [
     {
       "label": "backend.resilience.retries_and_backoff",
-      "language": "C",
-      "count": 1
+      "language": "Go",
+      "count": 2
     },
     {
       "label": "backend.resilience.retries_and_backoff",
@@ -12,23 +12,13 @@
       "count": 1
     },
     {
-      "label": "backend.resilience.retries_and_backoff",
-      "language": "Go",
-      "count": 1
-    },
-    {
       "label": "backend.resources.context_cancellation",
-      "language": "C",
-      "count": 1
+      "language": "Go",
+      "count": 2
     },
     {
       "label": "backend.resources.context_cancellation",
       "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.context_cancellation",
-      "language": "Go",
       "count": 1
     },
     {
@@ -38,12 +28,12 @@
     },
     {
       "label": "backend.concurrency.race_conditions",
-      "language": "Python",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.resilience.timeouts",
-      "language": "C",
+      "language": "Go",
       "count": 1
     },
     {
@@ -53,7 +43,7 @@
     },
     {
       "label": "backend.observability.health_checks",
-      "language": "C",
+      "language": "Go",
       "count": 1
     },
     {
@@ -63,7 +53,7 @@
     },
     {
       "label": "backend.resilience.graceful_shutdown",
-      "language": "C",
+      "language": "Go",
       "count": 1
     },
     {
@@ -73,22 +63,22 @@
     },
     {
       "label": "backend.api.versioning",
-      "language": "C",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.api.versioning",
       "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "C",
       "count": 1
     },
     {
       "label": "backend.api.serialization_and_deserialization",
       "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "Python",
       "count": 1
     },
     {

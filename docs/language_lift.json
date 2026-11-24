@@ -1,0 +1,1514 @@
+{
+  "postingsUsed": 76,
+  "overallShare": {
+    "TypeScript": 0.1,
+    "JavaScript": 0.06,
+    "Java": 0.21,
+    "Kotlin": 0.03,
+    "Go": 0.11,
+    "Python": 0.2,
+    "C#": 0.02,
+    "Ruby": 0.1,
+    "Rust": 0.04,
+    "C": 0.02,
+    "C++": 0.08,
+    "Scala": 0.03,
+    "PHP": 0
+  },
+  "topics": {
+    "backend.concurrency.race_conditions": {
+      "mass": 29.17,
+      "lift": {
+        "TypeScript": 0.93,
+        "JavaScript": 1.01,
+        "Java": 1.08,
+        "Kotlin": 0.94,
+        "Go": 1.02,
+        "Python": 0.88,
+        "C#": 1.02,
+        "Ruby": 0.89,
+        "Rust": 0.9,
+        "C": 1.11,
+        "C++": 1.31,
+        "Scala": 0.98,
+        "PHP": 1.26
+      }
+    },
+    "backend.concurrency.locking_and_lock_ordering": {
+      "mass": 19.64,
+      "lift": {
+        "TypeScript": 0.75,
+        "JavaScript": 0.83,
+        "Java": 1.07,
+        "Kotlin": 0.89,
+        "Go": 1.07,
+        "Python": 0.92,
+        "C#": 1.12,
+        "Ruby": 0.81,
+        "Rust": 0.97,
+        "C": 1.19,
+        "C++": 1.49,
+        "Scala": 1.2,
+        "PHP": 1.45
+      }
+    },
+    "backend.concurrency.deadlocks": {
+      "mass": 13.97,
+      "lift": {
+        "TypeScript": 0.74,
+        "JavaScript": 0.77,
+        "Java": 1.08,
+        "Kotlin": 0.77,
+        "Go": 0.95,
+        "Python": 0.95,
+        "C#": 1.13,
+        "Ruby": 0.82,
+        "Rust": 1.01,
+        "C": 1.4,
+        "C++": 1.55,
+        "Scala": 1.25,
+        "PHP": 1.46
+      }
+    },
+    "backend.concurrency.thread_and_worker_pools": {
+      "mass": 24.58,
+      "lift": {
+        "TypeScript": 0.66,
+        "JavaScript": 0.8,
+        "Java": 1.18,
+        "Kotlin": 0.97,
+        "Go": 1.04,
+        "Python": 0.91,
+        "C#": 1.03,
+        "Ruby": 0.79,
+        "Rust": 0.9,
+        "C": 1.16,
+        "C++": 1.45,
+        "Scala": 1.25,
+        "PHP": 1.49
+      }
+    },
+    "backend.concurrency.async_await_pitfalls": {
+      "mass": 21.11,
+      "lift": {
+        "TypeScript": 1.34,
+        "JavaScript": 1.37,
+        "Java": 0.94,
+        "Kotlin": 0.98,
+        "Go": 0.88,
+        "Python": 1.05,
+        "C#": 1.22,
+        "Ruby": 0.53,
+        "Rust": 1.39,
+        "C": 1,
+        "C++": 0.92,
+        "Scala": 0.86,
+        "PHP": 0.77
+      }
+    },
+    "backend.concurrency.atomic_operations": {
+      "mass": 20.19,
+      "lift": {
+        "TypeScript": 0.81,
+        "JavaScript": 0.97,
+        "Java": 1.03,
+        "Kotlin": 0.96,
+        "Go": 1,
+        "Python": 0.91,
+        "C#": 1.11,
+        "Ruby": 0.75,
+        "Rust": 1.06,
+        "C": 1.26,
+        "C++": 1.56,
+        "Scala": 1.09,
+        "PHP": 1.41
+      }
+    },
+    "backend.concurrency.shared_state_in_request_handlers": {
+      "mass": 16.98,
+      "lift": {
+        "TypeScript": 0.95,
+        "JavaScript": 1.19,
+        "Java": 1.05,
+        "Kotlin": 1.05,
+        "Go": 0.93,
+        "Python": 0.94,
+        "C#": 1.12,
+        "Ruby": 1.03,
+        "Rust": 1.07,
+        "C": 1.26,
+        "C++": 0.9,
+        "Scala": 0.84,
+        "PHP": 1.2
+      }
+    },
+    "backend.resilience.timeouts": {
+      "mass": 32.47,
+      "lift": {
+        "TypeScript": 0.88,
+        "JavaScript": 0.94,
+        "Java": 0.99,
+        "Kotlin": 1.09,
+        "Go": 1.07,
+        "Python": 1.01,
+        "C#": 1.3,
+        "Ruby": 1,
+        "Rust": 1.05,
+        "C": 0.93,
+        "C++": 0.97,
+        "Scala": 0.96,
+        "PHP": 1.25
+      }
+    },
+    "backend.resilience.retries_and_backoff": {
+      "mass": 33.07,
+      "lift": {
+        "TypeScript": 0.86,
+        "JavaScript": 0.9,
+        "Java": 1,
+        "Kotlin": 1.05,
+        "Go": 1.11,
+        "Python": 1.06,
+        "C#": 1.07,
+        "Ruby": 1.02,
+        "Rust": 0.95,
+        "C": 0.96,
+        "C++": 0.88,
+        "Scala": 1.04,
+        "PHP": 1.23
+      }
+    },
+    "backend.resilience.circuit_breakers": {
+      "mass": 18.95,
+      "lift": {
+        "TypeScript": 0.88,
+        "JavaScript": 0.92,
+        "Java": 1.01,
+        "Kotlin": 0.98,
+        "Go": 1.14,
+        "Python": 1.02,
+        "C#": 1.28,
+        "Ruby": 0.96,
+        "Rust": 1.05,
+        "C": 1.06,
+        "C++": 0.9,
+        "Scala": 0.91,
+        "PHP": 1.5
+      }
+    },
+    "backend.resilience.rate_limiting": {
+      "mass": 22.86,
+      "lift": {
+        "TypeScript": 0.9,
+        "JavaScript": 1.04,
+        "Java": 0.9,
+        "Kotlin": 0.9,
+        "Go": 1.03,
+        "Python": 1.06,
+        "C#": 1.58,
+        "Ruby": 1.06,
+        "Rust": 1.24,
+        "C": 1.02,
+        "C++": 0.88,
+        "Scala": 0.9,
+        "PHP": 1.25
+      }
+    },
+    "backend.resilience.graceful_degradation": {
+      "mass": 22.97,
+      "lift": {
+        "TypeScript": 0.82,
+        "JavaScript": 1.05,
+        "Java": 0.96,
+        "Kotlin": 1.18,
+        "Go": 0.99,
+        "Python": 0.99,
+        "C#": 1.49,
+        "Ruby": 0.98,
+        "Rust": 1.01,
+        "C": 1.09,
+        "C++": 1.12,
+        "Scala": 1.01,
+        "PHP": 1.77
+      }
+    },
+    "backend.resilience.graceful_shutdown": {
+      "mass": 16.03,
+      "lift": {
+        "TypeScript": 0.77,
+        "JavaScript": 0.73,
+        "Java": 0.86,
+        "Kotlin": 1.1,
+        "Go": 1.11,
+        "Python": 1.15,
+        "C#": 1.22,
+        "Ruby": 1.03,
+        "Rust": 1.17,
+        "C": 1.19,
+        "C++": 0.93,
+        "Scala": 1.15,
+        "PHP": 2.29
+      }
+    },
+    "backend.data.transactions_and_isolation_levels": {
+      "mass": 28.82,
+      "lift": {
+        "TypeScript": 1.1,
+        "JavaScript": 0.98,
+        "Java": 1.05,
+        "Kotlin": 0.94,
+        "Go": 1.01,
+        "Python": 0.93,
+        "C#": 0.73,
+        "Ruby": 1.09,
+        "Rust": 0.79,
+        "C": 0.8,
+        "C++": 1.03,
+        "Scala": 1.08,
+        "PHP": 0.85
+      }
+    },
+    "backend.data.n_plus_one_queries": {
+      "mass": 21.52,
+      "lift": {
+        "TypeScript": 1.25,
+        "JavaScript": 0.99,
+        "Java": 0.85,
+        "Kotlin": 1.26,
+        "Go": 0.76,
+        "Python": 0.87,
+        "C#": 0.46,
+        "Ruby": 2.18,
+        "Rust": 0.54,
+        "C": 0.84,
+        "C++": 0.7,
+        "Scala": 0.58,
+        "PHP": 0.57
+      }
+    },
+    "backend.data.connection_pooling": {
+      "mass": 20.57,
+      "lift": {
+        "TypeScript": 0.97,
+        "JavaScript": 1,
+        "Java": 1.1,
+        "Kotlin": 0.96,
+        "Go": 0.98,
+        "Python": 0.93,
+        "C#": 1.26,
+        "Ruby": 1.02,
+        "Rust": 0.83,
+        "C": 0.98,
+        "C++": 0.98,
+        "Scala": 0.97,
+        "PHP": 1.78
+      }
+    },
+    "backend.data.migrations": {
+      "mass": 23.41,
+      "lift": {
+        "TypeScript": 1.22,
+        "JavaScript": 0.95,
+        "Java": 0.83,
+        "Kotlin": 1.12,
+        "Go": 0.99,
+        "Python": 0.97,
+        "C#": 0.64,
+        "Ruby": 1.59,
+        "Rust": 0.72,
+        "C": 0.82,
+        "C++": 0.79,
+        "Scala": 0.91,
+        "PHP": 1.04
+      }
+    },
+    "backend.data.orm_pitfalls": {
+      "mass": 18.54,
+      "lift": {
+        "TypeScript": 1.05,
+        "JavaScript": 0.91,
+        "Java": 0.86,
+        "Kotlin": 1.23,
+        "Go": 0.71,
+        "Python": 0.87,
+        "C#": 0.54,
+        "Ruby": 2.43,
+        "Rust": 0.56,
+        "C": 0.84,
+        "C++": 0.71,
+        "Scala": 0.58,
+        "PHP": 0.44
+      }
+    },
+    "backend.data.pagination": {
+      "mass": 22.7,
+      "lift": {
+        "TypeScript": 1.32,
+        "JavaScript": 1.11,
+        "Java": 0.9,
+        "Kotlin": 1.12,
+        "Go": 0.9,
+        "Python": 1.01,
+        "C#": 0.69,
+        "Ruby": 1.22,
+        "Rust": 0.93,
+        "C": 0.86,
+        "C++": 0.8,
+        "Scala": 0.81,
+        "PHP": 0.9
+      }
+    },
+    "backend.data.optimistic_vs_pessimistic_locking": {
+      "mass": 17.69,
+      "lift": {
+        "TypeScript": 1.23,
+        "JavaScript": 0.97,
+        "Java": 1,
+        "Kotlin": 0.89,
+        "Go": 1.03,
+        "Python": 0.94,
+        "C#": 0.78,
+        "Ruby": 0.98,
+        "Rust": 0.95,
+        "C": 0.78,
+        "C++": 1.03,
+        "Scala": 1.12,
+        "PHP": 0.92
+      }
+    },
+    "backend.caching.cache_invalidation": {
+      "mass": 25.03,
+      "lift": {
+        "TypeScript": 1.06,
+        "JavaScript": 1.08,
+        "Java": 1.11,
+        "Kotlin": 0.92,
+        "Go": 0.88,
+        "Python": 0.82,
+        "C#": 1.17,
+        "Ruby": 1.16,
+        "Rust": 0.82,
+        "C": 0.91,
+        "C++": 1.08,
+        "Scala": 0.95,
+        "PHP": 1.3
+      }
+    },
+    "backend.caching.ttls_and_expiry": {
+      "mass": 20.35,
+      "lift": {
+        "TypeScript": 0.92,
+        "JavaScript": 1.12,
+        "Java": 1.14,
+        "Kotlin": 0.92,
+        "Go": 0.9,
+        "Python": 0.83,
+        "C#": 1.36,
+        "Ruby": 1.1,
+        "Rust": 0.94,
+        "C": 0.91,
+        "C++": 1.07,
+        "Scala": 1,
+        "PHP": 1
+      }
+    },
+    "backend.caching.cache_stampedes": {
+      "mass": 11.99,
+      "lift": {
+        "TypeScript": 0.94,
+        "JavaScript": 1.06,
+        "Java": 1.1,
+        "Kotlin": 0.88,
+        "Go": 0.91,
+        "Python": 0.87,
+        "C#": 1.56,
+        "Ruby": 0.89,
+        "Rust": 1.03,
+        "C": 1.12,
+        "C++": 1.2,
+        "Scala": 0.97,
+        "PHP": 2.04
+      }
+    },
+    "backend.caching.cache_aside_vs_write_through": {
+      "mass": 15.76,
+      "lift": {
+        "TypeScript": 0.91,
+        "JavaScript": 1.11,
+        "Java": 1.07,
+        "Kotlin": 0.97,
+        "Go": 0.95,
+        "Python": 0.87,
+        "C#": 1.52,
+        "Ruby": 0.93,
+        "Rust": 0.89,
+        "C": 1.14,
+        "C++": 1.21,
+        "Scala": 1.04,
+        "PHP": 1.03
+      }
+    },
+    "backend.caching.stale_reads": {
+      "mass": 18.02,
+      "lift": {
+        "TypeScript": 1.03,
+        "JavaScript": 1.12,
+        "Java": 1.02,
+        "Kotlin": 0.94,
+        "Go": 0.93,
+        "Python": 0.88,
+        "C#": 1.57,
+        "Ruby": 0.92,
+        "Rust": 0.91,
+        "C": 1.03,
+        "C++": 1.23,
+        "Scala": 1.1,
+        "PHP": 0.9
+      }
+    },
+    "backend.api.rest_design": {
+      "mass": 32.46,
+      "lift": {
+        "TypeScript": 1.13,
+        "JavaScript": 1.21,
+        "Java": 1.03,
+        "Kotlin": 1.17,
+        "Go": 0.96,
+        "Python": 0.93,
+        "C#": 0.87,
+        "Ruby": 1.17,
+        "Rust": 1,
+        "C": 0.81,
+        "C++": 0.75,
+        "Scala": 0.73,
+        "PHP": 0.38
+      }
+    },
+    "backend.api.request_validation": {
+      "mass": 31.54,
+      "lift": {
+        "TypeScript": 1.2,
+        "JavaScript": 1.16,
+        "Java": 0.95,
+        "Kotlin": 1.01,
+        "Go": 0.98,
+        "Python": 0.96,
+        "C#": 0.94,
+        "Ruby": 1.18,
+        "Rust": 1.07,
+        "C": 0.89,
+        "C++": 0.79,
+        "Scala": 0.73,
+        "PHP": 0.9
+      }
+    },
+    "backend.api.idempotency": {
+      "mass": 28.43,
+      "lift": {
+        "TypeScript": 1.03,
+        "JavaScript": 0.99,
+        "Java": 0.99,
+        "Kotlin": 0.93,
+        "Go": 1.15,
+        "Python": 1.06,
+        "C#": 0.8,
+        "Ruby": 1.01,
+        "Rust": 1.06,
+        "C": 0.92,
+        "C++": 0.73,
+        "Scala": 0.91,
+        "PHP": 0.72
+      }
+    },
+    "backend.api.versioning": {
+      "mass": 20.81,
+      "lift": {
+        "TypeScript": 1.01,
+        "JavaScript": 1.08,
+        "Java": 0.96,
+        "Kotlin": 0.99,
+        "Go": 1,
+        "Python": 1.08,
+        "C#": 1.2,
+        "Ruby": 0.89,
+        "Rust": 1.03,
+        "C": 1.22,
+        "C++": 0.88,
+        "Scala": 1,
+        "PHP": 0.39
+      }
+    },
+    "backend.api.status_codes_and_error_responses": {
+      "mass": 26.96,
+      "lift": {
+        "TypeScript": 1.09,
+        "JavaScript": 1.18,
+        "Java": 1.02,
+        "Kotlin": 1.05,
+        "Go": 0.94,
+        "Python": 0.98,
+        "C#": 0.88,
+        "Ruby": 1.13,
+        "Rust": 0.97,
+        "C": 0.98,
+        "C++": 0.8,
+        "Scala": 0.74,
+        "PHP": 1.06
+      }
+    },
+    "backend.api.serialization_and_deserialization": {
+      "mass": 32.17,
+      "lift": {
+        "TypeScript": 1.06,
+        "JavaScript": 1.09,
+        "Java": 1.02,
+        "Kotlin": 0.86,
+        "Go": 0.98,
+        "Python": 0.98,
+        "C#": 0.97,
+        "Ruby": 0.87,
+        "Rust": 1.07,
+        "C": 0.96,
+        "C++": 1.03,
+        "Scala": 1.18,
+        "PHP": 0.76
+      }
+    },
+    "backend.messaging.queues_and_consumers": {
+      "mass": 27.89,
+      "lift": {
+        "TypeScript": 0.91,
+        "JavaScript": 0.8,
+        "Java": 1.08,
+        "Kotlin": 1.06,
+        "Go": 1.1,
+        "Python": 0.93,
+        "C#": 1.14,
+        "Ruby": 1.2,
+        "Rust": 1.04,
+        "C": 0.6,
+        "C++": 0.81,
+        "Scala": 1.11,
+        "PHP": 0.88
+      }
+    },
+    "backend.messaging.at_least_once_delivery": {
+      "mass": 21.3,
+      "lift": {
+        "TypeScript": 0.88,
+        "JavaScript": 0.76,
+        "Java": 1.13,
+        "Kotlin": 0.97,
+        "Go": 1.22,
+        "Python": 0.94,
+        "C#": 1.08,
+        "Ruby": 0.95,
+        "Rust": 1.15,
+        "C": 0.63,
+        "C++": 0.8,
+        "Scala": 1.31,
+        "PHP": 0.46
+      }
+    },
+    "backend.messaging.deduplication": {
+      "mass": 19.66,
+      "lift": {
+        "TypeScript": 0.87,
+        "JavaScript": 0.76,
+        "Java": 1.09,
+        "Kotlin": 1.06,
+        "Go": 1.23,
+        "Python": 1.02,
+        "C#": 1.08,
+        "Ruby": 0.77,
+        "Rust": 1.36,
+        "C": 0.63,
+        "C++": 0.77,
+        "Scala": 1.36,
+        "PHP": 0.41
+      }
+    },
+    "backend.messaging.message_ordering": {
+      "mass": 16.67,
+      "lift": {
+        "TypeScript": 0.82,
+        "JavaScript": 0.73,
+        "Java": 1.19,
+        "Kotlin": 0.98,
+        "Go": 1.1,
+        "Python": 0.94,
+        "C#": 1.27,
+        "Ruby": 0.77,
+        "Rust": 1.14,
+        "C": 0.78,
+        "C++": 1.02,
+        "Scala": 1.45,
+        "PHP": 0.49
+      }
+    },
+    "backend.messaging.dead_letter_queues": {
+      "mass": 13.09,
+      "lift": {
+        "TypeScript": 0.88,
+        "JavaScript": 0.77,
+        "Java": 1.15,
+        "Kotlin": 0.81,
+        "Go": 1.19,
+        "Python": 0.98,
+        "C#": 1.01,
+        "Ruby": 1,
+        "Rust": 0.98,
+        "C": 0.84,
+        "C++": 0.76,
+        "Scala": 1.21,
+        "PHP": 0.5
+      }
+    },
+    "backend.messaging.backpressure": {
+      "mass": 17.23,
+      "lift": {
+        "TypeScript": 0.62,
+        "JavaScript": 0.7,
+        "Java": 1.15,
+        "Kotlin": 0.83,
+        "Go": 1.06,
+        "Python": 0.96,
+        "C#": 1.71,
+        "Ruby": 0.74,
+        "Rust": 1.21,
+        "C": 0.98,
+        "C++": 1.21,
+        "Scala": 1.59,
+        "PHP": 1.42
+      }
+    },
+    "backend.errors.error_propagation": {
+      "mass": 29.9,
+      "lift": {
+        "TypeScript": 1.04,
+        "JavaScript": 1.06,
+        "Java": 0.98,
+        "Kotlin": 1,
+        "Go": 0.95,
+        "Python": 1,
+        "C#": 0.91,
+        "Ruby": 1.03,
+        "Rust": 1.01,
+        "C": 1.04,
+        "C++": 1.01,
+        "Scala": 0.92,
+        "PHP": 0.95
+      }
+    },
+    "backend.errors.error_wrapping_and_context": {
+      "mass": 25.76,
+      "lift": {
+        "TypeScript": 0.96,
+        "JavaScript": 1.04,
+        "Java": 1,
+        "Kotlin": 1,
+        "Go": 0.96,
+        "Python": 1.03,
+        "C#": 0.89,
+        "Ruby": 1,
+        "Rust": 1.02,
+        "C": 1.13,
+        "C++": 1.02,
+        "Scala": 0.92,
+        "PHP": 0.95
+      }
+    },
+    "backend.errors.swallowed_errors": {
+      "mass": 24.66,
+      "lift": {
+        "TypeScript": 0.97,
+        "JavaScript": 1.07,
+        "Java": 0.97,
+        "Kotlin": 1.03,
+        "Go": 0.91,
+        "Python": 1.07,
+        "C#": 0.84,
+        "Ruby": 1.02,
+        "Rust": 0.94,
+        "C": 1.2,
+        "C++": 1.02,
+        "Scala": 0.89,
+        "PHP": 0.99
+      }
+    },
+    "backend.errors.cleanup_on_error_paths": {
+      "mass": 23.08,
+      "lift": {
+        "TypeScript": 0.91,
+        "JavaScript": 0.99,
+        "Java": 1,
+        "Kotlin": 0.95,
+        "Go": 0.9,
+        "Python": 1.04,
+        "C#": 0.8,
+        "Ruby": 0.98,
+        "Rust": 0.96,
+        "C": 1.27,
+        "C++": 1.18,
+        "Scala": 1.04,
+        "PHP": 0.88
+      }
+    },
+    "backend.errors.panics_and_exceptions_at_boundaries": {
+      "mass": 23.09,
+      "lift": {
+        "TypeScript": 0.93,
+        "JavaScript": 1.02,
+        "Java": 1.08,
+        "Kotlin": 1.01,
+        "Go": 0.86,
+        "Python": 1,
+        "C#": 0.84,
+        "Ruby": 1.07,
+        "Rust": 0.92,
+        "C": 1.19,
+        "C++": 1.05,
+        "Scala": 0.87,
+        "PHP": 0.88
+      }
+    },
+    "backend.resources.memory_leaks": {
+      "mass": 18.74,
+      "lift": {
+        "TypeScript": 0.68,
+        "JavaScript": 0.84,
+        "Java": 1.14,
+        "Kotlin": 0.81,
+        "Go": 0.94,
+        "Python": 0.94,
+        "C#": 0.99,
+        "Ruby": 0.77,
+        "Rust": 0.9,
+        "C": 1.2,
+        "C++": 1.58,
+        "Scala": 1.41,
+        "PHP": 1.74
+      }
+    },
+    "backend.resources.file_and_socket_handle_leaks": {
+      "mass": 16.35,
+      "lift": {
+        "TypeScript": 0.62,
+        "JavaScript": 0.75,
+        "Java": 1.1,
+        "Kotlin": 0.75,
+        "Go": 1,
+        "Python": 1.08,
+        "C#": 1.11,
+        "Ruby": 0.73,
+        "Rust": 0.96,
+        "C": 1.43,
+        "C++": 1.39,
+        "Scala": 1.23,
+        "PHP": 1.99
+      }
+    },
+    "backend.resources.streaming_large_payloads": {
+      "mass": 18.54,
+      "lift": {
+        "TypeScript": 0.74,
+        "JavaScript": 0.75,
+        "Java": 1.04,
+        "Kotlin": 0.66,
+        "Go": 1.03,
+        "Python": 1.09,
+        "C#": 0.76,
+        "Ruby": 0.64,
+        "Rust": 1.35,
+        "C": 1.09,
+        "C++": 1.22,
+        "Scala": 2.02,
+        "PHP": 0.53
+      }
+    },
+    "backend.resources.unbounded_buffers": {
+      "mass": 16.16,
+      "lift": {
+        "TypeScript": 0.64,
+        "JavaScript": 0.71,
+        "Java": 1.05,
+        "Kotlin": 0.62,
+        "Go": 1.02,
+        "Python": 1.03,
+        "C#": 1.4,
+        "Ruby": 0.71,
+        "Rust": 1.22,
+        "C": 1.23,
+        "C++": 1.45,
+        "Scala": 1.62,
+        "PHP": 1.51
+      }
+    },
+    "backend.resources.context_cancellation": {
+      "mass": 17.43,
+      "lift": {
+        "TypeScript": 0.91,
+        "JavaScript": 0.82,
+        "Java": 0.93,
+        "Kotlin": 0.92,
+        "Go": 1.3,
+        "Python": 1.01,
+        "C#": 1.26,
+        "Ruby": 0.67,
+        "Rust": 1.38,
+        "C": 1.2,
+        "C++": 1.1,
+        "Scala": 1.02,
+        "PHP": 0.7
+      }
+    },
+    "backend.security.authentication": {
+      "mass": 23.27,
+      "lift": {
+        "TypeScript": 1.26,
+        "JavaScript": 1.41,
+        "Java": 0.98,
+        "Kotlin": 0.88,
+        "Go": 0.98,
+        "Python": 0.97,
+        "C#": 0.72,
+        "Ruby": 1.03,
+        "Rust": 1.11,
+        "C": 0.82,
+        "C++": 0.73,
+        "Scala": 0.68,
+        "PHP": 0.87
+      }
+    },
+    "backend.security.authorization_checks": {
+      "mass": 30.04,
+      "lift": {
+        "TypeScript": 1.49,
+        "JavaScript": 1.23,
+        "Java": 0.86,
+        "Kotlin": 0.91,
+        "Go": 0.98,
+        "Python": 0.89,
+        "C#": 0.68,
+        "Ruby": 1.3,
+        "Rust": 1.14,
+        "C": 0.76,
+        "C++": 0.71,
+        "Scala": 0.75,
+        "PHP": 0.81
+      }
+    },
+    "backend.security.sql_injection": {
+      "mass": 13.34,
+      "lift": {
+        "TypeScript": 1.03,
+        "JavaScript": 1.1,
+        "Java": 0.97,
+        "Kotlin": 0.95,
+        "Go": 1.09,
+        "Python": 0.96,
+        "C#": 0.6,
+        "Ruby": 1.23,
+        "Rust": 0.99,
+        "C": 1.05,
+        "C++": 0.79,
+        "Scala": 0.9,
+        "PHP": 0.92
+      }
+    },
+    "backend.security.input_sanitization": {
+      "mass": 19.26,
+      "lift": {
+        "TypeScript": 1.21,
+        "JavaScript": 1.32,
+        "Java": 0.92,
+        "Kotlin": 0.99,
+        "Go": 1,
+        "Python": 0.9,
+        "C#": 1.01,
+        "Ruby": 1.1,
+        "Rust": 1.4,
+        "C": 0.91,
+        "C++": 0.78,
+        "Scala": 0.66,
+        "PHP": 0.85
+      }
+    },
+    "backend.security.secrets_handling": {
+      "mass": 19.03,
+      "lift": {
+        "TypeScript": 0.99,
+        "JavaScript": 1.01,
+        "Java": 1.04,
+        "Kotlin": 0.97,
+        "Go": 1.22,
+        "Python": 1.1,
+        "C#": 0.79,
+        "Ruby": 0.8,
+        "Rust": 1.02,
+        "C": 0.84,
+        "C++": 0.74,
+        "Scala": 0.9,
+        "PHP": 1.07
+      }
+    },
+    "backend.security.session_and_token_handling": {
+      "mass": 16.58,
+      "lift": {
+        "TypeScript": 1.29,
+        "JavaScript": 1.47,
+        "Java": 0.96,
+        "Kotlin": 0.95,
+        "Go": 0.98,
+        "Python": 1,
+        "C#": 0.88,
+        "Ruby": 0.82,
+        "Rust": 1.28,
+        "C": 0.89,
+        "C++": 0.75,
+        "Scala": 0.64,
+        "PHP": 0.74
+      }
+    },
+    "backend.observability.structured_logging": {
+      "mass": 27.73,
+      "lift": {
+        "TypeScript": 1.03,
+        "JavaScript": 1.03,
+        "Java": 0.94,
+        "Kotlin": 0.89,
+        "Go": 1.05,
+        "Python": 1.06,
+        "C#": 0.85,
+        "Ruby": 1.07,
+        "Rust": 1.09,
+        "C": 0.92,
+        "C++": 0.84,
+        "Scala": 0.91,
+        "PHP": 1.32
+      }
+    },
+    "backend.observability.metrics": {
+      "mass": 33.68,
+      "lift": {
+        "TypeScript": 0.95,
+        "JavaScript": 0.92,
+        "Java": 0.97,
+        "Kotlin": 1.16,
+        "Go": 1.07,
+        "Python": 1.03,
+        "C#": 1.09,
+        "Ruby": 0.96,
+        "Rust": 1.02,
+        "C": 0.87,
+        "C++": 0.97,
+        "Scala": 1.11,
+        "PHP": 1.57
+      }
+    },
+    "backend.observability.tracing": {
+      "mass": 23.6,
+      "lift": {
+        "TypeScript": 0.93,
+        "JavaScript": 0.86,
+        "Java": 0.96,
+        "Kotlin": 0.85,
+        "Go": 1.15,
+        "Python": 1.05,
+        "C#": 1.22,
+        "Ruby": 0.95,
+        "Rust": 1.07,
+        "C": 1.03,
+        "C++": 0.97,
+        "Scala": 0.95,
+        "PHP": 1.21
+      }
+    },
+    "backend.observability.health_checks": {
+      "mass": 20.58,
+      "lift": {
+        "TypeScript": 0.79,
+        "JavaScript": 0.84,
+        "Java": 0.91,
+        "Kotlin": 1.57,
+        "Go": 1.04,
+        "Python": 1.12,
+        "C#": 1.2,
+        "Ruby": 0.82,
+        "Rust": 1.16,
+        "C": 1.28,
+        "C++": 1.03,
+        "Scala": 1.05,
+        "PHP": 1.98
+      }
+    },
+    "backend.observability.logging_sensitive_data": {
+      "mass": 18.2,
+      "lift": {
+        "TypeScript": 1.13,
+        "JavaScript": 1.25,
+        "Java": 0.9,
+        "Kotlin": 1.03,
+        "Go": 1.06,
+        "Python": 1.16,
+        "C#": 0.74,
+        "Ruby": 0.79,
+        "Rust": 1.21,
+        "C": 1.05,
+        "C++": 0.74,
+        "Scala": 0.76,
+        "PHP": 0.54
+      }
+    },
+    "backend.config.configuration_loading": {
+      "mass": 18.86,
+      "lift": {
+        "TypeScript": 0.83,
+        "JavaScript": 0.83,
+        "Java": 0.93,
+        "Kotlin": 1.17,
+        "Go": 1.07,
+        "Python": 1.23,
+        "C#": 1.01,
+        "Ruby": 0.82,
+        "Rust": 1.06,
+        "C": 1.07,
+        "C++": 0.93,
+        "Scala": 1.06,
+        "PHP": 1.51
+      }
+    },
+    "backend.config.feature_flags": {
+      "mass": 23.46,
+      "lift": {
+        "TypeScript": 1.12,
+        "JavaScript": 1.21,
+        "Java": 0.81,
+        "Kotlin": 1.66,
+        "Go": 0.83,
+        "Python": 1.09,
+        "C#": 1,
+        "Ruby": 1.17,
+        "Rust": 0.81,
+        "C": 1.15,
+        "C++": 0.93,
+        "Scala": 0.7,
+        "PHP": 0.69
+      }
+    },
+    "backend.config.environment_specific_behaviour": {
+      "mass": 17.83,
+      "lift": {
+        "TypeScript": 0.86,
+        "JavaScript": 0.98,
+        "Java": 0.88,
+        "Kotlin": 1.23,
+        "Go": 1.05,
+        "Python": 1.24,
+        "C#": 0.99,
+        "Ruby": 0.87,
+        "Rust": 0.96,
+        "C": 1.08,
+        "C++": 0.92,
+        "Scala": 0.98,
+        "PHP": 1.37
+      }
+    },
+    "backend.config.defaults_and_validation": {
+      "mass": 16.84,
+      "lift": {
+        "TypeScript": 0.86,
+        "JavaScript": 0.87,
+        "Java": 0.9,
+        "Kotlin": 1.11,
+        "Go": 1.04,
+        "Python": 1.24,
+        "C#": 0.97,
+        "Ruby": 0.86,
+        "Rust": 1.06,
+        "C": 1.13,
+        "C++": 0.94,
+        "Scala": 1.01,
+        "PHP": 0.58
+      }
+    },
+    "backend.testing.unit_test_design": {
+      "mass": 37.09,
+      "lift": {
+        "TypeScript": 1.03,
+        "JavaScript": 1.05,
+        "Java": 1.02,
+        "Kotlin": 1.25,
+        "Go": 0.88,
+        "Python": 1.04,
+        "C#": 0.79,
+        "Ruby": 1.03,
+        "Rust": 0.79,
+        "C": 1.06,
+        "C++": 1.02,
+        "Scala": 0.87,
+        "PHP": 0.55
+      }
+    },
+    "backend.testing.mocking_and_fakes": {
+      "mass": 29.65,
+      "lift": {
+        "TypeScript": 1.01,
+        "JavaScript": 1.05,
+        "Java": 1.03,
+        "Kotlin": 1.17,
+        "Go": 0.89,
+        "Python": 1.05,
+        "C#": 0.71,
+        "Ruby": 1,
+        "Rust": 0.85,
+        "C": 1.05,
+        "C++": 1.01,
+        "Scala": 0.89,
+        "PHP": 0.82
+      }
+    },
+    "backend.testing.flaky_tests": {
+      "mass": 22.42,
+      "lift": {
+        "TypeScript": 0.92,
+        "JavaScript": 0.82,
+        "Java": 0.85,
+        "Kotlin": 1.31,
+        "Go": 0.86,
+        "Python": 1.25,
+        "C#": 0.7,
+        "Ruby": 1.11,
+        "Rust": 0.81,
+        "C": 1.06,
+        "C++": 1.1,
+        "Scala": 1.04,
+        "PHP": 0.73
+      }
+    },
+    "backend.testing.integration_tests": {
+      "mass": 32.9,
+      "lift": {
+        "TypeScript": 0.94,
+        "JavaScript": 0.94,
+        "Java": 0.99,
+        "Kotlin": 1.21,
+        "Go": 0.93,
+        "Python": 1.09,
+        "C#": 0.82,
+        "Ruby": 1.03,
+        "Rust": 0.89,
+        "C": 1,
+        "C++": 1.04,
+        "Scala": 0.95,
+        "PHP": 0.74
+      }
+    },
+    "backend.design.dependency_injection": {
+      "mass": 22.74,
+      "lift": {
+        "TypeScript": 1.02,
+        "JavaScript": 0.96,
+        "Java": 1.08,
+        "Kotlin": 1.09,
+        "Go": 0.83,
+        "Python": 1.04,
+        "C#": 0.75,
+        "Ruby": 0.99,
+        "Rust": 0.8,
+        "C": 1.27,
+        "C++": 1.08,
+        "Scala": 0.8,
+        "PHP": 0.43
+      }
+    },
+    "backend.design.layering": {
+      "mass": 29.04,
+      "lift": {
+        "TypeScript": 1.11,
+        "JavaScript": 1.06,
+        "Java": 1.02,
+        "Kotlin": 1.07,
+        "Go": 0.86,
+        "Python": 0.99,
+        "C#": 0.76,
+        "Ruby": 1.1,
+        "Rust": 0.78,
+        "C": 1.09,
+        "C++": 1.05,
+        "Scala": 0.78,
+        "PHP": 0.84
+      }
+    },
+    "backend.design.interface_design": {
+      "mass": 34.01,
+      "lift": {
+        "TypeScript": 1.2,
+        "JavaScript": 1.05,
+        "Java": 1.04,
+        "Kotlin": 1.18,
+        "Go": 0.83,
+        "Python": 0.96,
+        "C#": 0.86,
+        "Ruby": 0.97,
+        "Rust": 0.85,
+        "C": 1.02,
+        "C++": 1.07,
+        "Scala": 0.89,
+        "PHP": 0.84
+      }
+    },
+    "backend.design.coupling_and_cohesion": {
+      "mass": 28.87,
+      "lift": {
+        "TypeScript": 1.13,
+        "JavaScript": 1.02,
+        "Java": 0.97,
+        "Kotlin": 1.06,
+        "Go": 0.87,
+        "Python": 1,
+        "C#": 0.81,
+        "Ruby": 1.05,
+        "Rust": 0.81,
+        "C": 1.14,
+        "C++": 1.15,
+        "Scala": 0.9,
+        "PHP": 0.99
+      }
+    },
+    "backend.design.code_duplication": {
+      "mass": 23.27,
+      "lift": {
+        "TypeScript": 1.07,
+        "JavaScript": 0.98,
+        "Java": 0.99,
+        "Kotlin": 1.09,
+        "Go": 0.87,
+        "Python": 1.07,
+        "C#": 0.62,
+        "Ruby": 1.11,
+        "Rust": 0.73,
+        "C": 1.16,
+        "C++": 1.08,
+        "Scala": 0.76,
+        "PHP": 0.52
+      }
+    },
+    "backend.distributed.sharding_and_partitioning": {
+      "mass": 20.91,
+      "lift": {
+        "TypeScript": 0.66,
+        "JavaScript": 0.74,
+        "Java": 1.16,
+        "Kotlin": 0.5,
+        "Go": 1.11,
+        "Python": 0.97,
+        "C#": 1.48,
+        "Ruby": 0.51,
+        "Rust": 1.14,
+        "C": 1.19,
+        "C++": 1.32,
+        "Scala": 1.99,
+        "PHP": 1.75
+      }
+    },
+    "backend.distributed.replication_and_consensus": {
+      "mass": 16.14,
+      "lift": {
+        "TypeScript": 0.6,
+        "JavaScript": 0.75,
+        "Java": 1.17,
+        "Kotlin": 0.65,
+        "Go": 1.11,
+        "Python": 0.97,
+        "C#": 1.35,
+        "Ruby": 0.5,
+        "Rust": 1,
+        "C": 1.51,
+        "C++": 1.4,
+        "Scala": 1.75,
+        "PHP": 2.52
+      }
+    },
+    "backend.distributed.cross_service_consistency": {
+      "mass": 21.07,
+      "lift": {
+        "TypeScript": 0.92,
+        "JavaScript": 0.89,
+        "Java": 1.06,
+        "Kotlin": 0.65,
+        "Go": 1.26,
+        "Python": 1.01,
+        "C#": 1.23,
+        "Ruby": 0.77,
+        "Rust": 1.11,
+        "C": 1.02,
+        "C++": 0.9,
+        "Scala": 1.16,
+        "PHP": 0.58
+      }
+    },
+    "backend.performance.profiling_and_hot_paths": {
+      "mass": 35.05,
+      "lift": {
+        "TypeScript": 0.91,
+        "JavaScript": 0.93,
+        "Java": 1.07,
+        "Kotlin": 0.84,
+        "Go": 0.91,
+        "Python": 0.86,
+        "C#": 0.99,
+        "Ruby": 1,
+        "Rust": 0.95,
+        "C": 1.1,
+        "C++": 1.41,
+        "Scala": 1.22,
+        "PHP": 1.63
+      }
+    },
+    "backend.integrations.webhooks_outbound": {
+      "mass": 12.25,
+      "lift": {
+        "TypeScript": 1.42,
+        "JavaScript": 1.09,
+        "Java": 0.69,
+        "Kotlin": 0.96,
+        "Go": 1.37,
+        "Python": 1.25,
+        "C#": 0.86,
+        "Ruby": 0.87,
+        "Rust": 1.14,
+        "C": 0.46,
+        "C++": 0.57,
+        "Scala": 0.53,
+        "PHP": 0.33
+      }
+    },
+    "backend.integrations.third_party_adapters": {
+      "mass": 24.32,
+      "lift": {
+        "TypeScript": 1.13,
+        "JavaScript": 1.23,
+        "Java": 0.88,
+        "Kotlin": 0.91,
+        "Go": 1.11,
+        "Python": 1.1,
+        "C#": 1.05,
+        "Ruby": 0.98,
+        "Rust": 1.1,
+        "C": 0.55,
+        "C++": 0.81,
+        "Scala": 0.73,
+        "PHP": 0.5
+      }
+    },
+    "backend.data.nosql_modeling": {
+      "mass": 16.23,
+      "lift": {
+        "TypeScript": 1.06,
+        "JavaScript": 1.14,
+        "Java": 1.34,
+        "Kotlin": 0.85,
+        "Go": 0.95,
+        "Python": 0.88,
+        "C#": 0.99,
+        "Ruby": 0.51,
+        "Rust": 1,
+        "C": 0.9,
+        "C++": 0.98,
+        "Scala": 1.18,
+        "PHP": 0.75
+      }
+    },
+    "backend.data.money_and_ledgers": {
+      "mass": 9.36,
+      "lift": {
+        "TypeScript": 1.29,
+        "JavaScript": 1.2,
+        "Java": 1.08,
+        "Kotlin": 0.39,
+        "Go": 1.54,
+        "Python": 0.88,
+        "C#": 0.31,
+        "Ruby": 0.98,
+        "Rust": 1.14,
+        "C": 0.14,
+        "C++": 0.35,
+        "Scala": 1.29,
+        "PHP": 0.17
+      }
+    },
+    "backend.security.audit_logging": {
+      "mass": 15.24,
+      "lift": {
+        "TypeScript": 1.18,
+        "JavaScript": 1.04,
+        "Java": 0.77,
+        "Kotlin": 1.14,
+        "Go": 1.25,
+        "Python": 1.15,
+        "C#": 0.47,
+        "Ruby": 1.1,
+        "Rust": 1.22,
+        "C": 0.64,
+        "C++": 0.67,
+        "Scala": 0.77,
+        "PHP": 0.43
+      }
+    },
+    "backend.security.encryption_at_rest_and_in_transit": {
+      "mass": 16.53,
+      "lift": {
+        "TypeScript": 0.85,
+        "JavaScript": 1,
+        "Java": 1.11,
+        "Kotlin": 0.76,
+        "Go": 1.17,
+        "Python": 0.96,
+        "C#": 0.68,
+        "Ruby": 0.78,
+        "Rust": 1.04,
+        "C": 1.11,
+        "C++": 1.04,
+        "Scala": 1.43,
+        "PHP": 0.49
+      }
+    },
+    "backend.security.multi_tenant_isolation": {
+      "mass": 18.24,
+      "lift": {
+        "TypeScript": 1.61,
+        "JavaScript": 0.83,
+        "Java": 0.7,
+        "Kotlin": 0.35,
+        "Go": 0.89,
+        "Python": 0.94,
+        "C#": 1.52,
+        "Ruby": 1.55,
+        "Rust": 1.17,
+        "C": 0.67,
+        "C++": 0.84,
+        "Scala": 1.03,
+        "PHP": 0.22
+      }
+    },
+    "backend.realtime.connection_fanout": {
+      "mass": 8.15,
+      "lift": {
+        "TypeScript": 1.73,
+        "JavaScript": 1.44,
+        "Java": 0.72,
+        "Kotlin": 1.5,
+        "Go": 0.89,
+        "Python": 0.73,
+        "C#": 3.35,
+        "Ruby": 0.47,
+        "Rust": 1,
+        "C": 1.22,
+        "C++": 1.5,
+        "Scala": 0.26,
+        "PHP": 1
+      }
+    }
+  }
+}

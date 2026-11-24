@@ -52,6 +52,18 @@ If any chosen topic got fewer than the minimum, drop the lowest-ranked
 chosen topic and go back to Step 3 with one fewer topic. Repeat until every
 chosen topic has at least the minimum (or only one topic is left).
 
+## Step 6: Choose each topic's languages
+
+Each topic's examples are split across the posting's languages **that suit the topic**,
+using the language fit table (`pipeline/taxonomy/language_fit.json`, evidence in `docs/LANGUAGE_FIT.md`):
+
+1. Keep only the posting's languages with fit ≥ 0.7 for this topic ("common" or "mainstream").
+   So an N+1-query topic never gets C, and a unit-testing topic never gets C.
+2. Score each kept language: the posting's language weight × the topic's fit.
+3. Split the topic's count by those scores (largest remainder).
+4. If none of the posting's languages suits the topic, the topic uses its best-fitting language overall
+   (ties go to Python, then the table's language order). A posting that names no language counts as Python.
+
 ## Output: targets
 
 Every taxonomy label gets a target: the count from Step 4 if it was chosen,

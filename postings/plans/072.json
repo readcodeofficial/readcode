@@ -4,27 +4,12 @@
     {
       "label": "backend.messaging.queues_and_consumers",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.queues_and_consumers",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.queues_and_consumers",
-      "language": "Rust",
-      "count": 1
+      "count": 3
     },
     {
       "label": "backend.resilience.rate_limiting",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.rate_limiting",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.rate_limiting",
@@ -34,12 +19,7 @@
     {
       "label": "backend.realtime.connection_fanout",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.realtime.connection_fanout",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.timeouts",
@@ -54,32 +34,17 @@
     {
       "label": "backend.integrations.third_party_adapters",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.integrations.third_party_adapters",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.retries_and_backoff",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.retries_and_backoff",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.messaging.at_least_once_delivery",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.at_least_once_delivery",
-      "language": "C++",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.messaging.backpressure",

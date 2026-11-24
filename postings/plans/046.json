@@ -3,16 +3,11 @@
   "targets": [
     {
       "label": "backend.concurrency.race_conditions",
-      "language": "Java",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.concurrency.race_conditions",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.timeouts",
       "language": "Java",
       "count": 1
     },
@@ -22,7 +17,7 @@
       "count": 1
     },
     {
-      "label": "backend.resilience.retries_and_backoff",
+      "label": "backend.resilience.timeouts",
       "language": "Java",
       "count": 1
     },
@@ -32,7 +27,7 @@
       "count": 1
     },
     {
-      "label": "backend.distributed.replication_and_consensus",
+      "label": "backend.resilience.retries_and_backoff",
       "language": "Java",
       "count": 1
     },
@@ -42,7 +37,7 @@
       "count": 1
     },
     {
-      "label": "backend.security.secrets_handling",
+      "label": "backend.distributed.replication_and_consensus",
       "language": "Java",
       "count": 1
     },
@@ -52,13 +47,23 @@
       "count": 1
     },
     {
-      "label": "backend.security.encryption_at_rest_and_in_transit",
+      "label": "backend.security.secrets_handling",
       "language": "Java",
       "count": 1
     },
     {
       "label": "backend.security.encryption_at_rest_and_in_transit",
-      "language": "Python",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.security.encryption_at_rest_and_in_transit",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.observability.metrics",
+      "language": "Go",
       "count": 1
     },
     {
@@ -67,8 +72,8 @@
       "count": 1
     },
     {
-      "label": "backend.observability.metrics",
-      "language": "Python",
+      "label": "backend.observability.health_checks",
+      "language": "Go",
       "count": 1
     },
     {
@@ -77,18 +82,13 @@
       "count": 1
     },
     {
-      "label": "backend.observability.health_checks",
-      "language": "Python",
+      "label": "backend.concurrency.locking_and_lock_ordering",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.concurrency.locking_and_lock_ordering",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.locking_and_lock_ordering",
-      "language": "Python",
       "count": 1
     },
     {

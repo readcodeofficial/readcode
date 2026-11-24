@@ -18,13 +18,8 @@
     },
     {
       "label": "backend.api.request_validation",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.api.request_validation",
       "language": "TypeScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.api.request_validation",
@@ -33,12 +28,12 @@
     },
     {
       "label": "backend.security.input_sanitization",
-      "language": "Rust",
+      "language": "TypeScript",
       "count": 1
     },
     {
       "label": "backend.security.input_sanitization",
-      "language": "TypeScript",
+      "language": "JavaScript",
       "count": 1
     },
     {
@@ -63,37 +58,37 @@
     },
     {
       "label": "backend.api.rest_design",
-      "language": "Rust",
+      "language": "TypeScript",
       "count": 1
     },
     {
       "label": "backend.api.rest_design",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.timeouts",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.timeouts",
       "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.security.authorization_checks",
+      "language": "TypeScript",
+      "count": 1
+    },
+    {
+      "label": "backend.security.authorization_checks",
+      "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.resilience.timeouts",
+      "language": "TypeScript",
+      "count": 1
+    },
+    {
+      "label": "backend.resilience.timeouts",
+      "language": "Rust",
       "count": 1
     },
     {
       "label": "backend.caching.cache_invalidation",
-      "language": "Rust",
+      "language": "TypeScript",
       "count": 1
     },
     {

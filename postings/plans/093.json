@@ -13,7 +13,7 @@
     },
     {
       "label": "backend.messaging.backpressure",
-      "language": "Python",
+      "language": "Java",
       "count": 2
     },
     {

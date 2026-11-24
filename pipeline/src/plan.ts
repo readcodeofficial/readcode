@@ -2,19 +2,21 @@
 // Weights file format: {"weights": [{"label": "...", "weight": 0.0-1.0}, ...], "languages": {"Java": 1.0, ...}}
 // (the classifier's output; "languages" is optional for files written before it existed).
 //
-// Usage: node pipeline/src/plan.ts --taxonomy <taxonomy.json> --out <dir> <weights.json>...
-//   e.g. node pipeline/src/plan.ts --taxonomy pipeline/taxonomy/v0.1.0.json --out postings/plans postings/plans/weights/*.json
+// --fit <language_fit.json> keeps each topic to the posting's languages that suit it (see docs/LANGUAGE_FIT.md).
+//
+// Usage: node pipeline/src/plan.ts --taxonomy <taxonomy.json> [--fit <language_fit.json>] --out <dir> <weights.json>...
+//   e.g. node pipeline/src/plan.ts --taxonomy pipeline/taxonomy/v0.1.0.json --fit pipeline/taxonomy/language_fit.json \n//          --out postings/plans postings/plans/weights/*.json
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-import { Taxonomy, type Classification } from "../../shared/types.ts";
+import { LanguageFit, Taxonomy, type Classification } from "../../shared/types.ts";
 import { planFromClassification } from "./pipeline.ts";
 
-const USAGE = "Usage: node pipeline/src/plan.ts --taxonomy <taxonomy.json> --out <dir> <weights.json>...";
+const USAGE = "Usage: node pipeline/src/plan.ts --taxonomy <taxonomy.json> [--fit <language_fit.json>] --out <dir> <weights.json>...";
 const { values, positionals } = parseArgs({
-    options: { taxonomy: { type: "string" }, out: { type: "string" } },
+    options: { taxonomy: { type: "string" }, fit: { type: "string" }, out: { type: "string" } },
     allowPositionals: true,
 });
 if (!values.taxonomy || !values.out || positionals.length === 0) {
@@ -23,6 +25,8 @@ if (!values.taxonomy || !values.out || positionals.length === 0) {
 }
 
 const taxonomy = Taxonomy.parse(JSON.parse(readFileSync(values.taxonomy, "utf8")));
+const fit = values.fit ? LanguageFit.parse(JSON.parse(readFileSync(values.fit, "utf8"))) : undefined;
+if (fit && fit.taxonomyVersion !== taxonomy.version) throw new Error(`fit table is for taxonomy ${fit.taxonomyVersion}, not ${taxonomy.version}`);
 mkdirSync(values.out, { recursive: true });
 
 for (const file of positionals) {
@@ -37,7 +41,7 @@ for (const file of positionals) {
         weights: taxonomy.labels.map((l) => byLabel.get(l) ?? 0),
         languages: raw.languages ?? {},
     };
-    const plan = planFromClassification(classification, taxonomy);
+    const plan = planFromClassification(classification, taxonomy, fit);
     writeFileSync(path.join(values.out, path.basename(file)), JSON.stringify(plan, null, 2) + "\n");
 }
 console.log(`wrote ${positionals.length} plans to ${values.out}`);

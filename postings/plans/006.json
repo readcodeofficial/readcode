@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "backend.design.interface_design",
-      "language": "Python",
+      "language": "Java",
       "count": 4
     },
     {

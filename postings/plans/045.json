@@ -8,27 +8,22 @@
     },
     {
       "label": "backend.integrations.third_party_adapters",
-      "language": "Java",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.integrations.third_party_adapters",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.api.rest_design",
       "language": "JavaScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.api.rest_design",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
-      "language": "Python",
       "count": 1
     },
     {
@@ -74,12 +69,22 @@
     {
       "label": "backend.concurrency.async_await_pitfalls",
       "language": "JavaScript",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.async_await_pitfalls",
+      "language": "Python",
+      "count": 1
     },
     {
       "label": "backend.realtime.connection_fanout",
       "language": "JavaScript",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.realtime.connection_fanout",
+      "language": "Java",
+      "count": 1
     }
   ]
 }

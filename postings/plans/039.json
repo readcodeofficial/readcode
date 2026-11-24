@@ -34,12 +34,7 @@
     {
       "label": "backend.design.interface_design",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "Python",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.retries_and_backoff",
@@ -84,7 +79,12 @@
     {
       "label": "backend.security.authentication",
       "language": "Java",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.security.authentication",
+      "language": "Python",
+      "count": 1
     }
   ]
 }

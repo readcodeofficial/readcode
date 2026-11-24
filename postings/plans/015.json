@@ -4,12 +4,7 @@
     {
       "label": "backend.api.rest_design",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
-      "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.api.rest_design",
@@ -19,16 +14,11 @@
     {
       "label": "backend.testing.unit_test_design",
       "language": "Java",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.testing.unit_test_design",
       "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.unit_test_design",
-      "language": "Python",
       "count": 1
     },
     {
@@ -58,7 +48,7 @@
     },
     {
       "label": "backend.api.status_codes_and_error_responses",
-      "language": "Ruby",
+      "language": "Python",
       "count": 1
     },
     {
@@ -68,23 +58,23 @@
     },
     {
       "label": "backend.testing.mocking_and_fakes",
-      "language": "Ruby",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.design.dependency_injection",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.design.dependency_injection",
-      "language": "Ruby",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.design.layering",
       "language": "Java",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.design.layering",
+      "language": "Go",
+      "count": 1
     },
     {
       "label": "backend.design.interface_design",

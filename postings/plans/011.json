@@ -18,17 +18,12 @@
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
-      "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.resilience.timeouts",
-      "language": "C",
+      "language": "JavaScript",
       "count": 1
     },
     {
-      "label": "backend.resilience.timeouts",
-      "language": "C++",
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "Python",
       "count": 1
     },
     {
@@ -37,18 +32,28 @@
       "count": 1
     },
     {
-      "label": "backend.resilience.retries_and_backoff",
-      "language": "C",
+      "label": "backend.resilience.timeouts",
+      "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.resilience.timeouts",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.resilience.retries_and_backoff",
-      "language": "C++",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.resilience.retries_and_backoff",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.observability.metrics",
-      "language": "C",
+      "language": "Java",
       "count": 1
     },
     {
@@ -63,12 +68,7 @@
     },
     {
       "label": "backend.concurrency.race_conditions",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.thread_and_worker_pools",
-      "language": "C",
+      "language": "C++",
       "count": 1
     },
     {
@@ -77,23 +77,28 @@
       "count": 1
     },
     {
-      "label": "backend.distributed.sharding_and_partitioning",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
+      "label": "backend.concurrency.thread_and_worker_pools",
       "language": "Python",
       "count": 1
     },
     {
-      "label": "backend.resilience.graceful_degradation",
-      "language": "C",
+      "label": "backend.distributed.sharding_and_partitioning",
+      "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.distributed.sharding_and_partitioning",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.resilience.graceful_degradation",
-      "language": "Python",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.resilience.graceful_degradation",
+      "language": "JavaScript",
       "count": 1
     }
   ]

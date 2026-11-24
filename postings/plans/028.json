@@ -4,12 +4,7 @@
     {
       "label": "backend.messaging.deduplication",
       "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.messaging.deduplication",
-      "language": "Rust",
-      "count": 1
+      "count": 3
     },
     {
       "label": "backend.resources.streaming_large_payloads",
@@ -23,22 +18,17 @@
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
-      "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
       "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.performance.profiling_and_hot_paths",
-      "language": "Python",
-      "count": 2
+      "count": 3
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
       "language": "Rust",
+      "count": 2
+    },
+    {
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "Python",
       "count": 1
     },
     {
@@ -64,22 +54,12 @@
     {
       "label": "backend.api.idempotency",
       "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.api.idempotency",
-      "language": "Rust",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resources.memory_leaks",
       "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.memory_leaks",
-      "language": "Rust",
-      "count": 1
+      "count": 2
     }
   ]
 }

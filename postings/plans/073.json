@@ -3,32 +3,32 @@
   "targets": [
     {
       "label": "backend.distributed.sharding_and_partitioning",
-      "language": "C#",
+      "language": "C++",
       "count": 1
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
-      "language": "C++",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.data.connection_pooling",
-      "language": "C#",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.data.connection_pooling",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.performance.profiling_and_hot_paths",
-      "language": "C#",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
       "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "Go",
       "count": 1
     },
     {
@@ -38,7 +38,7 @@
     },
     {
       "label": "backend.resilience.timeouts",
-      "language": "C++",
+      "language": "Go",
       "count": 1
     },
     {
@@ -48,7 +48,7 @@
     },
     {
       "label": "backend.caching.cache_invalidation",
-      "language": "C++",
+      "language": "Go",
       "count": 1
     },
     {
@@ -63,22 +63,22 @@
     },
     {
       "label": "backend.distributed.replication_and_consensus",
-      "language": "C#",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.distributed.replication_and_consensus",
+      "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.resilience.rate_limiting",
       "language": "Go",
       "count": 1
     },
     {
       "label": "backend.resilience.rate_limiting",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.rate_limiting",
-      "language": "Go",
       "count": 1
     },
     {
@@ -93,12 +93,12 @@
     },
     {
       "label": "backend.caching.stale_reads",
-      "language": "C#",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.caching.stale_reads",
-      "language": "Go",
+      "language": "C#",
       "count": 1
     }
   ]

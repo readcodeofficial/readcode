@@ -3,17 +3,7 @@
   "targets": [
     {
       "label": "backend.distributed.sharding_and_partitioning",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
       "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
-      "language": "C",
       "count": 1
     },
     {
@@ -22,8 +12,13 @@
       "count": 1
     },
     {
-      "label": "backend.distributed.replication_and_consensus",
-      "language": "Python",
+      "label": "backend.distributed.sharding_and_partitioning",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.distributed.sharding_and_partitioning",
+      "language": "C",
       "count": 1
     },
     {
@@ -33,12 +28,12 @@
     },
     {
       "label": "backend.distributed.replication_and_consensus",
-      "language": "C",
+      "language": "Java",
       "count": 1
     },
     {
-      "label": "backend.performance.profiling_and_hot_paths",
-      "language": "Python",
+      "label": "backend.distributed.replication_and_consensus",
+      "language": "C",
       "count": 1
     },
     {
@@ -52,12 +47,22 @@
       "count": 1
     },
     {
-      "label": "backend.concurrency.locking_and_lock_ordering",
-      "language": "Python",
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "C++",
       "count": 1
     },
     {
       "label": "backend.concurrency.locking_and_lock_ordering",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.locking_and_lock_ordering",
+      "language": "C",
+      "count": 1
+    },
+    {
+      "label": "backend.resources.streaming_large_payloads",
       "language": "Go",
       "count": 1
     },
@@ -67,38 +72,33 @@
       "count": 1
     },
     {
-      "label": "backend.resources.streaming_large_payloads",
+      "label": "backend.concurrency.race_conditions",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.race_conditions",
       "language": "C",
       "count": 1
     },
     {
-      "label": "backend.concurrency.race_conditions",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.race_conditions",
-      "language": "C++",
+      "label": "backend.concurrency.atomic_operations",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.concurrency.atomic_operations",
-      "language": "Python",
+      "language": "C",
       "count": 1
     },
     {
-      "label": "backend.concurrency.atomic_operations",
-      "language": "C++",
+      "label": "backend.data.transactions_and_isolation_levels",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.data.transactions_and_isolation_levels",
       "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.data.transactions_and_isolation_levels",
-      "language": "C++",
       "count": 1
     }
   ]

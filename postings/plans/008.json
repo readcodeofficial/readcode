@@ -3,7 +3,7 @@
   "targets": [
     {
       "label": "backend.distributed.sharding_and_partitioning",
-      "language": "Python",
+      "language": "Java",
       "count": 3
     },
     {
@@ -13,7 +13,7 @@
     },
     {
       "label": "backend.distributed.replication_and_consensus",
-      "language": "Python",
+      "language": "Java",
       "count": 2
     },
     {

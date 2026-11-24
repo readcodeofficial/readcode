@@ -14,24 +14,14 @@
     {
       "label": "backend.design.interface_design",
       "language": "TypeScript",
+      "count": 3
+    },
+    {
+      "label": "backend.design.layering",
+      "language": "TypeScript",
       "count": 2
     },
     {
-      "label": "backend.design.interface_design",
-      "language": "JavaScript",
-      "count": 1
-    },
-    {
-      "label": "backend.design.layering",
-      "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.design.layering",
-      "language": "JavaScript",
-      "count": 1
-    },
-    {
       "label": "backend.design.coupling_and_cohesion",
       "language": "TypeScript",
       "count": 1
@@ -54,22 +44,27 @@
     {
       "label": "backend.data.n_plus_one_queries",
       "language": "TypeScript",
-      "count": 1
-    },
-    {
-      "label": "backend.data.n_plus_one_queries",
-      "language": "JavaScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.caching.cache_invalidation",
       "language": "TypeScript",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.caching.cache_invalidation",
+      "language": "JavaScript",
+      "count": 1
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
       "language": "TypeScript",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "JavaScript",
+      "count": 1
     },
     {
       "label": "backend.security.multi_tenant_isolation",

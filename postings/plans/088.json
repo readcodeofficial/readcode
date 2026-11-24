@@ -3,26 +3,21 @@
   "targets": [
     {
       "label": "backend.testing.flaky_tests",
-      "language": "Python",
-      "count": 1
+      "language": "Kotlin",
+      "count": 2
     },
     {
       "label": "backend.testing.flaky_tests",
-      "language": "Kotlin",
-      "count": 2
-    },
-    {
-      "label": "backend.testing.integration_tests",
       "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.testing.integration_tests",
-      "language": "Kotlin",
       "count": 1
     },
     {
-      "label": "backend.observability.health_checks",
+      "label": "backend.testing.integration_tests",
+      "language": "Kotlin",
+      "count": 2
+    },
+    {
+      "label": "backend.testing.integration_tests",
       "language": "Python",
       "count": 1
     },
@@ -32,7 +27,7 @@
       "count": 1
     },
     {
-      "label": "backend.config.configuration_loading",
+      "label": "backend.observability.health_checks",
       "language": "Python",
       "count": 1
     },
@@ -42,7 +37,7 @@
       "count": 1
     },
     {
-      "label": "backend.config.feature_flags",
+      "label": "backend.config.configuration_loading",
       "language": "Python",
       "count": 1
     },
@@ -52,13 +47,18 @@
       "count": 1
     },
     {
-      "label": "backend.config.environment_specific_behaviour",
+      "label": "backend.config.feature_flags",
       "language": "Python",
       "count": 1
     },
     {
       "label": "backend.config.environment_specific_behaviour",
       "language": "Kotlin",
+      "count": 1
+    },
+    {
+      "label": "backend.config.environment_specific_behaviour",
+      "language": "Python",
       "count": 1
     },
     {
@@ -73,22 +73,22 @@
     },
     {
       "label": "backend.resilience.graceful_shutdown",
-      "language": "Python",
+      "language": "Kotlin",
       "count": 1
     },
     {
       "label": "backend.resilience.graceful_shutdown",
-      "language": "Kotlin",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.mocking_and_fakes",
       "language": "Python",
       "count": 1
     },
     {
       "label": "backend.testing.mocking_and_fakes",
       "language": "Kotlin",
+      "count": 1
+    },
+    {
+      "label": "backend.testing.mocking_and_fakes",
+      "language": "Python",
       "count": 1
     }
   ]

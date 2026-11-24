@@ -24,32 +24,17 @@
     {
       "label": "backend.security.encryption_at_rest_and_in_transit",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.security.encryption_at_rest_and_in_transit",
-      "language": "JavaScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resilience.rate_limiting",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.rate_limiting",
-      "language": "JavaScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.api.rest_design",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
-      "language": "JavaScript",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.concurrency.thread_and_worker_pools",
@@ -69,7 +54,12 @@
     {
       "label": "backend.data.nosql_modeling",
       "language": "Java",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.data.nosql_modeling",
+      "language": "JavaScript",
+      "count": 1
     }
   ]
 }

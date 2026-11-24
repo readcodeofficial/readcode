@@ -3,12 +3,12 @@
   "targets": [
     {
       "label": "backend.testing.unit_test_design",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.testing.unit_test_design",
-      "language": "C",
+      "language": "Python",
       "count": 1
     },
     {
@@ -18,27 +18,32 @@
     },
     {
       "label": "backend.testing.unit_test_design",
+      "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.testing.mocking_and_fakes",
       "language": "Java",
       "count": 1
     },
     {
       "label": "backend.testing.mocking_and_fakes",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.mocking_and_fakes",
-      "language": "C",
+      "language": "JavaScript",
       "count": 1
     },
     {
       "label": "backend.testing.integration_tests",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.testing.integration_tests",
-      "language": "C",
+      "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.design.dependency_injection",
+      "language": "Java",
       "count": 1
     },
     {
@@ -47,23 +52,18 @@
       "count": 1
     },
     {
-      "label": "backend.design.dependency_injection",
-      "language": "C",
+      "label": "backend.design.layering",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.design.layering",
       "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.design.layering",
-      "language": "C++",
       "count": 1
     },
     {
       "label": "backend.design.interface_design",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
@@ -73,7 +73,7 @@
     },
     {
       "label": "backend.design.coupling_and_cohesion",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
@@ -83,7 +83,7 @@
     },
     {
       "label": "backend.errors.error_propagation",
-      "language": "Python",
+      "language": "C",
       "count": 1
     },
     {
@@ -93,12 +93,12 @@
     },
     {
       "label": "backend.errors.error_wrapping_and_context",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.errors.error_wrapping_and_context",
-      "language": "Java",
+      "language": "Python",
       "count": 1
     }
   ]

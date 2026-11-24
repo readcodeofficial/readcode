@@ -63,12 +63,12 @@
     },
     {
       "label": "backend.data.migrations",
-      "language": "Go",
+      "language": "TypeScript",
       "count": 1
     },
     {
       "label": "backend.data.migrations",
-      "language": "TypeScript",
+      "language": "Go",
       "count": 1
     },
     {

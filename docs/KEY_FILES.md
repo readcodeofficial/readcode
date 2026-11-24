@@ -9,14 +9,16 @@ styling) and can change freely; these deserve care, review, and a note when they
 |---|---|---|
 | `shared/types.ts` | Zod schemas for the example format (questions, answer key, files), plans, taxonomy. Used by the pipeline and the web app. | The question format or plan shape changes. Also update the generator prompt and the viewer (see `CLAUDE.md`). |
 | `pipeline/taxonomy/v*.json` | The concept labels everything is classified against. | Adding or renaming concepts. Bump the version instead of editing in place. |
+| `pipeline/taxonomy/language_fit.json` | Per topic, how well each language suits an exercise on it (0–1), with rationale and sources. Planning only gives a topic languages with fit ≥ 0.7. | The research changes, or the taxonomy gets new labels (every label needs a row). Regenerate `docs/LANGUAGE_FIT.md` with `pipeline/src/languageFitDoc.ts`. |
 
 ## Pipeline: posting → plan → examples
 
 | File | Role |
 |---|---|
 | `pipeline/src/classifier.ts` | The classifier prompt: weights a job posting against the taxonomy. |
-| `pipeline/src/pipeline.ts` | `planFromClassification`: turns weights into a plan (which topics, how many examples each). |
-| `pipeline/src/plan.ts` | Builds plans from saved classifier weights (`postings/plans/weights/` → `plans/`). |
+| `pipeline/src/pipeline.ts` | `planFromClassification`: turns weights into a plan (which topics, how many examples each, in which languages). |
+| `pipeline/src/plan.ts` | Builds plans from saved classifier weights (`postings/plans/weights/` → `plans/`); `--fit` applies the language fit table. |
+| `pipeline/src/languageLift.ts` | Corpus evidence for the fit table: how often each language co-occurs with each topic in the postings (`docs/language_lift.json`). |
 | `pipeline/src/exampleGenerator.ts` | The example-generation prompt, and validation of a generated draft into the example format. |
 | `pipeline/src/generateBank.ts` | Runs generation for a whole plan (API, or prepare/assemble for subagents). |
 

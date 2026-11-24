@@ -8,47 +8,47 @@
     },
     {
       "label": "backend.testing.unit_test_design",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.unit_test_design",
       "language": "Go",
       "count": 1
     },
     {
       "label": "backend.testing.unit_test_design",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.testing.unit_test_design",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.api.rest_design",
+      "language": "C#",
+      "count": 1
+    },
+    {
+      "label": "backend.api.rest_design",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.api.rest_design",
       "language": "JavaScript",
       "count": 1
     },
     {
-      "label": "backend.api.rest_design",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.integration_tests",
-      "language": "C#",
-      "count": 1
-    },
-    {
       "label": "backend.testing.integration_tests",
       "language": "Java",
       "count": 1
     },
     {
       "label": "backend.testing.integration_tests",
-      "language": "Go",
+      "language": "Ruby",
+      "count": 1
+    },
+    {
+      "label": "backend.testing.integration_tests",
+      "language": "C#",
       "count": 1
     },
     {
@@ -58,17 +58,17 @@
     },
     {
       "label": "backend.api.request_validation",
-      "language": "JavaScript",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.errors.error_propagation",
-      "language": "C#",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.errors.error_propagation",
-      "language": "JavaScript",
+      "language": "Java",
       "count": 1
     },
     {
@@ -78,7 +78,7 @@
     },
     {
       "label": "backend.design.layering",
-      "language": "Ruby",
+      "language": "Java",
       "count": 1
     },
     {
@@ -88,7 +88,7 @@
     },
     {
       "label": "backend.testing.mocking_and_fakes",
-      "language": "Ruby",
+      "language": "Java",
       "count": 1
     },
     {
@@ -98,7 +98,7 @@
     },
     {
       "label": "backend.messaging.queues_and_consumers",
-      "language": "Ruby",
+      "language": "Go",
       "count": 1
     }
   ]

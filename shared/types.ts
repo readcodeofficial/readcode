@@ -38,6 +38,21 @@ export interface Classification {
   languages: LanguageWeights;
 }
 
+// How natural each language is as the setting for an exercise on each topic, in backend work
+// (pipeline/taxonomy/language_fit.json; evidence in docs/LANGUAGE_FIT.md). 1.0 = a mainstream home of the
+// topic, 0 = doesn't really arise. Planning uses it so a topic only gets languages that suit it.
+export const LanguageFit = z.object({
+  version: z.string(),
+  taxonomyVersion: z.string(),
+  languages: z.array(z.string()),
+  topics: z.record(LabelId, z.object({
+    weights: z.record(z.string(), z.number().min(0).max(1)),
+    rationale: z.string(),
+    sources: z.array(z.object({ url: z.string(), supports: z.string() })).min(1),
+  })),
+});
+export type LanguageFit = z.infer<typeof LanguageFit>;
+
 ///////////
 // Job Posting
 ///////////

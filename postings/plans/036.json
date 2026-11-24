@@ -3,6 +3,11 @@
   "targets": [
     {
       "label": "backend.performance.profiling_and_hot_paths",
+      "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.performance.profiling_and_hot_paths",
       "language": "Java",
       "count": 1
     },
@@ -12,7 +17,7 @@
       "count": 1
     },
     {
-      "label": "backend.performance.profiling_and_hot_paths",
+      "label": "backend.distributed.sharding_and_partitioning",
       "language": "C++",
       "count": 1
     },
@@ -24,11 +29,6 @@
     {
       "label": "backend.distributed.sharding_and_partitioning",
       "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
-      "language": "C++",
       "count": 1
     },
     {
@@ -38,17 +38,17 @@
     },
     {
       "label": "backend.data.transactions_and_isolation_levels",
-      "language": "Scala",
+      "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.locking_and_lock_ordering",
+      "language": "C++",
       "count": 1
     },
     {
       "label": "backend.concurrency.locking_and_lock_ordering",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.locking_and_lock_ordering",
-      "language": "Scala",
       "count": 1
     },
     {
@@ -58,17 +58,17 @@
     },
     {
       "label": "backend.security.encryption_at_rest_and_in_transit",
-      "language": "Scala",
+      "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.race_conditions",
+      "language": "C++",
       "count": 1
     },
     {
       "label": "backend.concurrency.race_conditions",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.race_conditions",
-      "language": "Scala",
       "count": 1
     },
     {
@@ -78,27 +78,27 @@
     },
     {
       "label": "backend.api.serialization_and_deserialization",
+      "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.resources.memory_leaks",
+      "language": "C++",
+      "count": 1
+    },
+    {
+      "label": "backend.resources.memory_leaks",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.resources.streaming_large_payloads",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.resources.streaming_large_payloads",
       "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.memory_leaks",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.memory_leaks",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.streaming_large_payloads",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.streaming_large_payloads",
-      "language": "C++",
       "count": 1
     }
   ]

@@ -1,0 +1,3461 @@
+{
+  "version": "0.1.0",
+  "taxonomyVersion": "0.1.0",
+  "createdAt": "2026-11-23",
+  "languages": [
+    "TypeScript",
+    "JavaScript",
+    "Java",
+    "Kotlin",
+    "Go",
+    "Python",
+    "C#",
+    "Ruby",
+    "Rust",
+    "C",
+    "C++",
+    "Scala",
+    "PHP"
+  ],
+  "scale": {
+    "0": "does not really arise",
+    "1": "a mainstream home of the topic",
+    "0.7": "common",
+    "0.4": "plausible, not where most people meet it",
+    "0.1": "rare; would look contrived"
+  },
+  "topics": {
+    "backend.concurrency.race_conditions": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 1,
+        "C++": 1,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Shared-memory multithreading makes data races a routine bug class in Java, Go, C and C++, which have formal memory models and race detectors (JMM, go race detector, TSan). Rust prevents data races at compile time, so only logic races remain. Single-threaded Node and shared-nothing PHP mostly see check-then-act races across awaits or concurrent requests hitting the database, so they sit at 0.4.",
+      "sources": [
+        {
+          "url": "https://go.dev/doc/articles/race_detector",
+          "supports": "Go ships a built-in race detector because data races are a common Go bug"
+        },
+        {
+          "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html",
+          "supports": "Java memory model defines data races and happens-before for threaded code"
+        },
+        {
+          "url": "https://clang.llvm.org/docs/ThreadSanitizer.html",
+          "supports": "ThreadSanitizer detects data races in C/C++ programs"
+        },
+        {
+          "url": "https://doc.rust-lang.org/nomicon/races.html",
+          "supports": "Safe Rust prevents data races but not general race conditions"
+        },
+        {
+          "url": "https://blog.theodo.com/2019/09/handle-race-conditions-in-nodejs-using-mutex",
+          "supports": "Node.js still has async interleaving races despite being single-threaded"
+        }
+      ]
+    },
+    "backend.concurrency.locking_and_lock_ordering": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 1,
+        "C++": 1,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Explicit mutexes and lock-ordering rules are everyday material in Java (synchronized/ReentrantLock), Go (sync.Mutex), C (pthreads) and C++ (std::lock, Abseil), with CERT rules on lock order for C and Java. Rust, C#, Kotlin and Python have first-class locks too. Scala idioms (actors, Ref) avoid locks. In JS/TS, Ruby and PHP, locking mostly means DB row locks or Redis/cache locks.",
+      "sources": [
+        {
+          "url": "https://wiki.sei.cmu.edu/confluence/display/c/CON35-C.+Avoid+deadlock+by+locking+in+a+predefined+order",
+          "supports": "CERT C rule: lock in a predefined order"
+        },
+        {
+          "url": "https://wiki.sei.cmu.edu/confluence/display/java/LCK07-J.+Avoid+deadlock+by+requesting+and+releasing+locks+in+the+same+order",
+          "supports": "CERT Java rule on consistent lock ordering"
+        },
+        {
+          "url": "https://en.cppreference.com/w/cpp/thread/lock",
+          "supports": "C++ std::lock acquires multiple mutexes with deadlock avoidance"
+        },
+        {
+          "url": "https://pkg.go.dev/sync",
+          "supports": "Go sync.Mutex/RWMutex are core primitives"
+        },
+        {
+          "url": "https://www.postgresql.org/docs/current/explicit-locking.html",
+          "supports": "DB row/advisory locks, the locking form most relevant to JS/Ruby/PHP backends"
+        }
+      ]
+    },
+    "backend.concurrency.deadlocks": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 1,
+        "C++": 1,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Lock-order deadlocks are canonical in Java, C and C++. Go has channel/goroutine deadlocks ('all goroutines are asleep'). C# has the well-known sync-over-async (.Result/.Wait) deadlock. Kotlin (runBlocking), Scala (blocking Await on a bounded pool) and Python (threading, asyncio) have their own variants. In JS/TS, Ruby and PHP, deadlocks mostly appear as database transaction deadlocks.",
+      "sources": [
+        {
+          "url": "https://learn.microsoft.com/en-us/archive/msdn-magazine/2013/march/async-await-best-practices-in-asynchronous-programming",
+          "supports": "Canonical C# deadlock from blocking on async code"
+        },
+        {
+          "url": "https://wiki.sei.cmu.edu/confluence/display/java/LCK07-J.+Avoid+deadlock+by+requesting+and+releasing+locks+in+the+same+order",
+          "supports": "Java lock-order deadlocks"
+        },
+        {
+          "url": "https://go.dev/ref/mem",
+          "supports": "Go memory model for channels/mutexes, where goroutine deadlocks arise"
+        },
+        {
+          "url": "https://dev.mysql.com/doc/refman/8.4/en/innodb-deadlocks-handling.html",
+          "supports": "DB deadlocks and retry/lock-order guidance, applicable to any language including PHP/Node/Ruby"
+        }
+      ]
+    },
+    "backend.concurrency.thread_and_worker_pools": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Java (ThreadPoolExecutor), C# (ThreadPool starvation) and Python (concurrent.futures, gunicorn/Celery workers) are mainstream homes of pool sizing and queueing bugs. Go worker pools, Ruby Puma/Sidekiq concurrency, tokio spawn_blocking, Kotlin dispatchers and Scala ExecutionContexts are common. Node's worker_threads/libuv pool and PHP-FPM pm settings are plausible but less code-level.",
+      "sources": [
+        {
+          "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html",
+          "supports": "Java thread pool sizing, queues and rejection policies"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/standard/threading/the-managed-thread-pool",
+          "supports": ".NET managed thread pool"
+        },
+        {
+          "url": "https://docs.python.org/3/library/concurrent.futures.html",
+          "supports": "Python ThreadPoolExecutor/ProcessPoolExecutor"
+        },
+        {
+          "url": "https://docs.rs/tokio/latest/tokio/task/fn.spawn_blocking.html",
+          "supports": "tokio blocking thread pool"
+        },
+        {
+          "url": "https://nodejs.org/api/worker_threads.html",
+          "supports": "Node worker threads, an opt-in mechanism"
+        },
+        {
+          "url": "https://www.php.net/manual/en/install.fpm.configuration.php",
+          "supports": "PHP-FPM process pool settings (pm.max_children), config rather than code"
+        }
+      ]
+    },
+    "backend.concurrency.async_await_pitfalls": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 0.4,
+        "Kotlin": 0.7,
+        "Go": 0.1,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 0.1,
+        "Rust": 1,
+        "C": 0,
+        "C++": 0.1,
+        "Scala": 0.7,
+        "PHP": 0.1
+      },
+      "rationale": "async/await is native and pervasive in TS/JS, Python (asyncio), C# and Rust (tokio), each with canonical pitfalls: floating promises, blocking the event loop, async void, holding locks across await. Kotlin coroutines and Scala Futures are close equivalents. Java has only CompletableFuture (and virtual threads), Go uses goroutines instead of async/await, Ruby and PHP async ecosystems (async gem, Fibers/ReactPHP) are niche, and C has nothing comparable.",
+      "sources": [
+        {
+          "url": "https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop",
+          "supports": "Node event-loop blocking pitfalls"
+        },
+        {
+          "url": "https://docs.python.org/3/library/asyncio-dev.html",
+          "supports": "asyncio pitfalls: blocking calls, never-awaited coroutines"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/archive/msdn-magazine/2013/march/async-await-best-practices-in-asynchronous-programming",
+          "supports": "C# async void and sync-over-async pitfalls"
+        },
+        {
+          "url": "https://tokio.rs/tokio/tutorial/shared-state",
+          "supports": "tokio guidance on holding mutexes across .await"
+        },
+        {
+          "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/CompletableFuture.html",
+          "supports": "Java uses futures, not async/await"
+        },
+        {
+          "url": "https://www.php.net/manual/en/language.fibers.php",
+          "supports": "PHP has only low-level Fibers, no async/await"
+        }
+      ]
+    },
+    "backend.concurrency.atomic_operations": {
+      "weights": {
+        "TypeScript": 0.1,
+        "JavaScript": 0.1,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.1,
+        "C#": 0.7,
+        "Ruby": 0.1,
+        "Rust": 1,
+        "C": 1,
+        "C++": 1,
+        "Scala": 0.4,
+        "PHP": 0
+      },
+      "rationale": "Atomics with memory orderings are first-class in C11, C++ std::atomic, Rust std::sync::atomic, Go sync/atomic and java.util.concurrent.atomic. C# has Interlocked and Kotlin has JVM atomics. Scala usually wraps them (AtomicReference, cats-effect Ref). Python and Ruby have no userland atomics, JS Atomics only apply to SharedArrayBuffer, and PHP has none.",
+      "sources": [
+        {
+          "url": "https://en.cppreference.com/w/cpp/atomic/memory_order",
+          "supports": "C++ memory orderings for atomics"
+        },
+        {
+          "url": "https://en.cppreference.com/w/c/atomic",
+          "supports": "C11 atomics"
+        },
+        {
+          "url": "https://doc.rust-lang.org/std/sync/atomic/index.html",
+          "supports": "Rust atomic types"
+        },
+        {
+          "url": "https://pkg.go.dev/sync/atomic",
+          "supports": "Go sync/atomic"
+        },
+        {
+          "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/package-summary.html",
+          "supports": "Java atomic package"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.interlocked",
+          "supports": "C# Interlocked operations"
+        }
+      ]
+    },
+    "backend.concurrency.shared_state_in_request_handlers": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Mutable fields on singleton Spring beans, ASP.NET singleton services capturing scoped state, and Go handlers running concurrently on one goroutine per request are classic bugs. Node module-level state leaks across requests, and Rails/Puma and Python module globals are common too. Rust forces Arc<Mutex> so only logic bugs remain, C/C++ are rarely written as request handlers, and PHP-FPM is shared-nothing (only Octane/Swoole worker mode reintroduces it).",
+      "sources": [
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html",
+          "supports": "Spring beans are singletons by default, shared across requests"
+        },
+        {
+          "url": "https://pkg.go.dev/net/http",
+          "supports": "Go Server serves each connection in its own goroutine"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection",
+          "supports": "ASP.NET Core singleton vs scoped lifetimes and captive dependencies"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/threading_and_code_execution.html",
+          "supports": "Rails threading and shared state concerns"
+        },
+        {
+          "url": "https://laravel.com/docs/11.x/octane",
+          "supports": "Octane keeps the app in memory, so state leaks between requests (unlike FPM)"
+        },
+        {
+          "url": "https://tideways.com/profiler/blog/php-shared-nothing-architecture-the-benefits-and-downsides",
+          "supports": "PHP's shared-nothing request model"
+        }
+      ]
+    },
+    "backend.resilience.timeouts": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.7
+      },
+      "rationale": "Missing or mis-propagated timeouts are a universal backend bug. Several languages have canonical forms: Go context deadlines, Python requests having no default timeout, fetch/AbortSignal.timeout in Node, HttpClient/CancellationToken in C#, Java HTTP/JDBC clients. C++ infrastructure (gRPC, Envoy) deals with deadlines constantly. Plain C service code is less common.",
+      "sources": [
+        {
+          "url": "https://pkg.go.dev/context",
+          "supports": "Go context deadlines and cancellation"
+        },
+        {
+          "url": "https://requests.readthedocs.io/en/latest/user/advanced/#timeouts",
+          "supports": "Python requests does not time out unless a timeout is set"
+        },
+        {
+          "url": "https://nodejs.org/api/globals.html#abortsignaltimeoutdelay",
+          "supports": "Node AbortSignal.timeout for fetch"
+        },
+        {
+          "url": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/",
+          "supports": "AWS on timeouts as a core resilience mechanism"
+        },
+        {
+          "url": "https://docs.guzzlephp.org/en/stable/request-options.html#timeout",
+          "supports": "PHP Guzzle timeout options (default 0 = wait indefinitely)"
+        }
+      ]
+    },
+    "backend.resilience.retries_and_backoff": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.7
+      },
+      "rationale": "Well-known retry libraries define the 1.0s: resilience4j/Failsafe (Java), Polly and Microsoft.Extensions.Http.Resilience (C#), cenkalti/backoff (Go), tenacity (Python). Node (p-retry), Ruby (retriable, Sidekiq retries), Rust (backoff, tower), Scala (ZIO Schedule) and PHP (Laravel retry/queue backoff) have common support. C rarely hosts this logic, and in C++ it lives mostly in gRPC internals.",
+      "sources": [
+        {
+          "url": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/",
+          "supports": "Retries, exponential backoff and jitter"
+        },
+        {
+          "url": "https://github.com/App-vNext/Polly",
+          "supports": ".NET resilience library with retry policies"
+        },
+        {
+          "url": "https://github.com/jd/tenacity",
+          "supports": "Python retry library"
+        },
+        {
+          "url": "https://github.com/cenkalti/backoff",
+          "supports": "Go exponential backoff library"
+        },
+        {
+          "url": "https://github.com/failsafe-lib/failsafe",
+          "supports": "Java retry/fallback library"
+        },
+        {
+          "url": "https://github.com/grpc/grpc/blob/master/doc/connection-backoff.md",
+          "supports": "gRPC connection backoff spec, implemented in C++ core"
+        }
+      ]
+    },
+    "backend.resilience.circuit_breakers": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.4,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.1
+      },
+      "rationale": "The pattern was popularized in the JVM world (Netflix Hystrix, resilience4j) and .NET (Polly). It is common in Go (sony/gobreaker), Node (opossum) and Scala (Akka/Pekko CircuitBreaker). Python and Ruby (Semian) libraries exist but are less central, Rust and C++ meet it mostly in proxies like Envoy, and PHP's shared-nothing model makes in-process breaker state awkward.",
+      "sources": [
+        {
+          "url": "https://martinfowler.com/bliki/CircuitBreaker.html",
+          "supports": "Defines the circuit breaker pattern"
+        },
+        {
+          "url": "https://resilience4j.readme.io/docs/circuitbreaker",
+          "supports": "Java resilience4j circuit breaker"
+        },
+        {
+          "url": "https://github.com/Netflix/Hystrix",
+          "supports": "Netflix Hystrix (Java)"
+        },
+        {
+          "url": "https://github.com/sony/gobreaker",
+          "supports": "Go circuit breaker library"
+        },
+        {
+          "url": "https://github.com/nodeshift/opossum",
+          "supports": "Node.js circuit breaker"
+        },
+        {
+          "url": "https://pekko.apache.org/docs/pekko/current/common/circuitbreaker.html",
+          "supports": "Scala Pekko circuit breaker"
+        },
+        {
+          "url": "https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking",
+          "supports": "Circuit breaking in a C++ proxy"
+        }
+      ]
+    },
+    "backend.resilience.rate_limiting": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.4,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Token-bucket limiters are standard library or framework level in Go (x/time/rate) and Java (resilience4j, Guava, Bucket4j). Framework middleware makes it common in ASP.NET Core, Laravel/Symfony, rack-attack, express-rate-limit, slowapi and tower. In C/C++ it mostly lives in proxies (nginx limit_req), and Kotlin/Scala usually reuse JVM libraries.",
+      "sources": [
+        {
+          "url": "https://pkg.go.dev/golang.org/x/time/rate",
+          "supports": "Go token-bucket rate limiter"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/rate-limit",
+          "supports": "ASP.NET Core rate limiting middleware"
+        },
+        {
+          "url": "https://laravel.com/docs/11.x/rate-limiting",
+          "supports": "Laravel rate limiter"
+        },
+        {
+          "url": "https://github.com/rack/rack-attack",
+          "supports": "Ruby Rack rate limiting middleware"
+        },
+        {
+          "url": "https://nginx.org/en/docs/http/ngx_http_limit_req_module.html",
+          "supports": "nginx (C) leaky-bucket request limiting"
+        }
+      ]
+    },
+    "backend.resilience.graceful_degradation": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Fallbacks and load shedding are architectural and fairly language-neutral. Java is highest because Hystrix fallbacks and Netflix concurrency-limits made it the canonical home. Most service languages are common settings (Polly fallbacks, Semian in Ruby). Rust/C/C++ meet it mainly in infrastructure load shedding, and PHP apps rarely implement it in code.",
+      "sources": [
+        {
+          "url": "https://aws.amazon.com/builders-library/using-load-shedding-to-avoid-overload/",
+          "supports": "Load shedding and degradation under overload"
+        },
+        {
+          "url": "https://sre.google/sre-book/handling-overload/",
+          "supports": "Google SRE: graceful degradation and handling overload"
+        },
+        {
+          "url": "https://github.com/netflix/hystrix/wiki/how-it-works",
+          "supports": "Hystrix fallback execution (Java)"
+        },
+        {
+          "url": "https://github.com/Netflix/concurrency-limits",
+          "supports": "Java adaptive concurrency limiting / load shedding"
+        },
+        {
+          "url": "https://github.com/Shopify/semian",
+          "supports": "Ruby resiliency toolkit (bulkheads, circuit breakers)"
+        }
+      ]
+    },
+    "backend.resilience.graceful_shutdown": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Go (http.Server.Shutdown, signal.NotifyContext) and Spring Boot (server.shutdown=graceful) are the canonical homes. Node server.close plus SIGTERM, Gunicorn/Puma/Sidekiq signals, .NET generic host stop and tokio signal handling are common. C/C++ daemons handle signals but less as an exercise pattern, Scala relies on effect-system resource finalizers, and PHP mostly delegates to FPM apart from long-running queue workers.",
+      "sources": [
+        {
+          "url": "https://pkg.go.dev/net/http#Server.Shutdown",
+          "supports": "Go graceful HTTP server shutdown"
+        },
+        {
+          "url": "https://docs.spring.io/spring-boot/reference/web/graceful-shutdown.html",
+          "supports": "Spring Boot graceful shutdown"
+        },
+        {
+          "url": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/",
+          "supports": "SIGTERM and grace period during pod termination"
+        },
+        {
+          "url": "https://github.com/sidekiq/sidekiq/wiki/Signals",
+          "supports": "Sidekiq (Ruby) graceful shutdown signals"
+        },
+        {
+          "url": "https://gunicorn.org/signals/",
+          "supports": "Gunicorn (Python) graceful TERM handling"
+        },
+        {
+          "url": "https://nodejs.org/api/http.html#serverclosecallback",
+          "supports": "Node server.close stops accepting new connections"
+        }
+      ]
+    },
+    "backend.data.transactions_and_isolation_levels": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.7
+      },
+      "rationale": "Every language with a mainstream SQL stack exposes transaction boundaries and isolation levels (Spring @Transactional, Django atomic, EF Core, Go database/sql TxOptions), so the app-side bugs (wrong scope, lost updates under READ COMMITTED) appear everywhere; Java/Go/Python/C# are highest because the isolation knob is explicit and heavily discussed. C++ (RocksDB, many storage engines) and C (PostgreSQL's MVCC itself) count for infrastructure, but C exercises would be engine-internals only.",
+      "sources": [
+        {
+          "url": "https://www.postgresql.org/docs/current/transaction-iso.html",
+          "supports": "Language-neutral definition of isolation levels and anomalies; PostgreSQL's MVCC is implemented in C."
+        },
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+          "supports": "Java/Kotlin: @Transactional with isolation and propagation settings, a routine source of scoping bugs."
+        },
+        {
+          "url": "https://docs.djangoproject.com/en/stable/topics/db/transactions/",
+          "supports": "Python: Django atomic blocks and autocommit semantics."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/ef/core/saving/transactions",
+          "supports": "C#: EF Core explicit transactions and isolation levels."
+        },
+        {
+          "url": "https://pkg.go.dev/database/sql#TxOptions",
+          "supports": "Go: database/sql exposes isolation level per transaction."
+        },
+        {
+          "url": "https://github.com/facebook/rocksdb/wiki/Transactions",
+          "supports": "C++: transaction and snapshot semantics inside a storage engine."
+        }
+      ]
+    },
+    "backend.data.n_plus_one_queries": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "N+1 comes from lazy-loading ORMs and GraphQL resolvers: ActiveRecord (Bullet gem exists just for it), Django, Hibernate, EF Core, Eloquent and Prisma/DataLoader all document eager loading as the fix. Go (GORM Preload) and Kotlin/JS are common but less ORM-centric; Rust and Scala data access is mostly explicit SQL, and C/C++ backends rarely have an ORM layer.",
+      "sources": [
+        {
+          "url": "https://guides.rubyonrails.org/active_record_querying.html",
+          "supports": "Ruby: Rails guide section on eager loading (includes/preload) to solve N+1."
+        },
+        {
+          "url": "https://github.com/flyerhzm/bullet",
+          "supports": "Ruby: a widely used gem dedicated to detecting N+1 queries."
+        },
+        {
+          "url": "https://vladmihalcea.com/n-plus-1-query-problem/",
+          "supports": "Java: N+1 with JPA/Hibernate lazy associations."
+        },
+        {
+          "url": "https://docs.djangoproject.com/en/stable/ref/models/querysets/",
+          "supports": "Python: select_related/prefetch_related."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/ef/core/querying/related-data/",
+          "supports": "C#: EF Core eager, explicit and lazy loading."
+        },
+        {
+          "url": "https://laravel.com/docs/eloquent-relationships",
+          "supports": "PHP: Eloquent eager loading and preventing lazy loading."
+        },
+        {
+          "url": "https://github.com/graphql/dataloader",
+          "supports": "JS/TS: DataLoader batching built to fix N+1 in GraphQL resolvers."
+        },
+        {
+          "url": "https://gorm.io/docs/preload.html",
+          "supports": "Go: GORM Preload for associations."
+        }
+      ]
+    },
+    "backend.data.connection_pooling": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 1,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.7,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "HikariCP (Java/JVM), Go's built-in database/sql pool and SQLAlchemy's pool are where engineers routinely tune sizes and chase leaks/exhaustion; node-postgres, ADO.NET, Rails and sqlx pools are common too. C scores 0.7 because PgBouncer-style poolers are C infrastructure; classic PHP-FPM is request-scoped with only persistent connections, so pooling bugs are less typical there.",
+      "sources": [
+        {
+          "url": "https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing",
+          "supports": "Java: canonical pool-sizing article from HikariCP."
+        },
+        {
+          "url": "https://go.dev/doc/database/manage-connections",
+          "supports": "Go: database/sql has a built-in pool with SetMaxOpenConns etc."
+        },
+        {
+          "url": "https://docs.sqlalchemy.org/en/20/core/pooling.html",
+          "supports": "Python: SQLAlchemy pool configuration, overflow, pre-ping."
+        },
+        {
+          "url": "https://node-postgres.com/apis/pool",
+          "supports": "JS/TS: pg Pool, client release semantics."
+        },
+        {
+          "url": "https://www.pgbouncer.org/",
+          "supports": "C: PgBouncer, a widely used connection pooler written in C."
+        },
+        {
+          "url": "https://www.php.net/manual/en/pdo.connections.php",
+          "supports": "PHP: only persistent connections, no in-process pool in the standard model."
+        },
+        {
+          "url": "https://docs.rs/sqlx/latest/sqlx/pool/index.html",
+          "supports": "Rust: sqlx connection pool."
+        }
+      ]
+    },
+    "backend.data.migrations": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "Schema migrations are a first-class framework feature in Rails, Django/Alembic, EF Core, Laravel and Prisma, and Flyway/Liquibase are standard on the JVM; strong_migrations shows the unsafe-migration bug class is well catalogued. Go uses standalone tools (golang-migrate), Rust/Scala have thinner tooling, and C/C++ services rarely own migration code.",
+      "sources": [
+        {
+          "url": "https://guides.rubyonrails.org/active_record_migrations.html",
+          "supports": "Ruby: Rails migrations."
+        },
+        {
+          "url": "https://github.com/ankane/strong_migrations",
+          "supports": "Ruby: catalogue of unsafe migration patterns (locking, backfills)."
+        },
+        {
+          "url": "https://docs.djangoproject.com/en/stable/topics/migrations/",
+          "supports": "Python: Django migrations."
+        },
+        {
+          "url": "https://documentation.red-gate.com/fd",
+          "supports": "Java: Flyway migration tool."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/",
+          "supports": "C#: EF Core migrations."
+        },
+        {
+          "url": "https://laravel.com/docs/migrations",
+          "supports": "PHP: Laravel migrations."
+        },
+        {
+          "url": "https://www.prisma.io/docs/orm/prisma-migrate",
+          "supports": "TypeScript: Prisma Migrate."
+        },
+        {
+          "url": "https://github.com/golang-migrate/migrate",
+          "supports": "Go: standalone migration tool rather than a framework feature."
+        }
+      ]
+    },
+    "backend.data.orm_pitfalls": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.4,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "Needs a mainstream ORM: Hibernate/JPA, ActiveRecord, Django ORM/SQLAlchemy, EF Core, Eloquent and Prisma/TypeORM all have well-known pitfalls (lazy loading, dirty checking, detached entities). Go culture prefers explicit SQL despite GORM, Rust has Diesel/SeaORM and Scala has Slick, but with thinner ecosystems; C has essentially no ORM ecosystem.",
+      "sources": [
+        {
+          "url": "https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html",
+          "supports": "Java: Hibernate fetching, flushing and persistence-context semantics."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/ef/core/querying/related-data/",
+          "supports": "C#: EF Core lazy loading behaviour."
+        },
+        {
+          "url": "https://docs.djangoproject.com/en/stable/ref/models/querysets/",
+          "supports": "Python: lazy QuerySet evaluation."
+        },
+        {
+          "url": "https://www.prisma.io/docs/orm/prisma-client/queries/query-optimization-performance",
+          "supports": "TypeScript: Prisma's documented performance pitfalls."
+        },
+        {
+          "url": "https://gorm.io/docs/preload.html",
+          "supports": "Go: GORM exists, but is one option among plain-SQL approaches."
+        }
+      ]
+    },
+    "backend.data.pagination": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 0.7,
+        "Ruby": 1,
+        "Rust": 0.7,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "Offset vs keyset/cursor pagination bugs appear in every API stack; Django REST Framework, Spring Data Pageable, Laravel's paginator and Rails pagination gems make it routine in Python/Java/PHP/Ruby, and TS dominates GraphQL cursor APIs. C++ scores 0.4 for scan/iterator cursors in storage engines; C API code is rare.",
+      "sources": [
+        {
+          "url": "https://use-the-index-luke.com/no-offset",
+          "supports": "Language-neutral: why OFFSET pagination is slow/unstable and keyset is preferred."
+        },
+        {
+          "url": "https://docs.stripe.com/api/pagination",
+          "supports": "Cursor-based pagination as used by a major public API."
+        },
+        {
+          "url": "https://www.django-rest-framework.org/api-guide/pagination/",
+          "supports": "Python: DRF page-number, limit-offset and cursor pagination."
+        },
+        {
+          "url": "https://laravel.com/docs/pagination",
+          "supports": "PHP: Laravel paginate, simplePaginate and cursorPaginate."
+        }
+      ]
+    },
+    "backend.data.optimistic_vs_pessimistic_locking": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "JPA @Version/LockModeType, EF Core concurrency tokens and Rails lock_version give Java, C# and Ruby first-class built-in support; Django select_for_update and Laravel lockForUpdate make it common in Python/PHP. Go does it with version columns or conditional writes by hand; C++ appears via storage engines (RocksDB OptimisticTransactionDB).",
+      "sources": [
+        {
+          "url": "https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html",
+          "supports": "Java: Hibernate optimistic (@Version) and pessimistic (PESSIMISTIC_WRITE) locking."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/ef/core/saving/concurrency",
+          "supports": "C#: EF Core optimistic concurrency tokens."
+        },
+        {
+          "url": "https://api.rubyonrails.org/classes/ActiveRecord/Locking/Optimistic.html",
+          "supports": "Ruby: ActiveRecord lock_version optimistic locking."
+        },
+        {
+          "url": "https://laravel.com/docs/queries",
+          "supports": "PHP: sharedLock/lockForUpdate pessimistic locking."
+        },
+        {
+          "url": "https://github.com/facebook/rocksdb/wiki/Transactions",
+          "supports": "C++: RocksDB pessimistic TransactionDB vs OptimisticTransactionDB."
+        }
+      ]
+    },
+    "backend.caching.cache_invalidation": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Spring's @CacheEvict/@CachePut and Rails' key-based (Russian-doll) caching make invalidation a framework-level concern in Java and Ruby; every web stack has Redis/memcached clients so it is common elsewhere. C/C++ appear through caches and proxies themselves (memcached, Varnish), which is plausible but narrower.",
+      "sources": [
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/integration/cache/annotations.html",
+          "supports": "Java: @Cacheable/@CacheEvict/@CachePut annotations."
+        },
+        {
+          "url": "https://guides.rubyonrails.org/caching_with_rails.html",
+          "supports": "Ruby: fragment/Russian-doll caching with key-based expiration."
+        },
+        {
+          "url": "https://www.usenix.org/conference/nsdi13/technical-sessions/presentation/nishtala",
+          "supports": "Scaling Memcache at Facebook: invalidation and consistency at scale (C++ infra)."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/caching/memory",
+          "supports": "C#: IMemoryCache eviction and change tokens."
+        }
+      ]
+    },
+    "backend.caching.ttls_and_expiry": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.7,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Caffeine (expireAfterWrite/expireAfterAccess) and .NET MemoryCache (absolute vs sliding expiration) put TTL semantics directly in application code; Rust's moka and the usual Redis TTLs make it common elsewhere. C is 0.7 because Redis and memcached implement expiry in C.",
+      "sources": [
+        {
+          "url": "https://github.com/ben-manes/caffeine/wiki/Eviction",
+          "supports": "Java: Caffeine time-based expiration policies."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/caching/memory",
+          "supports": "C#: absolute and sliding expiration in IMemoryCache."
+        },
+        {
+          "url": "https://redis.io/docs/latest/commands/expire/",
+          "supports": "Redis EXPIRE semantics, including passive and active expiry (Redis is C)."
+        },
+        {
+          "url": "https://github.com/moka-rs/moka",
+          "supports": "Rust: moka cache with time_to_live/time_to_idle."
+        }
+      ]
+    },
+    "backend.caching.cache_stampedes": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 0.7,
+        "Kotlin": 0.4,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.7,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Go's singleflight is the canonical request-coalescing primitive; .NET HybridCache advertises stampede protection; Caffeine, Rails race_condition_ttl, Symfony's probabilistic early expiration, Python's dogpile.cache and moka cover the rest. C is 0.7 via nginx proxy_cache_lock. In Node/TS the fix (memoizing a promise) is common but there's little dedicated tooling, hence 0.4.",
+      "sources": [
+        {
+          "url": "https://pkg.go.dev/golang.org/x/sync/singleflight",
+          "supports": "Go: duplicate call suppression."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/caching/hybrid",
+          "supports": "C#: HybridCache stampede protection."
+        },
+        {
+          "url": "https://symfony.com/doc/current/components/cache.html",
+          "supports": "PHP: Symfony Cache stampede prevention via locking and early expiration."
+        },
+        {
+          "url": "https://dogpilecache.sqlalchemy.org/en/latest/",
+          "supports": "Python: dogpile.cache, named after the dogpile effect."
+        },
+        {
+          "url": "https://guides.rubyonrails.org/caching_with_rails.html",
+          "supports": "Ruby: race_condition_ttl option on Rails.cache.fetch."
+        },
+        {
+          "url": "https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_lock",
+          "supports": "C: nginx proxy_cache_lock coalesces cache-miss requests."
+        }
+      ]
+    },
+    "backend.caching.cache_aside_vs_write_through": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "The pattern is language-neutral and cache-aside appears in every web stack (Rails.cache.fetch, Laravel Cache::remember, Redis clients). Java is highest because JCache/Hazelcast MapStore make read-through/write-through a library-level choice. C/C++ only in cache servers themselves.",
+      "sources": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/Strategies.html",
+          "supports": "Lazy loading (cache-aside) vs write-through trade-offs."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside",
+          "supports": "Cache-aside pattern and its consistency issues."
+        },
+        {
+          "url": "https://docs.hazelcast.com/hazelcast/latest/mapstore/working-with-external-data",
+          "supports": "Java: Hazelcast MapStore read-through/write-through/write-behind."
+        }
+      ]
+    },
+    "backend.caching.stale_reads": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.7
+      },
+      "rationale": "Stale reads from caches and lagging replicas are generic; Rails (automatic role switching with a delay) and Laravel (the 'sticky' read/write option) build read-your-writes handling into the framework. Java and Go are highest because they also host the distributed stores where read consistency is configured; C++ counts for databases.",
+      "sources": [
+        {
+          "url": "https://guides.rubyonrails.org/active_record_multiple_databases.html",
+          "supports": "Ruby: replica reads with a delay window to avoid stale reads after writes."
+        },
+        {
+          "url": "https://laravel.com/docs/database",
+          "supports": "PHP: 'sticky' option for read-your-writes with read replicas."
+        },
+        {
+          "url": "https://jepsen.io/consistency",
+          "supports": "Consistency models that define stale reads (Jepsen tests systems in Java/Go/C++ etc.)."
+        },
+        {
+          "url": "https://www.usenix.org/conference/nsdi13/technical-sessions/presentation/nishtala",
+          "supports": "Facebook memcache: stale sets and leases."
+        }
+      ]
+    },
+    "backend.api.rest_design": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "REST resource design is daily work in the big web-framework ecosystems: Express/NestJS (TS/JS), Spring (Java), FastAPI/Django (Python), ASP.NET Core (C#), Rails (Ruby) and Laravel (PHP). Go and Rust have solid routers (net/http, axum) but thinner conventions; C/C++ services rarely expose hand-designed REST resources.",
+      "sources": [
+        {
+          "url": "https://spring.io/guides/tutorials/rest/",
+          "supports": "Spring's canonical guide to building REST services in Java"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/web-api/",
+          "supports": "ASP.NET Core web API controllers and conventions in C#"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/api_app.html",
+          "supports": "Rails as an API-only framework (resourceful routing)"
+        },
+        {
+          "url": "https://laravel.com/docs/controllers",
+          "supports": "Laravel resource controllers for RESTful routes in PHP"
+        },
+        {
+          "url": "https://fastapi.tiangolo.com/",
+          "supports": "FastAPI, a mainstream Python REST framework"
+        },
+        {
+          "url": "https://github.com/tokio-rs/axum",
+          "supports": "axum: the main Rust web framework, a younger and smaller ecosystem"
+        }
+      ]
+    },
+    "backend.api.request_validation": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "Each mainstream web stack has a first-class validation layer: zod (TS), Bean Validation/Hibernate Validator (Java), pydantic (Python), model validation (C#), Active Record validations (Ruby), Laravel validation (PHP). Go relies on struct-tag validators; Rust/Scala have them but they are less central; C/C++ validation is hand-rolled parsing rather than an API-layer concern.",
+      "sources": [
+        {
+          "url": "https://zod.dev/",
+          "supports": "zod: TypeScript-first schema validation"
+        },
+        {
+          "url": "https://docs.pydantic.dev/latest/",
+          "supports": "pydantic: Python data validation used by FastAPI"
+        },
+        {
+          "url": "https://hibernate.org/validator/",
+          "supports": "Hibernate Validator, the Jakarta Bean Validation reference implementation"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/mvc/models/validation",
+          "supports": "ASP.NET Core model validation"
+        },
+        {
+          "url": "https://laravel.com/docs/validation",
+          "supports": "Laravel request validation"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/active_record_validations.html",
+          "supports": "Rails Active Record validations"
+        },
+        {
+          "url": "https://github.com/go-playground/validator",
+          "supports": "go-playground/validator: struct-tag validation in Go"
+        }
+      ]
+    },
+    "backend.api.idempotency": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 0.7,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Idempotency keys are a mostly language-agnostic API pattern, so all common web-service languages score 0.7; Ruby gets 1.0 because the best-known reference designs (Stripe's API, Brandur Leach's idempotency-key write-up) come from Ruby shops. Rust/Scala are less common for public payment-style APIs; C/C++ rarely implement HTTP API idempotency.",
+      "sources": [
+        {
+          "url": "https://docs.stripe.com/api/idempotent_requests",
+          "supports": "Stripe's Idempotency-Key semantics for POST requests"
+        },
+        {
+          "url": "https://brandur.org/idempotency-keys",
+          "supports": "Detailed idempotency-key implementation write-up (Ruby + Postgres)"
+        },
+        {
+          "url": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/",
+          "supports": "IETF draft standardising the Idempotency-Key header (language-agnostic)"
+        }
+      ]
+    },
+    "backend.api.versioning": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Java (Spring Framework's built-in API versioning) and C# (ASP.NET API Versioning) have first-class framework support; Python (DRF versioning schemes), Ruby (Stripe's date-based versioning) and the others do it routinely via routing conventions. Rust/Scala are thinner; C/C++ rarely own versioned public HTTP APIs.",
+      "sources": [
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/web/webmvc-versioning.html",
+          "supports": "Spring MVC's built-in API versioning support"
+        },
+        {
+          "url": "https://github.com/dotnet/aspnet-api-versioning",
+          "supports": "ASP.NET API Versioning library for C#"
+        },
+        {
+          "url": "https://www.django-rest-framework.org/api-guide/versioning/",
+          "supports": "Django REST Framework versioning schemes"
+        },
+        {
+          "url": "https://stripe.com/blog/api-versioning",
+          "supports": "Stripe's API versioning design"
+        }
+      ]
+    },
+    "backend.api.status_codes_and_error_responses": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Mapping exceptions to HTTP status codes and Problem Details bodies is a framework feature in Spring (ProblemDetail, @ExceptionHandler), ASP.NET Core and FastAPI, and routine middleware work in Express/NestJS. Go/Ruby/PHP/Kotlin do it routinely by convention; Rust/Scala less often; C/C++ rarely.",
+      "sources": [
+        {
+          "url": "https://www.rfc-editor.org/rfc/rfc9457",
+          "supports": "RFC 9457 Problem Details for HTTP APIs"
+        },
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-ann-rest-exceptions.html",
+          "supports": "Spring MVC error responses with ProblemDetail"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors",
+          "supports": "ASP.NET Core web API error handling and ProblemDetails"
+        },
+        {
+          "url": "https://fastapi.tiangolo.com/tutorial/handling-errors/",
+          "supports": "FastAPI HTTPException and exception handlers"
+        }
+      ]
+    },
+    "backend.api.serialization_and_deserialization": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 1,
+        "C": 0.4,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.7
+      },
+      "rationale": "Java (Jackson and its deserialization vulnerabilities), C# (System.Text.Json, BinaryFormatter), Go (encoding/json tag and zero-value pitfalls) and Rust (serde) all have canonical serialization bug classes. Python (pickle), Ruby (Marshal), PHP (unserialize) and JS (number precision) have well-known pitfalls too; C/C++ meet it as wire-format parsing in infrastructure code (protobuf is common in C++, hand-rolled parsing in C).",
+      "sources": [
+        {
+          "url": "https://github.com/FasterXML/jackson",
+          "supports": "Jackson, the standard JVM JSON library"
+        },
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html",
+          "supports": "OWASP deserialization pitfalls per language (Java, .NET, Python, PHP, Ruby)"
+        },
+        {
+          "url": "https://serde.rs/",
+          "supports": "serde, the Rust serialization framework"
+        },
+        {
+          "url": "https://pkg.go.dev/encoding/json",
+          "supports": "Go encoding/json semantics (tags, omitempty, unknown fields)"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/overview",
+          "supports": "System.Text.Json in .NET"
+        },
+        {
+          "url": "https://docs.python.org/3/library/pickle.html",
+          "supports": "Python pickle and its warning against untrusted data"
+        },
+        {
+          "url": "https://www.php.net/manual/en/function.unserialize.php",
+          "supports": "PHP unserialize and its security warning"
+        },
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER",
+          "supports": "JS safe-integer limit that breaks large numeric IDs in JSON"
+        }
+      ]
+    },
+    "backend.messaging.queues_and_consumers": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.7
+      },
+      "rationale": "Consumer code is mainstream in Java (Kafka clients), Go, Python (Celery), C# (Service Bus/RabbitMQ) and Ruby (Sidekiq); Node has BullMQ, PHP has Laravel queues, Scala has Kafka/Akka. Rust has rdkafka bindings but fewer production consumers; C/C++ appear mostly as client-library or broker internals (librdkafka), not application consumers.",
+      "sources": [
+        {
+          "url": "https://kafka.apache.org/documentation/",
+          "supports": "Apache Kafka docs, including the Java consumer API"
+        },
+        {
+          "url": "https://docs.celeryq.dev/en/stable/",
+          "supports": "Celery distributed task queue for Python"
+        },
+        {
+          "url": "https://github.com/sidekiq/sidekiq",
+          "supports": "Sidekiq background jobs for Ruby"
+        },
+        {
+          "url": "https://docs.bullmq.io/",
+          "supports": "BullMQ queues for Node.js/TypeScript"
+        },
+        {
+          "url": "https://laravel.com/docs/queues",
+          "supports": "Laravel queues and workers in PHP"
+        },
+        {
+          "url": "https://github.com/confluentinc/librdkafka",
+          "supports": "librdkafka: the C/C++ Kafka client that other language bindings wrap"
+        }
+      ]
+    },
+    "backend.messaging.at_least_once_delivery": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "At-least-once semantics are explicit in Kafka's consumer model (commit after processing) and in Sidekiq's documented guarantee that jobs run at least once; Celery acks_late, Go and .NET consumers meet it routinely. Node/PHP consumers exist but the topic is discussed less there; C/C++ only at broker/client level.",
+      "sources": [
+        {
+          "url": "https://kafka.apache.org/documentation/",
+          "supports": "Kafka message delivery semantics (at-most/at-least/exactly once)"
+        },
+        {
+          "url": "https://github.com/sidekiq/sidekiq/wiki/FAQ",
+          "supports": "Sidekiq runs jobs at least once, so they must be idempotent"
+        },
+        {
+          "url": "https://docs.celeryq.dev/en/stable/userguide/tasks.html",
+          "supports": "Celery acks_late and task redelivery"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html",
+          "supports": "SQS standard queues deliver at least once"
+        },
+        {
+          "url": "https://www.rabbitmq.com/docs/confirms",
+          "supports": "RabbitMQ consumer acknowledgements and redelivery"
+        }
+      ]
+    },
+    "backend.messaging.deduplication": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Idempotent consumers and dedup tables are a staple of JVM event-driven services; Go, Python, C# (Service Bus duplicate detection), Ruby (idempotent Sidekiq jobs) and Scala do it routinely. Node/PHP/Rust less often; C/C++ essentially only inside brokers.",
+      "sources": [
+        {
+          "url": "https://microservices.io/patterns/communication-style/idempotent-consumer.html",
+          "supports": "Idempotent Consumer pattern (records processed message IDs)"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/azure/service-bus-messaging/duplicate-detection",
+          "supports": "Azure Service Bus duplicate detection"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html",
+          "supports": "SQS FIFO MessageDeduplicationId"
+        },
+        {
+          "url": "https://github.com/sidekiq/sidekiq/wiki/Best-Practices",
+          "supports": "Sidekiq best practice: make jobs idempotent"
+        }
+      ]
+    },
+    "backend.messaging.message_ordering": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.4,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.1
+      },
+      "rationale": "Per-partition ordering and keying is a core Kafka concern, so Java (plus Kotlin/Scala/Go Kafka consumers) dominates; C# meets it via Service Bus sessions. Python/Node/Ruby job queues usually give no ordering guarantee and the topic surfaces less; PHP request-scoped workers rarely care.",
+      "sources": [
+        {
+          "url": "https://kafka.apache.org/documentation/",
+          "supports": "Kafka guarantees ordering only within a partition"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/azure/service-bus-messaging/message-sessions",
+          "supports": "Azure Service Bus sessions for FIFO ordering"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html",
+          "supports": "SQS FIFO queues and message-group ordering"
+        }
+      ]
+    },
+    "backend.messaging.dead_letter_queues": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Java (Spring Kafka dead-letter publishing) and C# (Service Bus dead-letter subqueue) have first-class DLQ handling; Go/Python/Ruby/TS consumers configure DLQs routinely on SQS/RabbitMQ. Rust/Scala/PHP less commonly; C/C++ rarely at the application level.",
+      "sources": [
+        {
+          "url": "https://docs.spring.io/spring-kafka/reference/kafka/annotation-error-handling.html",
+          "supports": "Spring Kafka error handling and dead-letter topics"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-dead-letter-queues",
+          "supports": "Azure Service Bus dead-letter queues"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html",
+          "supports": "SQS dead-letter queues and maxReceiveCount"
+        },
+        {
+          "url": "https://www.rabbitmq.com/docs/dlx",
+          "supports": "RabbitMQ dead letter exchanges"
+        }
+      ]
+    },
+    "backend.messaging.backpressure": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 1,
+        "Go": 0.7,
+        "Python": 0.4,
+        "C#": 0.7,
+        "Ruby": 0.1,
+        "Rust": 1,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 1,
+        "PHP": 0.1
+      },
+      "rationale": "Backpressure is built into Reactive Streams (Java Reactor), Kotlin Flow, Akka/Pekko Streams (Scala) and bounded tokio channels (Rust); Node streams expose it via highWaterMark, Go via bounded channels, C# via System.Threading.Channels. Python asyncio supports it but it is less discussed; Ruby and PHP have little streaming-pipeline ecosystem.",
+      "sources": [
+        {
+          "url": "https://www.reactive-streams.org/",
+          "supports": "Reactive Streams: asynchronous stream processing with non-blocking backpressure (JVM)"
+        },
+        {
+          "url": "https://kotlinlang.org/docs/flow.html",
+          "supports": "Kotlin Flow (suspending, backpressure-aware streams)"
+        },
+        {
+          "url": "https://pekko.apache.org/docs/pekko/current/stream/stream-flows-and-basics.html",
+          "supports": "Pekko (Akka) Streams backpressure in Scala"
+        },
+        {
+          "url": "https://docs.rs/tokio/latest/tokio/sync/mpsc/index.html",
+          "supports": "tokio bounded mpsc channels provide backpressure"
+        },
+        {
+          "url": "https://nodejs.org/en/learn/modules/backpressuring-in-streams",
+          "supports": "Node.js guide to backpressuring in streams"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/core/extensions/channels",
+          "supports": "System.Threading.Channels bounded channels in .NET"
+        }
+      ]
+    },
+    "backend.errors.error_propagation": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 1,
+        "C": 1,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Propagation is explicit and central in Go (if err != nil), Rust (Result and ?), C (return codes/errno) and Java (checked exceptions); exception-based languages meet it routinely but less visibly. Ruby/PHP code tends to let exceptions bubble with little ceremony, so they score lower.",
+      "sources": [
+        {
+          "url": "https://go.dev/blog/error-handling-and-go",
+          "supports": "Go's explicit error values and propagation"
+        },
+        {
+          "url": "https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html",
+          "supports": "Rust Result and the ? operator"
+        },
+        {
+          "url": "https://docs.oracle.com/javase/tutorial/essential/exceptions/",
+          "supports": "Java exceptions, including checked exceptions"
+        },
+        {
+          "url": "https://man7.org/linux/man-pages/man3/errno.3.html",
+          "supports": "C errno / return-code error reporting"
+        }
+      ]
+    },
+    "backend.errors.error_wrapping_and_context": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 1,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Go (fmt.Errorf %w, errors.Is/As), Rust (anyhow/thiserror context) and Java (exception cause chaining) make wrapping a core idiom; Python (raise ... from) and C# (InnerException) use it routinely. JS/TS gained Error.cause only recently; C has no wrapping mechanism beyond logging.",
+      "sources": [
+        {
+          "url": "https://go.dev/blog/go1.13-errors",
+          "supports": "Go 1.13 error wrapping with %w, errors.Is and errors.As"
+        },
+        {
+          "url": "https://docs.rs/anyhow/latest/anyhow/",
+          "supports": "anyhow: Rust error type with .context()"
+        },
+        {
+          "url": "https://docs.python.org/3/tutorial/errors.html",
+          "supports": "Python exception chaining (raise ... from)"
+        },
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause",
+          "supports": "JavaScript Error.cause (a recent addition)"
+        }
+      ]
+    },
+    "backend.errors.swallowed_errors": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 1,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 1,
+        "C++": 0.7,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Canonical bug classes: empty catch blocks (Java), ignored err return values (Go, caught by errcheck), bare except (Python), unchecked return codes (C) and unawaited or unhandled promise rejections (JS/TS). Rust's #[must_use] on Result and Scala's Try/Either make silent swallowing less natural.",
+      "sources": [
+        {
+          "url": "https://cwe.mitre.org/data/definitions/1069.html",
+          "supports": "CWE-1069 Empty Exception Block"
+        },
+        {
+          "url": "https://cwe.mitre.org/data/definitions/390.html",
+          "supports": "CWE-390 Detection of Error Condition Without Action"
+        },
+        {
+          "url": "https://github.com/kisielk/errcheck",
+          "supports": "errcheck: linter for unchecked errors in Go"
+        },
+        {
+          "url": "https://docs.astral.sh/ruff/rules/bare-except/",
+          "supports": "Ruff rule against bare except in Python"
+        },
+        {
+          "url": "https://nodejs.org/api/process.html",
+          "supports": "Node.js unhandledRejection event"
+        },
+        {
+          "url": "https://doc.rust-lang.org/std/result/",
+          "supports": "Rust: Result is #[must_use], so ignoring it warns"
+        }
+      ]
+    },
+    "backend.errors.cleanup_on_error_paths": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.4,
+        "C": 1,
+        "C++": 1,
+        "Scala": 0.4,
+        "PHP": 0.1
+      },
+      "rationale": "Cleanup on error paths is a canonical C bug class (goto-cleanup chains) and the C++ exception-safety/RAII topic; Go defer, Java try-with-resources and C# using are the mainstream idioms and are regularly misused. Rust's Drop makes most cleanup automatic; PHP's request-scoped model frees resources at request end.",
+      "sources": [
+        {
+          "url": "https://wiki.sei.cmu.edu/confluence/display/c/MEM12-C.+Consider+using+a+goto+chain+when+leaving+a+function+on+error+when+using+and+releasing+resources",
+          "supports": "CERT C MEM12-C: goto chains for releasing resources on error"
+        },
+        {
+          "url": "https://en.cppreference.com/w/cpp/language/raii",
+          "supports": "C++ RAII"
+        },
+        {
+          "url": "https://go.dev/blog/defer-panic-and-recover",
+          "supports": "Go defer for cleanup"
+        },
+        {
+          "url": "https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html",
+          "supports": "Java try-with-resources"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/using",
+          "supports": "C# using statement"
+        },
+        {
+          "url": "https://doc.rust-lang.org/std/ops/trait.Drop.html",
+          "supports": "Rust Drop runs cleanup automatically"
+        }
+      ]
+    },
+    "backend.errors.panics_and_exceptions_at_boundaries": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 0.7,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.4,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 1,
+        "C": 0.1,
+        "C++": 1,
+        "Scala": 0.4,
+        "PHP": 0.1
+      },
+      "rationale": "Go (a panic in a spawned goroutine kills the process; net/http recovers only the handler's own goroutine), Rust (panics across FFI and threads, catch_unwind) and C++ (exceptions crossing threads, noexcept, C ABIs) make boundary handling a core concern. Node's unhandled rejections, Java's UncaughtExceptionHandler and Kotlin coroutine handlers are common settings; C has no exceptions and PHP's per-request model contains failures.",
+      "sources": [
+        {
+          "url": "https://go.dev/blog/defer-panic-and-recover",
+          "supports": "Go panic and recover"
+        },
+        {
+          "url": "https://pkg.go.dev/net/http",
+          "supports": "net/http recovers handler panics only for that request"
+        },
+        {
+          "url": "https://doc.rust-lang.org/std/panic/fn.catch_unwind.html",
+          "supports": "Rust catch_unwind at boundaries"
+        },
+        {
+          "url": "https://doc.rust-lang.org/nomicon/ffi.html",
+          "supports": "Rustonomicon: unwinding across FFI"
+        },
+        {
+          "url": "https://isocpp.org/wiki/faq/exceptions",
+          "supports": "C++ FAQ on exceptions and error handling"
+        },
+        {
+          "url": "https://nodejs.org/api/process.html",
+          "supports": "Node.js uncaughtException/unhandledRejection"
+        },
+        {
+          "url": "https://docs.oracle.com/javase/8/docs/api/java/lang/Thread.UncaughtExceptionHandler.html",
+          "supports": "Java Thread.UncaughtExceptionHandler"
+        }
+      ]
+    },
+    "backend.resources.memory_leaks": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 0.4,
+        "C": 1,
+        "C++": 1,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "C and C++ are the classic home (Valgrind, LeakSanitizer); Java leak hunting (heap dumps, retained collections) is routine in long-running JVM services. Node, Go (goroutine leaks), Python, C# and Scala all have documented leak diagnostics; Rust leaks only via Rc cycles or deliberate leaks, and PHP only in long-running workers such as Octane.",
+      "sources": [
+        {
+          "url": "https://valgrind.org/docs/manual/mc-manual.html",
+          "supports": "Valgrind Memcheck leak detection for C/C++"
+        },
+        {
+          "url": "https://clang.llvm.org/docs/LeakSanitizer.html",
+          "supports": "LeakSanitizer"
+        },
+        {
+          "url": "https://docs.oracle.com/en/java/javase/17/troubleshoot/troubleshooting-memory-leaks.html",
+          "supports": "Oracle guide to troubleshooting Java memory leaks"
+        },
+        {
+          "url": "https://nodejs.org/en/learn/diagnostics/memory",
+          "supports": "Node.js memory diagnostics"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/core/diagnostics/debug-memory-leak",
+          "supports": "Debugging a .NET memory leak"
+        },
+        {
+          "url": "https://docs.python.org/3/library/tracemalloc.html",
+          "supports": "Python tracemalloc"
+        },
+        {
+          "url": "https://doc.rust-lang.org/book/ch15-06-reference-cycles.html",
+          "supports": "Rust: reference cycles can leak memory"
+        },
+        {
+          "url": "https://laravel.com/docs/octane",
+          "supports": "Laravel Octane restarts workers to contain memory leaks"
+        }
+      ]
+    },
+    "backend.resources.file_and_socket_handle_leaks": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.1,
+        "C": 1,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.1
+      },
+      "rationale": "Canonical bug classes: unclosed resp.Body in Go, missing try-with-resources in Java, HttpClient/IDisposable socket exhaustion in C#, and leaked file descriptors (EMFILE) in C. Python warns via ResourceWarning; Rust closes on Drop and PHP closes handles at request end, so leaks there look contrived.",
+      "sources": [
+        {
+          "url": "https://pkg.go.dev/net/http",
+          "supports": "Go: the caller must close the response body"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient-guidelines",
+          "supports": "HttpClient guidelines: port/socket exhaustion in .NET"
+        },
+        {
+          "url": "https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html",
+          "supports": "Java try-with-resources for closing streams and sockets"
+        },
+        {
+          "url": "https://man7.org/linux/man-pages/man2/open.2.html",
+          "supports": "open(2): EMFILE when the process fd limit is reached"
+        },
+        {
+          "url": "https://docs.python.org/3/library/exceptions.html",
+          "supports": "Python ResourceWarning for unclosed resources"
+        }
+      ]
+    },
+    "backend.resources.streaming_large_payloads": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 0.7,
+        "Kotlin": 0.4,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Node streams and Go io.Reader/io.Copy make streaming the default idiom, so buffering a whole body in memory is a recognisable bug there. Java (StreamingResponseBody, InputStream), Python (requests stream=True, StreamingResponse), C#, Rust (tokio io) and Scala (Pekko Streams) do it regularly; Ruby/PHP/Kotlin and C/C++ less commonly at the API layer.",
+      "sources": [
+        {
+          "url": "https://nodejs.org/api/stream.html",
+          "supports": "Node.js stream API"
+        },
+        {
+          "url": "https://pkg.go.dev/io",
+          "supports": "Go io.Reader/io.Writer streaming interfaces"
+        },
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-ann-async.html",
+          "supports": "Spring MVC StreamingResponseBody"
+        },
+        {
+          "url": "https://requests.readthedocs.io/en/latest/user/advanced/",
+          "supports": "Python requests stream=True body workflow"
+        },
+        {
+          "url": "https://fastapi.tiangolo.com/advanced/custom-response/",
+          "supports": "FastAPI StreamingResponse"
+        }
+      ]
+    },
+    "backend.resources.unbounded_buffers": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.1,
+        "Rust": 1,
+        "C": 0.7,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.1
+      },
+      "rationale": "Java (Executors.newFixedThreadPool's unbounded queue), Go (growing slices/channels and unbounded goroutine fan-out) and Rust (tokio unbounded_channel) have canonical unbounded-queue bugs; asyncio.Queue defaults to unbounded, .NET has Channel.CreateUnbounded, and C/C++ infrastructure code meets growing buffers routinely. Ruby/PHP request-scoped code rarely builds in-process queues.",
+      "sources": [
+        {
+          "url": "https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html",
+          "supports": "Java newFixedThreadPool uses a shared unbounded queue"
+        },
+        {
+          "url": "https://docs.rs/tokio/latest/tokio/sync/mpsc/fn.unbounded_channel.html",
+          "supports": "tokio unbounded_channel (no backpressure)"
+        },
+        {
+          "url": "https://docs.python.org/3/library/asyncio-queue.html",
+          "supports": "asyncio.Queue is unbounded when maxsize <= 0"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/core/extensions/channels",
+          "supports": "System.Threading.Channels bounded vs unbounded"
+        },
+        {
+          "url": "https://cwe.mitre.org/data/definitions/770.html",
+          "supports": "CWE-770 Allocation of Resources Without Limits"
+        }
+      ]
+    },
+    "backend.resources.context_cancellation": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 0.4,
+        "Kotlin": 1,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.1
+      },
+      "rationale": "Cancellation is first-class in Go (context.Context), C# (CancellationToken) and Kotlin (structured coroutine cancellation); JS/TS have AbortController, Python has asyncio task cancellation, Rust has future dropping and CancellationToken. Java relies on thread interrupts, Ruby's Timeout is notoriously unsafe, and C/C++/PHP have no common cancellation model in backend code.",
+      "sources": [
+        {
+          "url": "https://pkg.go.dev/context",
+          "supports": "Go context package: deadlines and cancellation"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/standard/threading/cancellation-in-managed-threads",
+          "supports": "Cancellation in .NET (CancellationToken)"
+        },
+        {
+          "url": "https://kotlinlang.org/docs/cancellation-and-timeouts.html",
+          "supports": "Kotlin coroutine cancellation and timeouts"
+        },
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/AbortController",
+          "supports": "AbortController for JS/TS cancellation"
+        },
+        {
+          "url": "https://docs.rs/tokio-util/latest/tokio_util/sync/struct.CancellationToken.html",
+          "supports": "tokio-util CancellationToken in Rust"
+        },
+        {
+          "url": "https://docs.oracle.com/javase/tutorial/essential/concurrency/interrupt.html",
+          "supports": "Java thread interrupts as cooperative cancellation"
+        },
+        {
+          "url": "https://mikeperham.com/2015/05/08/timeout-rubys-most-dangerous-api/",
+          "supports": "Why Ruby's Timeout is unsafe for cancelling work"
+        }
+      ]
+    },
+    "backend.security.authentication": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "Web stacks with first-class auth frameworks (Spring Security, ASP.NET Core Identity, Django auth, Devise, Laravel, Passport) are where engineers routinely read login/credential code. Go, Kotlin and Node have solid but thinner library support; Rust, Scala and C/C++ meet it mostly in infrastructure (database or proxy auth methods), which is plausible but less common.",
+      "sources": [
+        {
+          "url": "https://docs.spring.io/spring-security/reference/index.html",
+          "supports": "Spring Security: the standard authentication framework for Java/Kotlin services"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity",
+          "supports": "ASP.NET Core Identity: built-in authentication for C# backends"
+        },
+        {
+          "url": "https://docs.djangoproject.com/en/stable/topics/auth/",
+          "supports": "Django's built-in authentication system (Python)"
+        },
+        {
+          "url": "https://github.com/heartcombo/devise",
+          "supports": "Devise: the de facto Rails authentication library (Ruby)"
+        },
+        {
+          "url": "https://laravel.com/docs/authentication",
+          "supports": "Laravel authentication guards and providers (PHP)"
+        },
+        {
+          "url": "https://www.passportjs.org/",
+          "supports": "Passport: authentication middleware for Node.js (JS/TS)"
+        },
+        {
+          "url": "https://www.postgresql.org/docs/current/auth-methods.html",
+          "supports": "Authentication methods implemented in PostgreSQL (C infrastructure): why C is plausible, not zero"
+        }
+      ]
+    },
+    "backend.security.authorization_checks": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.4,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "Missing or wrong object-level checks in controllers/policies are the canonical broken-access-control bug in framework-heavy web stacks (Spring Security, ASP.NET policies, Pundit, Laravel gates, Django permissions, Nest guards). Go has Casbin and handwritten middleware; C appears via ACL checks in servers like Redis, while C++/Rust/Scala service code rarely centres on it.",
+      "sources": [
+        {
+          "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+          "supports": "Broken access control is OWASP Top 10 #1 for web applications"
+        },
+        {
+          "url": "https://docs.spring.io/spring-security/reference/servlet/authorization/index.html",
+          "supports": "Spring Security authorization (Java/Kotlin)"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/security/authorization/introduction",
+          "supports": "ASP.NET Core policy-based authorization (C#)"
+        },
+        {
+          "url": "https://github.com/varvet/pundit",
+          "supports": "Pundit: policy-object authorization in Rails (Ruby)"
+        },
+        {
+          "url": "https://laravel.com/docs/authorization",
+          "supports": "Laravel gates and policies (PHP)"
+        },
+        {
+          "url": "https://github.com/casbin/casbin",
+          "supports": "Casbin: authorization library originating in Go"
+        },
+        {
+          "url": "https://redis.io/docs/latest/operate/oss_and_stack/management/security/acl/",
+          "supports": "Redis ACLs: authorization checks inside C infrastructure software"
+        }
+      ]
+    },
+    "backend.security.sql_injection": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.4,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.4,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "SQL injection via string-built queries is the classic bug in PHP, Java (JDBC) and Python (DB-API, raw SQLAlchemy/Django SQL), all with prominent OWASP and official guidance; Go, Node, C# and Rails have official warnings about interpolated SQL. Rust's sqlx/Diesel and Kotlin/Scala DSLs make it less natural, and C++ backends rarely build SQL strings by hand.",
+      "sources": [
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
+          "supports": "OWASP SQLi prevention with per-language examples (Java, .NET, PHP, etc.)"
+        },
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html",
+          "supports": "Parameterized query examples across Java, C#, PHP, Ruby, Perl and others"
+        },
+        {
+          "url": "https://www.php.net/manual/en/pdo.prepared-statements.php",
+          "supports": "PHP manual: PDO prepared statements as the SQLi defence"
+        },
+        {
+          "url": "https://go.dev/doc/database/sql-injection",
+          "supports": "Go official docs: avoiding SQL injection risk with database/sql"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/security.html",
+          "supports": "Rails security guide: SQL injection through string conditions in Active Record"
+        },
+        {
+          "url": "https://github.com/launchbadge/sqlx",
+          "supports": "sqlx: compile-time checked queries in Rust, which reduces string-built SQL"
+        },
+        {
+          "url": "https://cwe.mitre.org/data/definitions/89.html",
+          "supports": "CWE-89 with demonstrative examples in several languages including C"
+        }
+      ]
+    },
+    "backend.security.input_sanitization": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 0.7,
+        "Kotlin": 0.4,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 1,
+        "C++": 0.7,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "PHP (output escaping, htmlspecialchars, XSS) and C (unchecked lengths leading to buffer overflows, CWE-120) are the canonical homes of unvalidated-input bugs; most web stacks meet validation/escaping routinely. Rust's bounds checking and Kotlin/Scala's typed request binding make classic input bugs less natural there.",
+      "sources": [
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html",
+          "supports": "OWASP input validation guidance for web backends"
+        },
+        {
+          "url": "https://cwe.mitre.org/data/definitions/120.html",
+          "supports": "CWE-120 classic buffer overflow from unchecked input size, with C/C++ examples"
+        },
+        {
+          "url": "https://www.php.net/manual/en/function.htmlspecialchars.php",
+          "supports": "PHP's core escaping function, central to PHP input/output sanitization"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/security.html",
+          "supports": "Rails security guide on injection, XSS and sanitization helpers"
+        }
+      ]
+    },
+    "backend.security.secrets_handling": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 0.7,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Mostly language-agnostic (env vars, vaults, no hardcoded keys), but .NET (User Secrets, configuration providers) and Go (the Vault/Kubernetes infrastructure ecosystem) have the most built-in machinery; Spring Cloud Vault, Rails credentials and Laravel .env make the rest common. Rust, Scala and C/C++ see it mainly as key zeroing or config plumbing in infrastructure code.",
+      "sources": [
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html",
+          "supports": "OWASP secrets management guidance (language-neutral)"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets",
+          "supports": "ASP.NET Core safe storage of app secrets in development (C#)"
+        },
+        {
+          "url": "https://docs.spring.io/spring-cloud-vault/reference/",
+          "supports": "Spring Cloud Vault: secrets injection for Java/Kotlin services"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/security.html",
+          "supports": "Rails guide section on custom credentials (encrypted credentials file)"
+        },
+        {
+          "url": "https://12factor.net/config",
+          "supports": "Twelve-factor guidance on keeping credentials out of code"
+        }
+      ]
+    },
+    "backend.security.session_and_token_handling": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 1,
+        "Kotlin": 0.4,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 1
+      },
+      "rationale": "Node (express-session, jsonwebtoken), Java (JJWT/Spring) and PHP (native sessions) are where session/JWT validation mistakes are most discussed; OWASP's JWT and session cheat sheets centre on these stacks. Python, Ruby, C# and Go have standard libraries (PyJWT, Rails cookie store, golang-jwt), while C/C++ rarely implement web sessions.",
+      "sources": [
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html",
+          "supports": "OWASP session management pitfalls (fixation, expiry, cookie flags)"
+        },
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_Cheat_Sheet.html",
+          "supports": "OWASP JWT cheat sheet (signature validation, algorithm confusion, revocation)"
+        },
+        {
+          "url": "https://github.com/auth0/node-jsonwebtoken",
+          "supports": "jsonwebtoken: the dominant Node.js JWT library"
+        },
+        {
+          "url": "https://github.com/expressjs/session",
+          "supports": "express-session: standard session middleware for Node"
+        },
+        {
+          "url": "https://github.com/golang-jwt/jwt",
+          "supports": "golang-jwt: the standard Go JWT library"
+        },
+        {
+          "url": "https://github.com/jpadilla/pyjwt",
+          "supports": "PyJWT: the standard Python JWT library"
+        }
+      ]
+    },
+    "backend.observability.structured_logging": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Go ships structured logging in the standard library (log/slog), C# has Serilog's message templates, and Java has MDC plus JSON encoders; these are routine. Python (structlog), Node (pino) and Rust (tracing) are common; Ruby, PHP (Monolog context) and C++ (spdlog) are thinner, and C services usually log plain text.",
+      "sources": [
+        {
+          "url": "https://pkg.go.dev/log/slog",
+          "supports": "Go standard library structured logging"
+        },
+        {
+          "url": "https://serilog.net/",
+          "supports": "Serilog structured logging for .NET"
+        },
+        {
+          "url": "https://github.com/logfellow/logstash-logback-encoder",
+          "supports": "JSON/structured logging for Logback (Java)"
+        },
+        {
+          "url": "https://www.structlog.org/",
+          "supports": "structlog for Python"
+        },
+        {
+          "url": "https://getpino.io/",
+          "supports": "pino JSON logger for Node.js"
+        },
+        {
+          "url": "https://docs.rs/tracing/latest/tracing/",
+          "supports": "Rust tracing crate with structured fields"
+        },
+        {
+          "url": "https://github.com/Seldaek/monolog",
+          "supports": "Monolog: PHP logging with context arrays"
+        }
+      ]
+    },
+    "backend.observability.metrics": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Prometheus' official clients are Go, Java/Scala, Python, Ruby, Rust and Node; Go and Java (Micrometer) are the mainstream homes of metric instrumentation bugs (cardinality, counter vs gauge). C++ infrastructure (Envoy) is metric-heavy; C, Ruby and PHP rely on thinner or third-party support (PHP's shared-nothing model needs external storage).",
+      "sources": [
+        {
+          "url": "https://prometheus.io/docs/instrumenting/clientlibs/",
+          "supports": "Official Prometheus clients: Go, Java/Scala, Python, Ruby, Rust, Node; C, C++, .NET and PHP third-party"
+        },
+        {
+          "url": "https://micrometer.io/",
+          "supports": "Micrometer: the JVM metrics facade used by Spring Boot"
+        },
+        {
+          "url": "https://github.com/prometheus/client_golang",
+          "supports": "Prometheus Go client"
+        },
+        {
+          "url": "https://opentelemetry.io/docs/languages/",
+          "supports": "OpenTelemetry metrics stability per language (Kotlin and Ruby metrics still in development)"
+        },
+        {
+          "url": "https://github.com/jupp0r/prometheus-cpp",
+          "supports": "prometheus-cpp: C++ metrics client"
+        }
+      ]
+    },
+    "backend.observability.tracing": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 0.1,
+        "C++": 0.7,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "OpenTelemetry tracing is stable and widely deployed in Java, Go and .NET (where context propagation bugs are a routine topic); Python, Node, C++ (Envoy) and Rust (tracing crate) are common. Ruby and PHP have stable SDKs but less usage, Kotlin uses the JVM SDK, and C has essentially no mainstream tracing SDK.",
+      "sources": [
+        {
+          "url": "https://opentelemetry.io/docs/languages/",
+          "supports": "OpenTelemetry per-language status (traces stable for C++, .NET, Go, Java, JS, PHP, Python, Ruby; Rust beta; no C SDK)"
+        },
+        {
+          "url": "https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/tracing",
+          "supports": "Envoy (C++) distributed tracing architecture"
+        },
+        {
+          "url": "https://docs.rs/tracing/latest/tracing/",
+          "supports": "Rust tracing crate (spans and instrumentation)"
+        },
+        {
+          "url": "https://github.com/open-telemetry/opentelemetry-cpp",
+          "supports": "OpenTelemetry C++ SDK"
+        }
+      ]
+    },
+    "backend.observability.health_checks": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Spring Boot Actuator and ASP.NET Core health checks are built-in frameworks for liveness/readiness, and Go is the home of Kubernetes probes and the gRPC health protocol. Other web stacks add a handler by hand; C/C++ infrastructure exposes admin endpoints but rarely as a reading exercise topic.",
+      "sources": [
+        {
+          "url": "https://docs.spring.io/spring-boot/reference/actuator/endpoints.html",
+          "supports": "Spring Boot Actuator health endpoint and indicators (Java/Kotlin)"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks",
+          "supports": "ASP.NET Core health checks middleware (C#)"
+        },
+        {
+          "url": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/",
+          "supports": "Kubernetes liveness/readiness/startup probes (language-neutral, Go examples)"
+        },
+        {
+          "url": "https://github.com/grpc/grpc/blob/master/doc/health-checking.md",
+          "supports": "gRPC health checking protocol"
+        },
+        {
+          "url": "https://www.envoyproxy.io/docs/envoy/latest/operations/admin",
+          "supports": "Envoy admin interface health endpoints (C++ infrastructure)"
+        }
+      ]
+    },
+    "backend.observability.logging_sensitive_data": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Logging whole request objects or entities (Java toString, Kotlin data classes) and request params is a canonical leak; Rails has filter_parameters for exactly this. Rust (derived Debug) and Scala (case class toString) can leak too but it is less discussed; C/C++ services rarely log user payloads.",
+      "sources": [
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html",
+          "supports": "OWASP logging cheat sheet: data to exclude from logs (passwords, tokens, PII)"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/configuring.html",
+          "supports": "Rails configuration including filter_parameters to mask sensitive params in logs"
+        },
+        {
+          "url": "https://techcrunch.com/2018/05/03/twitter-password-bug/",
+          "supports": "Twitter 2018: a bug wrote plaintext passwords to an internal log (GitHub had a similar incident days earlier)"
+        }
+      ]
+    },
+    "backend.config.configuration_loading": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Spring Boot's externalized configuration and .NET's layered configuration providers make precedence/binding bugs routine; Go's Viper is the standard for services and CLIs. Python (pydantic-settings), Node and Rust (config + serde) are common; Ruby/PHP frameworks hide most loading, and C/C++ infra parses config files by hand (PostgreSQL, Abseil flags).",
+      "sources": [
+        {
+          "url": "https://docs.spring.io/spring-boot/reference/features/external-config.html",
+          "supports": "Spring Boot externalized configuration and property source ordering"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/",
+          "supports": "ASP.NET Core configuration providers and precedence"
+        },
+        {
+          "url": "https://github.com/spf13/viper",
+          "supports": "Viper: configuration loading for Go"
+        },
+        {
+          "url": "https://docs.pydantic.dev/latest/concepts/pydantic_settings/",
+          "supports": "pydantic-settings for Python"
+        },
+        {
+          "url": "https://docs.rs/config/latest/config/",
+          "supports": "Rust config crate (layered configuration)"
+        },
+        {
+          "url": "https://www.postgresql.org/docs/current/config-setting.html",
+          "supports": "PostgreSQL configuration file parsing (C infrastructure)"
+        }
+      ]
+    },
+    "backend.config.feature_flags": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 0.7,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Feature-flag SDKs (OpenFeature, LaunchDarkly, Unleash) cover all mainstream web languages, so most are common; Ruby gets 1.0 for Flipper and the Rails culture of flag-gated rollouts. Rust and Scala have thinner SDK support, C++ infrastructure uses runtime flags (Envoy), and C rarely has them.",
+      "sources": [
+        {
+          "url": "https://openfeature.dev/docs/reference/technologies/",
+          "supports": "OpenFeature SDKs per language"
+        },
+        {
+          "url": "https://launchdarkly.com/docs/sdk",
+          "supports": "LaunchDarkly server-side SDK list"
+        },
+        {
+          "url": "https://docs.getunleash.io/reference/sdks",
+          "supports": "Unleash SDK list"
+        },
+        {
+          "url": "https://github.com/flippercloud/flipper",
+          "supports": "Flipper: feature flags for Ruby/Rails"
+        },
+        {
+          "url": "https://www.envoyproxy.io/docs/envoy/latest/operations/runtime",
+          "supports": "Envoy runtime feature flags (C++ infrastructure)"
+        }
+      ]
+    },
+    "backend.config.environment_specific_behaviour": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.4,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Rails environments, Spring profiles and ASP.NET Core environments are framework features where dev/prod divergence bugs are routine; Django settings, NODE_ENV and Laravel APP_ENV are common. Go and Rust have no framework convention (env vars, build tags, cfg), and C/C++ mostly see it as #ifdef/NDEBUG differences.",
+      "sources": [
+        {
+          "url": "https://docs.spring.io/spring-boot/reference/features/profiles.html",
+          "supports": "Spring Boot profiles"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/environments",
+          "supports": "ASP.NET Core runtime environments (Development/Staging/Production)"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/configuring.html",
+          "supports": "Rails per-environment configuration files"
+        },
+        {
+          "url": "https://12factor.net/config",
+          "supports": "Twelve-factor: config that varies between deploys belongs in the environment"
+        }
+      ]
+    },
+    "backend.config.defaults_and_validation": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Python (pydantic-settings), .NET (options validation) and Spring (@ConfigurationProperties with @Validated) have first-class typed config validation; Go's zero values and envconfig defaults, Rust's serde defaults and zod in Node are common settings. Ruby, PHP, Scala and C/C++ do it ad hoc.",
+      "sources": [
+        {
+          "url": "https://docs.pydantic.dev/latest/concepts/pydantic_settings/",
+          "supports": "pydantic-settings: typed settings with defaults and validation"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/core/extensions/options",
+          "supports": ".NET options pattern including options validation"
+        },
+        {
+          "url": "https://docs.spring.io/spring-boot/reference/features/external-config.html",
+          "supports": "Spring Boot type-safe @ConfigurationProperties and validation"
+        },
+        {
+          "url": "https://github.com/kelseyhightower/envconfig",
+          "supports": "envconfig: Go env config with defaults and required fields"
+        },
+        {
+          "url": "https://zod.dev/",
+          "supports": "zod: schema validation commonly used for env/config in TypeScript"
+        },
+        {
+          "url": "https://github.com/serde-rs/serde",
+          "supports": "serde: Rust deserialization with field defaults"
+        }
+      ]
+    },
+    "backend.testing.unit_test_design": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.7,
+        "C": 0.4,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.7
+      },
+      "rationale": "Every mainstream backend language has a standard test framework (JUnit, pytest, Go testing, xUnit/NUnit, RSpec, Jest, cargo test, GoogleTest, ScalaTest, PHPUnit), so most score high; the 1.0s have the strongest test-design culture and literature. C has thin, fragmented frameworks.",
+      "sources": [
+        {
+          "url": "https://junit.org/junit5/docs/current/user-guide/",
+          "supports": "JUnit 5 user guide (Java/Kotlin)"
+        },
+        {
+          "url": "https://docs.pytest.org/en/stable/",
+          "supports": "pytest (Python)"
+        },
+        {
+          "url": "https://pkg.go.dev/testing",
+          "supports": "Go standard library testing package"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/core/testing/",
+          "supports": ".NET unit testing (xUnit, NUnit, MSTest)"
+        },
+        {
+          "url": "https://rspec.info/",
+          "supports": "RSpec (Ruby)"
+        },
+        {
+          "url": "https://doc.rust-lang.org/book/ch11-01-writing-tests.html",
+          "supports": "Built-in tests in Rust"
+        },
+        {
+          "url": "https://google.github.io/googletest/",
+          "supports": "GoogleTest (C++)"
+        },
+        {
+          "url": "https://phpunit.de/",
+          "supports": "PHPUnit (PHP)"
+        }
+      ]
+    },
+    "backend.testing.mocking_and_fakes": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 1,
+        "Kotlin": 1,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Mocking libraries are central in Java (Mockito), Kotlin (MockK), C# (Moq), Python (unittest.mock) and JS/TS (Jest), where over-mocking and wrong-patch-target bugs are routine. Go favours hand-written fakes behind interfaces (gomock exists); Rust (mockall) and C++ (gMock) need trait/virtual seams, and C has little support.",
+      "sources": [
+        {
+          "url": "https://site.mockito.org/",
+          "supports": "Mockito (Java)"
+        },
+        {
+          "url": "https://mockk.io/",
+          "supports": "MockK (Kotlin)"
+        },
+        {
+          "url": "https://github.com/devlooped/moq",
+          "supports": "Moq (.NET)"
+        },
+        {
+          "url": "https://docs.python.org/3/library/unittest.mock.html",
+          "supports": "unittest.mock (Python standard library)"
+        },
+        {
+          "url": "https://jestjs.io/docs/mock-functions",
+          "supports": "Jest mock functions (JS/TS)"
+        },
+        {
+          "url": "https://github.com/uber-go/mock",
+          "supports": "gomock (Go)"
+        },
+        {
+          "url": "https://docs.rs/mockall/latest/mockall/",
+          "supports": "mockall (Rust), which requires trait-based seams"
+        },
+        {
+          "url": "https://docs.phpunit.de/en/11.5/test-doubles.html",
+          "supports": "PHPUnit test doubles"
+        }
+      ]
+    },
+    "backend.testing.flaky_tests": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "The main empirical flaky-test study is on Apache (Java) projects, with async waits, concurrency and test-order dependency as the top causes; these causes arise in every language with async/concurrent tests (Node async, Go goroutines, RSpec random order). Rust's ownership rules and C/C++/PHP's smaller test cultures make it less common as an exercise.",
+      "sources": [
+        {
+          "url": "https://doi.org/10.1145/2635868.2635920",
+          "supports": "Luo et al., An Empirical Analysis of Flaky Tests (FSE 2014): 51 Apache projects; async wait, concurrency, order dependency"
+        },
+        {
+          "url": "https://testing.googleblog.com/2016/05/flaky-tests-at-google-and-how-we.html",
+          "supports": "Google Testing Blog: flaky tests at Google and mitigation"
+        },
+        {
+          "url": "https://go.dev/doc/articles/race_detector",
+          "supports": "Go race detector, a common tool for timing-dependent test failures"
+        }
+      ]
+    },
+    "backend.testing.integration_tests": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Java (Spring Boot tests, Testcontainers' origin) and Rails (integration/system tests built into the framework) are the canonical homes; Testcontainers modules for Go, .NET, Node, Python plus Django/Laravel test clients make the others common. Rust and C++ have thinner tooling, and C rarely has service-level integration suites.",
+      "sources": [
+        {
+          "url": "https://testcontainers.com/",
+          "supports": "Testcontainers: Java, Go, .NET, Node.js, Python, Rust and other implementations"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/testing.html",
+          "supports": "Rails testing guide: integration and system tests"
+        },
+        {
+          "url": "https://docs.djangoproject.com/en/stable/topics/testing/",
+          "supports": "Django testing tools (test client, database setup)"
+        },
+        {
+          "url": "https://github.com/testcontainers/testcontainers-rs",
+          "supports": "Testcontainers for Rust (community)"
+        }
+      ]
+    },
+    "backend.design.dependency_injection": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 1,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 1
+      },
+      "rationale": "DI containers are core framework features in Java (Spring), C# (Microsoft.Extensions.DependencyInjection), TypeScript (NestJS), PHP (Laravel's service container) and Kotlin (Koin, Spring, Dagger). Go (Wire, fx, constructor injection), Python (FastAPI Depends) and Scala (ZIO layers) are common; Ruby/JS lean on duck typing and module patching, and C rarely uses it.",
+      "sources": [
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/core/beans.html",
+          "supports": "Spring IoC container (Java)"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection",
+          "supports": ".NET dependency injection"
+        },
+        {
+          "url": "https://docs.nestjs.com/providers",
+          "supports": "NestJS providers and DI (TypeScript)"
+        },
+        {
+          "url": "https://laravel.com/docs/container",
+          "supports": "Laravel service container (PHP)"
+        },
+        {
+          "url": "https://insert-koin.io/",
+          "supports": "Koin DI framework (Kotlin)"
+        },
+        {
+          "url": "https://github.com/google/wire",
+          "supports": "Wire: compile-time DI for Go"
+        },
+        {
+          "url": "https://fastapi.tiangolo.com/tutorial/dependencies/",
+          "supports": "FastAPI dependency injection (Python)"
+        },
+        {
+          "url": "https://zio.dev/reference/di/",
+          "supports": "ZIO dependency injection with layers (Scala)"
+        }
+      ]
+    },
+    "backend.design.layering": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Controller/service/repository layering is the default architecture in Spring and ASP.NET (with official guidance), and common in Nest, Django, Rails, Laravel and Go services. Plain JS, Rust, Scala and C/C++ code is less often organised around these layers, so violations look less natural.",
+      "sources": [
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures",
+          "supports": "Microsoft guide to layered and clean architectures for .NET web apps"
+        },
+        {
+          "url": "https://martinfowler.com/bliki/PresentationDomainDataLayering.html",
+          "supports": "Fowler: presentation/domain/data layering"
+        },
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/core/beans.html",
+          "supports": "Spring stereotypes (@Controller/@Service/@Repository) encode layering in Java"
+        }
+      ]
+    },
+    "backend.design.interface_design": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.4,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 1,
+        "C": 0.4,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0.7
+      },
+      "rationale": "Explicit abstractions are central in Go (small implicit interfaces), Rust (traits), Java and C#; TypeScript, Kotlin, Scala, C++ and PHP interfaces/abstract classes are common. Python, Ruby and JS rely on duck typing (Protocols are optional), and C uses headers and function-pointer tables, so interface-design exercises are plausible but less natural there.",
+      "sources": [
+        {
+          "url": "https://go.dev/doc/effective_go",
+          "supports": "Effective Go: interfaces and embedding"
+        },
+        {
+          "url": "https://doc.rust-lang.org/book/ch10-02-traits.html",
+          "supports": "Rust book: traits as shared behaviour"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection",
+          "supports": ".NET DI built around interface abstractions"
+        }
+      ]
+    },
+    "backend.design.coupling_and_cohesion": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.4,
+        "C++": 0.7,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Largely language-neutral, but most discussed in large Java and C# codebases (OO design literature, DI-based decoupling). It is a common reading topic in the other mainstream backend languages and C++; Rust, Scala and C have smaller corpora of service code organised this way.",
+      "sources": [
+        {
+          "url": "https://martinfowler.com/ieeeSoftware/coupling.pdf",
+          "supports": "Fowler, Reducing Coupling (IEEE Software)"
+        },
+        {
+          "url": "https://refactoring.com/catalog/",
+          "supports": "Refactoring catalog (Move Function, Extract Class, etc.) for coupling and cohesion"
+        }
+      ]
+    },
+    "backend.design.code_duplication": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 0.7,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.7,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Copy-paste is language-neutral (PMD CPD detects it across most of these languages). Go gets 1.0 because it lacked generics until 1.18 and duplicated code is a well-known idiom cost there; C is also prone because it has no generics. Rust, C++ and Scala have strong abstraction tools (generics, macros, templates), so duplication is less often the point of an exercise.",
+      "sources": [
+        {
+          "url": "https://pmd.github.io/pmd/pmd_userdocs_cpd.html",
+          "supports": "PMD copy-paste detector, supporting most mainstream languages"
+        },
+        {
+          "url": "https://go.dev/blog/intro-generics",
+          "supports": "Go blog: generics introduced to avoid writing the same code per type"
+        },
+        {
+          "url": "https://refactoring.com/catalog/",
+          "supports": "Refactoring catalog: Extract Function and related duplication fixes"
+        }
+      ]
+    },
+    "backend.distributed.sharding_and_partitioning": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.4,
+        "Go": 1,
+        "Python": 0.4,
+        "C#": 0.4,
+        "Ruby": 0.4,
+        "Rust": 0.7,
+        "C": 0.7,
+        "C++": 1,
+        "Scala": 0.7,
+        "PHP": 0.1
+      },
+      "rationale": "Partitioning logic lives mostly in infrastructure: Kafka/Cassandra/Elasticsearch (Java), Vitess/CockroachDB (Go), ScyllaDB/MongoDB (C++), TiKV (Rust), Redis Cluster hash slots (C), Akka Cluster Sharding (Scala). App stacks (Rails horizontal sharding, Django routers) make it plausible elsewhere; PHP rarely.",
+      "sources": [
+        {
+          "url": "https://vitess.io/docs/reference/features/sharding/",
+          "supports": "Go: Vitess sharding."
+        },
+        {
+          "url": "https://github.com/cockroachdb/cockroach",
+          "supports": "Go: range-partitioned distributed SQL."
+        },
+        {
+          "url": "https://www.scylladb.com/product/technology/shard-per-core-architecture/",
+          "supports": "C++: ScyllaDB shard-per-core."
+        },
+        {
+          "url": "https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/",
+          "supports": "C: Redis Cluster hash-slot partitioning."
+        },
+        {
+          "url": "https://doc.akka.io/libraries/akka-core/current/typed/cluster-sharding.html",
+          "supports": "Scala/Java: Akka Cluster Sharding."
+        },
+        {
+          "url": "https://guides.rubyonrails.org/active_record_multiple_databases.html",
+          "supports": "Ruby: application-level horizontal sharding exists but is less central."
+        }
+      ]
+    },
+    "backend.distributed.replication_and_consensus": {
+      "weights": {
+        "TypeScript": 0.1,
+        "JavaScript": 0.1,
+        "Java": 1,
+        "Kotlin": 0.1,
+        "Go": 1,
+        "Python": 0.1,
+        "C#": 0.4,
+        "Ruby": 0.1,
+        "Rust": 1,
+        "C": 0.7,
+        "C++": 0.7,
+        "Scala": 0.7,
+        "PHP": 0
+      },
+      "rationale": "Consensus implementations engineers actually read are etcd/raft and hashicorp/raft (Go), ZooKeeper/Kafka KRaft (Java), raft-rs/TiKV (Rust), braft (C++) and canonical/raft (C). Scala via Akka Cluster/Kafka. In TS/JS/Python/Ruby/PHP backends this is library-consumer territory, so code-reading exercises would look contrived.",
+      "sources": [
+        {
+          "url": "https://github.com/etcd-io/raft",
+          "supports": "Go: etcd's Raft library."
+        },
+        {
+          "url": "https://github.com/hashicorp/raft",
+          "supports": "Go: HashiCorp Raft used by Consul/Nomad/Vault."
+        },
+        {
+          "url": "https://github.com/tikv/raft-rs",
+          "supports": "Rust: Raft in TiKV."
+        },
+        {
+          "url": "https://zookeeper.apache.org/doc/current/zookeeperInternals.html",
+          "supports": "Java: ZooKeeper atomic broadcast internals."
+        },
+        {
+          "url": "https://github.com/baidu/braft",
+          "supports": "C++: industrial Raft library."
+        },
+        {
+          "url": "https://github.com/canonical/raft",
+          "supports": "C: Raft implementation in C."
+        }
+      ]
+    },
+    "backend.distributed.cross_service_consistency": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 0.4,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Sagas and transactional outbox are microservice patterns with strong library support in Java (Debezium outbox, Axon/Eventuate), C# (MassTransit sagas and outbox) and Go (Temporal server, common in Go microservices); TS/Python/Kotlin/Scala are natural settings. Ruby/PHP monoliths meet it less, and C/C++ rarely.",
+      "sources": [
+        {
+          "url": "https://microservices.io/patterns/data/transactional-outbox.html",
+          "supports": "Pattern definition (transactional outbox)."
+        },
+        {
+          "url": "https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html",
+          "supports": "Java: Debezium outbox event router."
+        },
+        {
+          "url": "https://masstransit.io/documentation/patterns/saga",
+          "supports": "C#: MassTransit saga state machines."
+        },
+        {
+          "url": "https://github.com/temporalio/temporal",
+          "supports": "Go: Temporal durable workflow engine (SDKs in Go/Java/TS/Python/.NET)."
+        }
+      ]
+    },
+    "backend.performance.profiling_and_hot_paths": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 1,
+        "C": 1,
+        "C++": 1,
+        "Scala": 0.7,
+        "PHP": 0.4
+      },
+      "rationale": "Hot-path tuning is routine in C/C++/Rust infrastructure (perf, flame graphs), Go (pprof built in) and Java (async-profiler, JMH). Python (py-spy), C# (dotnet-trace), Node (--prof), Ruby (stackprof) and the JVM languages have well-known profilers. PHP has Xdebug/Blackfire/Tideways, but request-scoped PHP code is less often tuned at the hot-loop level.",
+      "sources": [
+        {
+          "url": "https://www.brendangregg.com/flamegraphs.html",
+          "supports": "Flame graphs for CPU profiling (perf, many runtimes)"
+        },
+        {
+          "url": "https://pkg.go.dev/net/http/pprof",
+          "supports": "Go built-in pprof profiling"
+        },
+        {
+          "url": "https://github.com/async-profiler/async-profiler",
+          "supports": "JVM sampling profiler"
+        },
+        {
+          "url": "https://github.com/flamegraph-rs/flamegraph",
+          "supports": "Rust flamegraph tooling"
+        },
+        {
+          "url": "https://github.com/benfred/py-spy",
+          "supports": "Python sampling profiler"
+        },
+        {
+          "url": "https://xdebug.org/docs/profiler",
+          "supports": "PHP Xdebug profiler"
+        }
+      ]
+    },
+    "backend.integrations.webhooks_outbound": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 0.7,
+        "Kotlin": 0.4,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 1,
+        "Rust": 0.7,
+        "C": 0,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Sending webhooks (retries, signing, timeouts, SSRF) is product-API work: TS/Node and Ruby (Rails SaaS) are the typical homes, with dedicated dispatchers like Svix (Rust) and Convoy (Go) and spatie/laravel-webhook-server for PHP. C/C++ services essentially never send webhooks.",
+      "sources": [
+        {
+          "url": "https://www.standardwebhooks.com/",
+          "supports": "Cross-language spec for signing/delivering webhooks, with libraries in many languages."
+        },
+        {
+          "url": "https://github.com/svix/svix-webhooks",
+          "supports": "Rust: Svix webhook delivery server; SDKs for many languages."
+        },
+        {
+          "url": "https://github.com/frain-dev/convoy",
+          "supports": "Go: Convoy webhook gateway."
+        },
+        {
+          "url": "https://github.com/spatie/laravel-webhook-server",
+          "supports": "PHP: outbound webhooks with retries and signing for Laravel."
+        }
+      ]
+    },
+    "backend.integrations.third_party_adapters": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 0.7,
+        "Java": 0.7,
+        "Kotlin": 0.4,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Wrapping payment/email/CRM APIs is glue work; vendors like Stripe ship official SDKs for Node, Python, Ruby, PHP, Java, Go and .NET, and Resilience4j/Polly exist for the retry/timeout wrapping. Kotlin/Scala/Rust get unofficial or JVM SDKs, and C/C++ backends rarely integrate SaaS APIs.",
+      "sources": [
+        {
+          "url": "https://docs.stripe.com/sdks",
+          "supports": "Official server SDK languages for a major third-party API."
+        },
+        {
+          "url": "https://resilience4j.readme.io/docs",
+          "supports": "Java: resilience library for wrapping remote calls."
+        },
+        {
+          "url": "https://github.com/App-vNext/Polly",
+          "supports": "C#: Polly retry/circuit-breaker for external calls."
+        }
+      ]
+    },
+    "backend.data.nosql_modeling": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 0.7,
+        "Kotlin": 0.4,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.4,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Document and single-table modeling is most at home in Node/TS (Mongoose, ElectroDB for DynamoDB), with Java (Spring Data MongoDB, DynamoDB Enhanced Client), Python (boto3/pymongo), Go and C# (Cosmos DB) common. Ruby/PHP stacks lean on relational ORMs; C/C++ only appear as the database engine, not as data-model code.",
+      "sources": [
+        {
+          "url": "https://mongoosejs.com/docs/guide.html",
+          "supports": "JS/TS: Mongoose schemas."
+        },
+        {
+          "url": "https://electrodb.dev/",
+          "supports": "TS: DynamoDB single-table modeling library."
+        },
+        {
+          "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-general-nosql-design.html",
+          "supports": "NoSQL access-pattern-first design."
+        },
+        {
+          "url": "https://www.mongodb.com/docs/manual/data-modeling/",
+          "supports": "Embedding vs referencing."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/modeling-data",
+          "supports": "C#/.NET ecosystem: Cosmos DB data modeling."
+        }
+      ]
+    },
+    "backend.data.money_and_ledgers": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.7,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 1,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.7,
+        "PHP": 0.7
+      },
+      "rationale": "Java (BigDecimal, JSR 354/Moneta), C# (built-in decimal), Python (decimal) and Ruby (BigDecimal plus the money gem) have first-class decimal money types and many fintech codebases. JS/TS make the float-rounding bug canonical but need Dinero.js-style libraries; Go uses shopspring/decimal; Rust has rust_decimal; C++ appears in trading (fixed-point); C rarely.",
+      "sources": [
+        {
+          "url": "https://github.com/JavaMoney/jsr354-ri",
+          "supports": "Java: JSR 354 Money and Currency reference implementation."
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/api/system.decimal",
+          "supports": "C#: built-in decimal type."
+        },
+        {
+          "url": "https://docs.python.org/3/library/decimal.html",
+          "supports": "Python: decimal module with rounding control."
+        },
+        {
+          "url": "https://github.com/RubyMoney/money",
+          "supports": "Ruby: money gem."
+        },
+        {
+          "url": "https://github.com/dinerojs/dinero.js",
+          "supports": "JS/TS: immutable money library to avoid float errors."
+        },
+        {
+          "url": "https://github.com/shopspring/decimal",
+          "supports": "Go: arbitrary-precision decimal (no built-in type)."
+        },
+        {
+          "url": "https://github.com/moneyphp/money",
+          "supports": "PHP: Money pattern implementation."
+        },
+        {
+          "url": "https://github.com/paupino/rust-decimal",
+          "supports": "Rust: decimal crate."
+        }
+      ]
+    },
+    "backend.security.audit_logging": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.4,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Mature audit libraries make it routine in Ruby (PaperTrail) and Java (Hibernate Envers); Go has Kubernetes API audit logging, and the other web stacks implement audit trails with ORM hooks. C appears via pgaudit, while Rust, Scala and C++ rarely centre on it.",
+      "sources": [
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html",
+          "supports": "OWASP: which security events to record in audit logs"
+        },
+        {
+          "url": "https://github.com/paper-trail-gem/paper_trail",
+          "supports": "PaperTrail: model change auditing for Rails"
+        },
+        {
+          "url": "https://hibernate.org/orm/envers/",
+          "supports": "Hibernate Envers: entity auditing for Java"
+        },
+        {
+          "url": "https://kubernetes.io/docs/tasks/debug/debug-cluster/audit/",
+          "supports": "Kubernetes API server auditing (Go)"
+        },
+        {
+          "url": "https://github.com/pgaudit/pgaudit",
+          "supports": "pgaudit: PostgreSQL audit extension (C)"
+        }
+      ]
+    },
+    "backend.security.encryption_at_rest_and_in_transit": {
+      "weights": {
+        "TypeScript": 0.4,
+        "JavaScript": 0.4,
+        "Java": 1,
+        "Kotlin": 0.7,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 1,
+        "C++": 0.7,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "C (OpenSSL), Go (crypto/tls in the stdlib) and Java (JCA/JSSE) are the mainstream homes of TLS configuration and cipher-misuse bugs; Rust (rustls), C++, Python (cryptography), .NET, Rails (Active Record encryption) and PHP (sodium, Laravel encryption) are common. Node services usually terminate TLS elsewhere and use node:crypto less often.",
+      "sources": [
+        {
+          "url": "https://www.openssl.org/",
+          "supports": "OpenSSL: the C TLS/crypto library underlying much infrastructure"
+        },
+        {
+          "url": "https://pkg.go.dev/crypto/tls",
+          "supports": "Go standard library TLS"
+        },
+        {
+          "url": "https://docs.oracle.com/en/java/javase/21/security/java-cryptography-architecture-jca-reference-guide.html",
+          "supports": "Java Cryptography Architecture reference"
+        },
+        {
+          "url": "https://github.com/rustls/rustls",
+          "supports": "rustls: TLS in Rust"
+        },
+        {
+          "url": "https://cryptography.io/en/latest/",
+          "supports": "pyca/cryptography for Python"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/active_record_encryption.html",
+          "supports": "Rails Active Record encryption (at rest)"
+        },
+        {
+          "url": "https://www.php.net/manual/en/book.sodium.php",
+          "supports": "PHP sodium extension"
+        },
+        {
+          "url": "https://www.postgresql.org/docs/current/ssl-tcp.html",
+          "supports": "PostgreSQL TLS connections (C infrastructure)"
+        }
+      ]
+    },
+    "backend.security.multi_tenant_isolation": {
+      "weights": {
+        "TypeScript": 0.7,
+        "JavaScript": 0.4,
+        "Java": 0.7,
+        "Kotlin": 0.4,
+        "Go": 0.7,
+        "Python": 0.7,
+        "C#": 1,
+        "Ruby": 1,
+        "Rust": 0.4,
+        "C": 0.1,
+        "C++": 0.1,
+        "Scala": 0.4,
+        "PHP": 0.7
+      },
+      "rationale": "Ruby (acts_as_tenant, Apartment) and C# (EF Core global query filters, official multi-tenancy guidance) have first-class tenant-scoping patterns where a missing filter is the canonical bug; Python (django-tenants), Java (Hibernate) and Node/Go SaaS backends are common. C/C++ backends almost never implement tenant scoping in application code (it lives in the database, e.g. PostgreSQL RLS).",
+      "sources": [
+        {
+          "url": "https://learn.microsoft.com/en-us/ef/core/miscellaneous/multitenancy",
+          "supports": "EF Core multi-tenancy guidance (global query filters, per-tenant databases)"
+        },
+        {
+          "url": "https://github.com/ErwinM/acts_as_tenant",
+          "supports": "acts_as_tenant: row-level tenant scoping for Rails"
+        },
+        {
+          "url": "https://github.com/django-tenants/django-tenants",
+          "supports": "django-tenants: schema-based multi-tenancy for Django"
+        },
+        {
+          "url": "https://www.postgresql.org/docs/current/ddl-rowsecurity.html",
+          "supports": "PostgreSQL row-level security, often used for tenant isolation at the DB layer"
+        }
+      ]
+    },
+    "backend.realtime.connection_fanout": {
+      "weights": {
+        "TypeScript": 1,
+        "JavaScript": 1,
+        "Java": 0.7,
+        "Kotlin": 0.4,
+        "Go": 1,
+        "Python": 0.7,
+        "C#": 0.7,
+        "Ruby": 0.7,
+        "Rust": 0.7,
+        "C": 0.1,
+        "C++": 0.4,
+        "Scala": 0.4,
+        "PHP": 0.4
+      },
+      "rationale": "Broadcasting to many WebSocket clients is the core use case of Node (socket.io rooms, Redis adapter, ws) and Go (gorilla/websocket hub). It is common in Java (Spring STOMP), C# (SignalR backplanes), Python (Django Channels groups), Ruby (Action Cable) and Rust (tokio broadcast). C++ (uWebSockets), Kotlin (Ktor), Scala and PHP (Laravel broadcasting via an external server) are thinner, and C is rare.",
+      "sources": [
+        {
+          "url": "https://socket.io/docs/v4/broadcasting-events/",
+          "supports": "socket.io broadcasting to rooms"
+        },
+        {
+          "url": "https://socket.io/docs/v4/redis-adapter/",
+          "supports": "Fan-out across Node instances via Redis"
+        },
+        {
+          "url": "https://github.com/gorilla/websocket",
+          "supports": "Go WebSocket library (chat hub example)"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/signalr/scale",
+          "supports": "SignalR scale-out and backplanes"
+        },
+        {
+          "url": "https://channels.readthedocs.io/en/latest/topics/channel_layers.html",
+          "supports": "Django Channels group fan-out"
+        },
+        {
+          "url": "https://guides.rubyonrails.org/action_cable_overview.html",
+          "supports": "Rails Action Cable broadcasting"
+        },
+        {
+          "url": "https://docs.rs/tokio/latest/tokio/sync/broadcast/index.html",
+          "supports": "tokio broadcast channel for fan-out"
+        },
+        {
+          "url": "https://laravel.com/docs/11.x/broadcasting",
+          "supports": "Laravel broadcasting relies on an external WebSocket server"
+        }
+      ]
+    }
+  }
+}

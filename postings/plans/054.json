@@ -3,11 +3,16 @@
   "targets": [
     {
       "label": "backend.testing.unit_test_design",
-      "language": "Python",
+      "language": "Java",
       "count": 2
     },
     {
       "label": "backend.testing.unit_test_design",
+      "language": "Python",
+      "count": 2
+    },
+    {
+      "label": "backend.api.rest_design",
       "language": "Java",
       "count": 2
     },
@@ -15,11 +20,6 @@
       "label": "backend.api.rest_design",
       "language": "Python",
       "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
-      "language": "Java",
-      "count": 2
     },
     {
       "label": "backend.integrations.third_party_adapters",
@@ -33,16 +33,11 @@
     },
     {
       "label": "backend.testing.mocking_and_fakes",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.testing.mocking_and_fakes",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.integration_tests",
       "language": "Python",
       "count": 1
     },
@@ -52,7 +47,7 @@
       "count": 1
     },
     {
-      "label": "backend.api.request_validation",
+      "label": "backend.testing.integration_tests",
       "language": "Python",
       "count": 1
     },
@@ -62,7 +57,7 @@
       "count": 1
     },
     {
-      "label": "backend.api.serialization_and_deserialization",
+      "label": "backend.api.request_validation",
       "language": "Python",
       "count": 1
     },
@@ -72,13 +67,18 @@
       "count": 1
     },
     {
-      "label": "backend.errors.error_propagation",
+      "label": "backend.api.serialization_and_deserialization",
       "language": "Python",
       "count": 1
     },
     {
       "label": "backend.errors.error_propagation",
       "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.errors.error_propagation",
+      "language": "Python",
       "count": 1
     }
   ]

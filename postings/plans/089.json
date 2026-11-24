@@ -4,7 +4,7 @@
     {
       "label": "backend.resources.streaming_large_payloads",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.resources.streaming_large_payloads",
@@ -14,31 +14,21 @@
     {
       "label": "backend.resources.streaming_large_payloads",
       "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.streaming_large_payloads",
-      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
       "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
-      "language": "Java",
       "count": 1
     },
     {
@@ -58,7 +48,7 @@
     },
     {
       "label": "backend.distributed.replication_and_consensus",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
@@ -88,17 +78,17 @@
     },
     {
       "label": "backend.messaging.at_least_once_delivery",
-      "language": "Scala",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.thread_and_worker_pools",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.concurrency.thread_and_worker_pools",
       "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.thread_and_worker_pools",
-      "language": "Scala",
       "count": 1
     }
   ]

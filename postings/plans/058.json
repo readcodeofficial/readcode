@@ -23,13 +23,8 @@
     },
     {
       "label": "backend.distributed.sharding_and_partitioning",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.messaging.at_least_once_delivery",
@@ -53,12 +48,12 @@
     },
     {
       "label": "backend.resources.streaming_large_payloads",
-      "language": "Python",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.resources.streaming_large_payloads",
-      "language": "Go",
+      "language": "Python",
       "count": 1
     },
     {
@@ -73,28 +68,23 @@
     },
     {
       "label": "backend.messaging.message_ordering",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.message_ordering",
       "language": "Go",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.messaging.backpressure",
-      "language": "Python",
-      "count": 1
+      "language": "Go",
+      "count": 2
     },
     {
-      "label": "backend.messaging.backpressure",
+      "label": "backend.performance.profiling_and_hot_paths",
       "language": "Go",
       "count": 1
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
       "language": "Python",
-      "count": 2
+      "count": 1
     }
   ]
 }

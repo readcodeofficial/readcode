@@ -8,12 +8,12 @@
     },
     {
       "label": "backend.config.configuration_loading",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.config.configuration_loading",
-      "language": "Java",
+      "language": "Python",
       "count": 1
     },
     {
@@ -23,12 +23,12 @@
     },
     {
       "label": "backend.observability.metrics",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.observability.metrics",
-      "language": "Java",
+      "language": "Python",
       "count": 1
     },
     {
@@ -38,7 +38,7 @@
     },
     {
       "label": "backend.observability.structured_logging",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
@@ -48,7 +48,7 @@
     },
     {
       "label": "backend.observability.health_checks",
-      "language": "Python",
+      "language": "Java",
       "count": 1
     },
     {
@@ -68,12 +68,12 @@
     },
     {
       "label": "backend.security.secrets_handling",
-      "language": "Java",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.config.defaults_and_validation",
-      "language": "Go",
+      "language": "Python",
       "count": 1
     },
     {
@@ -83,22 +83,22 @@
     },
     {
       "label": "backend.testing.integration_tests",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.integration_tests",
       "language": "Java",
       "count": 1
     },
     {
+      "label": "backend.testing.integration_tests",
+      "language": "Go",
+      "count": 1
+    },
+    {
       "label": "backend.resilience.timeouts",
       "language": "Go",
       "count": 1
     },
     {
       "label": "backend.resilience.timeouts",
-      "language": "Rust",
+      "language": "Python",
       "count": 1
     }
   ]

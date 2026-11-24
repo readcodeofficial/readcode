@@ -4,27 +4,17 @@
     {
       "label": "backend.api.rest_design",
       "language": "Java",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.api.rest_design",
       "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
-      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.data.nosql_modeling",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.data.nosql_modeling",
-      "language": "Python",
-      "count": 1
+      "count": 2
     },
     {
       "label": "backend.data.nosql_modeling",
@@ -38,28 +28,23 @@
     },
     {
       "label": "backend.messaging.queues_and_consumers",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.unit_test_design",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.unit_test_design",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
       "language": "Go",
       "count": 1
+    },
+    {
+      "label": "backend.testing.unit_test_design",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.testing.unit_test_design",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.distributed.sharding_and_partitioning",
+      "language": "Java",
+      "count": 2
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
@@ -74,17 +59,32 @@
     {
       "label": "backend.integrations.third_party_adapters",
       "language": "Java",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.integrations.third_party_adapters",
+      "language": "Python",
+      "count": 1
     },
     {
       "label": "backend.api.request_validation",
       "language": "Java",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.api.request_validation",
+      "language": "Python",
+      "count": 1
     },
     {
       "label": "backend.api.status_codes_and_error_responses",
       "language": "Java",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.api.status_codes_and_error_responses",
+      "language": "Python",
+      "count": 1
     }
   ]
 }

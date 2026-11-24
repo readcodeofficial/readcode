@@ -8,77 +8,77 @@
     },
     {
       "label": "backend.api.rest_design",
-      "language": "Rust",
+      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.api.rest_design",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.api.request_validation",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.api.request_validation",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.api.serialization_and_deserialization",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.performance.profiling_and_hot_paths",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.performance.profiling_and_hot_paths",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.api.status_codes_and_error_responses",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.api.status_codes_and_error_responses",
       "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.design.interface_design",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.design.interface_design",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.design.interface_design",
+      "language": "Rust",
+      "count": 1
+    },
+    {
+      "label": "backend.api.request_validation",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.api.request_validation",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.api.serialization_and_deserialization",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.security.authorization_checks",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.security.authorization_checks",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.api.status_codes_and_error_responses",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.api.status_codes_and_error_responses",
+      "language": "Python",
       "count": 1
     },
     {

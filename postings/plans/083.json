@@ -74,12 +74,22 @@
     {
       "label": "backend.errors.error_propagation",
       "language": "TypeScript",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.errors.error_propagation",
+      "language": "JavaScript",
+      "count": 1
     },
     {
       "label": "backend.security.authorization_checks",
       "language": "TypeScript",
-      "count": 2
+      "count": 1
+    },
+    {
+      "label": "backend.security.authorization_checks",
+      "language": "JavaScript",
+      "count": 1
     }
   ]
 }

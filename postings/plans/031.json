@@ -13,17 +13,12 @@
     },
     {
       "label": "backend.data.money_and_ledgers",
-      "language": "JavaScript",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.data.money_and_ledgers",
-      "language": "Scala",
-      "count": 1
-    },
-    {
-      "label": "backend.api.idempotency",
-      "language": "Java",
+      "language": "JavaScript",
       "count": 1
     },
     {
@@ -33,7 +28,12 @@
     },
     {
       "label": "backend.api.idempotency",
-      "language": "JavaScript",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.api.idempotency",
+      "language": "Go",
       "count": 1
     },
     {
@@ -43,12 +43,12 @@
     },
     {
       "label": "backend.data.transactions_and_isolation_levels",
-      "language": "Ruby",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.data.transactions_and_isolation_levels",
-      "language": "JavaScript",
+      "language": "Ruby",
       "count": 1
     },
     {
@@ -73,7 +73,7 @@
     },
     {
       "label": "backend.api.request_validation",
-      "language": "Scala",
+      "language": "Ruby",
       "count": 1
     },
     {
@@ -88,7 +88,7 @@
     },
     {
       "label": "backend.testing.unit_test_design",
-      "language": "Scala",
+      "language": "Ruby",
       "count": 1
     },
     {
@@ -98,7 +98,7 @@
     },
     {
       "label": "backend.api.status_codes_and_error_responses",
-      "language": "Scala",
+      "language": "JavaScript",
       "count": 1
     }
   ]

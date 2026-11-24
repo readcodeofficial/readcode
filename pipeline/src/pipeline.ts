@@ -21,7 +21,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
-import { LanguageList, Plan, Taxonomy, type Classification } from "../../shared/types.ts";
+import { LanguageFit, LanguageList, Plan, Taxonomy, type Classification } from "../../shared/types.ts";
 import { classify } from "./classifier.ts";
 import { generateExample, writeExample } from "./exampleGenerator.ts";
 
@@ -29,17 +29,18 @@ const EXAMPLES_PER_POSTING = 20;
 const MIN_PER_TOPIC = 2;
 const SHARE_POWER = 2;
 const DEFAULT_LANGUAGE = "Python"; // when a posting names no language: the most common interview language
+const MIN_LANGUAGE_FIT = 0.7; // only "common" (0.7) or "mainstream" (1.0) languages get a topic (docs/LANGUAGE_FIT.md)
 
 
 // use a job description file to create a plan file
-async function plan(jobDescription: string, taxonomy: Taxonomy, languages: LanguageList): Promise<Plan> {
+async function plan(jobDescription: string, taxonomy: Taxonomy, languages: LanguageList, fit?: LanguageFit): Promise<Plan> {
     // 1. classify
     const classification = await classify(jobDescription, taxonomy, languages);
-    return planFromClassification(classification, taxonomy);
+    return planFromClassification(classification, taxonomy, fit);
 }
 
 // steps 2-6: turn a classification (weights per label) into example counts
-export function planFromClassification(classification: Classification, taxonomy: Taxonomy): Plan {
+export function planFromClassification(classification: Classification, taxonomy: Taxonomy, fit?: LanguageFit): Plan {
     // 1. rank concepts
     const ranked = taxonomy.labels
         .map((label, i) => ({ label, weight: classification.weights[i], i }))
@@ -57,42 +58,34 @@ export function planFromClassification(classification: Classification, taxonomy:
         counts = largestRemainder(EXAMPLES_PER_POSTING, shares(chosen));
     }
 
-    // 3. Split the plan's examples across the posting's languages by their weights, then hand each secondary
-    //    language's examples to topics strongest-first, one per topic per pass, never taking a topic's last
-    //    example of the primary language. The primary language gets the rest. No languages named -> DEFAULT_LANGUAGE.
-    const langs = Object.entries(classification.languages)
-        .filter(([, w]) => w > 0)
-        .sort((a, b) => b[1] - a[1]);
-    const languages = langs.length ? langs.map(([l]) => l) : [DEFAULT_LANGUAGE];
-    const langTotals = langs.length ? largestRemainder(EXAMPLES_PER_POSTING, normalize(langs.map(([, w]) => w))) : [EXAMPLES_PER_POSTING];
-
-    const primary = [...counts]; // per topic, examples still in the primary language
-    const byLanguage: number[][] = languages.map(() => chosen.map(() => 0)); // [language][topic]
-    for (let k = 1; k < languages.length; k++) {
-        let left = langTotals[k];
-        while (left > 0) {
-            let given = 0;
-            for (let j = 0; j < chosen.length && left > 0; j++) {
-                if (primary[j] > 1) {
-                    primary[j]--;
-                    byLanguage[k][j]++;
-                    left--;
-                    given++;
-                }
-            }
-            if (given === 0) break; // every topic is down to one primary example; the rest stays primary
-        }
-    }
-    byLanguage[0] = primary;
+    // 3. Split each topic's examples across the posting's languages that suit the topic: score = the posting's
+    //    language weight × the topic's language fit, ignoring languages with fit < MIN_LANGUAGE_FIT (no N+1-query
+    //    exercises in C). If none of the posting's languages suits the topic, the topic uses its best-fitting
+    //    language overall. No languages named -> DEFAULT_LANGUAGE. Without a fit table every language fits.
+    const langs = Object.entries(classification.languages).filter(([, w]) => w > 0);
+    const postingLanguages: [string, number][] = langs.length ? langs : [[DEFAULT_LANGUAGE, 1]];
 
     return {
         taxonomyVersion: taxonomy.version,
-        targets: chosen.flatMap((r, j) =>
-            languages
-                .map((language, k) => ({ label: r.label, language, count: byLanguage[k][j] }))
-                .filter((t) => t.count > 0),
-        ),
+        targets: chosen.flatMap((r, j) => {
+            const fitOf = (language: string) => (fit ? fit.topics[r.label]?.weights[language] ?? 0 : 1);
+            let scored = postingLanguages
+                .map(([language, w]) => ({ language, score: w * fitOf(language) }))
+                .filter((s) => fitOf(s.language) >= MIN_LANGUAGE_FIT);
+            if (scored.length === 0) scored = [{ language: bestLanguage(r.label, fit!), score: 1 }];
+            scored.sort((a, b) => b.score - a.score || a.language.localeCompare(b.language));
+            const split = largestRemainder(counts[j], normalize(scored.map((s) => s.score)));
+            return scored.map((s, k) => ({ label: r.label, language: s.language, count: split[k] })).filter((t) => t.count > 0);
+        }),
     };
+}
+
+// The topic's highest-fit language; ties go to the more common interview language (DEFAULT_LANGUAGE first,
+// then the fit table's language order).
+function bestLanguage(label: string, fit: LanguageFit): string {
+    const weights = fit.topics[label]?.weights ?? {};
+    const order = [DEFAULT_LANGUAGE, ...fit.languages.filter((l) => l !== DEFAULT_LANGUAGE)];
+    return order.reduce((best, l) => ((weights[l] ?? 0) > (weights[best] ?? 0) ? l : best), order[0]);
 }
 
 function normalize(values: number[]): number[] {
@@ -127,7 +120,8 @@ async function pipeline(plan: Plan, taxonomy: Taxonomy, exampleOut?: string) {
     console.log(`Example written to ${exampleOut}`);
 }
 
-// Every mode needs --taxonomy <taxonomy.json>; classifying (standard, --create_plan) also needs --languages <languages.json>.
+// Every mode needs --taxonomy <taxonomy.json>; classifying (standard, --create_plan) also needs --languages <languages.json>,
+// and takes --fit <language_fit.json> to keep each topic to languages that suit it.
 // standard:     node pipeline/src/pipeline.ts <job_description_file.txt>                          plan → pipeline
 // plan only:    node pipeline/src/pipeline.ts <job_description_file.txt> --create_plan <out.json>  plan → write file
 // reuse a plan: node pipeline/src/pipeline.ts --use_plan <plan.json>                               read file → pipeline
@@ -136,12 +130,13 @@ async function main() {
     const { values, positionals } = parseArgs({
         options: { taxonomy:    { type: "string" },
                    languages:   { type: "string" },
+                   fit:         { type: "string" },
                    create_plan: { type: "string" },
                    use_plan:    { type: "string" },
                    example_out: { type: "string" } },
         allowPositionals: true,
     });
-    const usage = "Usage: node pipeline/src/pipeline.ts --taxonomy <taxonomy.json> (--languages <languages.json> <job_description_file.txt> [--create_plan <out.json>] | --use_plan <plan.json>) [--example_out <dir>]";
+    const usage = "Usage: node pipeline/src/pipeline.ts --taxonomy <taxonomy.json> (--languages <languages.json> [--fit <language_fit.json>] <job_description_file.txt> [--create_plan <out.json>] | --use_plan <plan.json>) [--example_out <dir>]";
     if (!values.taxonomy) {
         console.error(usage);
         process.exit(1);
@@ -171,7 +166,8 @@ async function main() {
     }
     const description = await readFile(jobDescriptionFile, "utf8");
     const languages = LanguageList.parse(JSON.parse(await readFile(values.languages, "utf8")));
-    const result = await plan(description, taxonomy, languages);
+    const fit = values.fit ? LanguageFit.parse(JSON.parse(await readFile(values.fit, "utf8"))) : undefined;
+    const result = await plan(description, taxonomy, languages, fit);
 
     // --create_plan: save the plan and stop
     if (values.create_plan) {

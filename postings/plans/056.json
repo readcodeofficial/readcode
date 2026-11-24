@@ -13,7 +13,7 @@
     },
     {
       "label": "backend.api.rest_design",
-      "language": "Kotlin",
+      "language": "JavaScript",
       "count": 1
     },
     {
@@ -23,7 +23,7 @@
     },
     {
       "label": "backend.api.rest_design",
-      "language": "Scala",
+      "language": "Kotlin",
       "count": 1
     },
     {
@@ -38,7 +38,7 @@
     },
     {
       "label": "backend.integrations.third_party_adapters",
-      "language": "Kotlin",
+      "language": "Go",
       "count": 1
     },
     {
@@ -58,7 +58,7 @@
     },
     {
       "label": "backend.api.status_codes_and_error_responses",
-      "language": "Kotlin",
+      "language": "Python",
       "count": 1
     },
     {
@@ -88,7 +88,7 @@
     },
     {
       "label": "backend.api.serialization_and_deserialization",
-      "language": "Scala",
+      "language": "Go",
       "count": 1
     },
     {
@@ -98,7 +98,7 @@
     },
     {
       "label": "backend.observability.structured_logging",
-      "language": "Scala",
+      "language": "Go",
       "count": 1
     }
   ]

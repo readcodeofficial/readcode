@@ -3,22 +3,22 @@
   "targets": [
     {
       "label": "backend.performance.profiling_and_hot_paths",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.performance.profiling_and_hot_paths",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.performance.profiling_and_hot_paths",
       "language": "C++",
       "count": 1
     },
     {
       "label": "backend.performance.profiling_and_hot_paths",
-      "language": "PHP",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "Rust",
       "count": 1
     },
     {
@@ -28,7 +28,7 @@
     },
     {
       "label": "backend.observability.metrics",
-      "language": "Python",
+      "language": "Go",
       "count": 1
     },
     {
@@ -38,7 +38,7 @@
     },
     {
       "label": "backend.observability.metrics",
-      "language": "PHP",
+      "language": "Python",
       "count": 1
     },
     {
@@ -68,37 +68,37 @@
     },
     {
       "label": "backend.resilience.graceful_degradation",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.observability.health_checks",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.observability.health_checks",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.distributed.replication_and_consensus",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.distributed.replication_and_consensus",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.concurrency.race_conditions",
       "language": "C++",
       "count": 1
     },
     {
-      "label": "backend.observability.health_checks",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.observability.health_checks",
-      "language": "PHP",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.replication_and_consensus",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.replication_and_consensus",
-      "language": "Rust",
-      "count": 1
-    },
-    {
       "label": "backend.concurrency.race_conditions",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.race_conditions",
-      "language": "Rust",
       "count": 1
     }
   ]

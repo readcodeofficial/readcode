@@ -3,22 +3,22 @@
   "targets": [
     {
       "label": "backend.config.feature_flags",
-      "language": "C",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.config.feature_flags",
-      "language": "C++",
+      "language": "Kotlin",
       "count": 1
     },
     {
       "label": "backend.testing.unit_test_design",
-      "language": "C",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.testing.unit_test_design",
-      "language": "C++",
+      "language": "Python",
       "count": 1
     },
     {
@@ -33,72 +33,72 @@
     },
     {
       "label": "backend.data.n_plus_one_queries",
-      "language": "C",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.data.n_plus_one_queries",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.api.rest_design",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.api.rest_design",
+      "language": "JavaScript",
+      "count": 1
+    },
+    {
+      "label": "backend.api.request_validation",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.api.request_validation",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.security.authorization_checks",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.security.authorization_checks",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.design.interface_design",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.design.interface_design",
       "language": "C++",
       "count": 1
     },
     {
-      "label": "backend.api.rest_design",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.api.rest_design",
+      "label": "backend.resilience.timeouts",
       "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.api.request_validation",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.api.request_validation",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.security.authorization_checks",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.design.interface_design",
-      "language": "Kotlin",
       "count": 1
     },
     {
       "label": "backend.resilience.timeouts",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.timeouts",
-      "language": "Kotlin",
+      "language": "JavaScript",
       "count": 1
     },
     {
       "label": "backend.resilience.retries_and_backoff",
-      "language": "C",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.resilience.retries_and_backoff",
-      "language": "Kotlin",
+      "language": "Python",
       "count": 1
     }
   ]
