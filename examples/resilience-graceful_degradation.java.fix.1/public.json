@@ -1,0 +1,29 @@
+{
+  "id": "5b13a743-0f07-4bb9-be35-38a514f6304e",
+  "title": "Storefront product page: optional widgets that still take the whole page down",
+  "name": "Product page fallbacks",
+  "createdAt": "2026-11-25T05:37:48.688Z",
+  "durationMinutes": 20,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "When the recommendations service errors, product pages still render without the 'You may also like' block, which is what we want. But during yesterday's slowdown, when recommendations and reviews stopped responding altogether, every product page returned a 500 instead of rendering without them. Fix Degrade.java so the tests pass.",
+      "editable": [
+        "shop/Degrade.java"
+      ],
+      "tests": [
+        {
+          "path": "shop/ProductPageServiceTest.java",
+          "content": "package shop;\n\nimport static readcode.Assert.*;\n\nimport java.time.Duration;\nimport java.util.List;\nimport java.util.concurrent.CompletableFuture;\nimport java.util.concurrent.CompletionException;\n\npublic class ProductPageServiceTest {\n    private static final Backends.Product LAMP = new Backends.Product(\"p1\", \"Desk lamp\", 4500);\n\n    private ProductPageService service(\n            Backends.Products products, Backends.Recommendations recs, Backends.Reviews reviews) {\n        return new ProductPageService(products, recs, reviews, Duration.ofMillis(100));\n    }\n\n    private static <T> CompletableFuture<T> failed(String message) {\n        return CompletableFuture.failedFuture(new IllegalStateException(message));\n    }\n\n    private static <T> CompletableFuture<T> hangs() {\n        return new CompletableFuture<>();\n    }\n\n    public void testHealthyPageHasEverything() {\n        ProductPage page = service(\n                id -> CompletableFuture.completedFuture(LAMP),\n                id -> CompletableFuture.completedFuture(List.of(\"p2\", \"p3\")),\n                id -> CompletableFuture.completedFuture(List.of(new Backends.Review(\"sam\", 5))))\n                .load(\"p1\");\n        assertEquals(LAMP, page.product());\n        assertEquals(List.of(\"p2\", \"p3\"), page.recommendations());\n        assertEquals(1, page.reviews().size());\n        assertFalse(page.isDegraded());\n    }\n\n    public void testRecommendationErrorFallsBackToEmpty() {\n        ProductPage page = service(\n                id -> CompletableFuture.completedFuture(LAMP),\n                id -> failed(\"recs 500\"),\n                id -> CompletableFuture.completedFuture(List.of()))\n                .load(\"p1\");\n        assertEquals(List.of(), page.recommendations());\n        assertEquals(List.of(\"recommendations\"), page.degradedSections());\n    }\n\n    public void testHangingRecommendationsFallBackAfterTimeout() {\n        ProductPage page = service(\n                id -> CompletableFuture.completedFuture(LAMP),\n                id -> hangs(),\n                id -> CompletableFuture.completedFuture(List.of()))\n                .load(\"p1\");\n        System.out.println(\"degraded sections: \" + page.degradedSections());\n        assertEquals(LAMP, page.product());\n        assertEquals(List.of(), page.recommendations());\n        assertTrue(page.isDegraded(), \"a timed-out widget must be reported as degraded\");\n    }\n\n    public void testHangingReviewsFallBackAfterTimeout() {\n        ProductPage page = service(\n                id -> CompletableFuture.completedFuture(LAMP),\n                id -> CompletableFuture.completedFuture(List.of(\"p2\")),\n                id -> hangs())\n                .load(\"p1\");\n        assertEquals(List.of(), page.reviews());\n        assertEquals(List.of(\"p2\"), page.recommendations());\n        assertEquals(List.of(\"reviews\"), page.degradedSections());\n    }\n\n    public void testBothWidgetsDownStillServesProduct() {\n        ProductPage page = service(\n                id -> CompletableFuture.completedFuture(LAMP),\n                id -> hangs(),\n                id -> failed(\"reviews 503\"))\n                .load(\"p1\");\n        assertEquals(LAMP, page.product());\n        assertEquals(2, page.degradedSections().size());\n    }\n\n    public void testProductFailureIsNotHidden() {\n        ProductPageService svc = service(\n                id -> failed(\"catalog down\"),\n                id -> CompletableFuture.completedFuture(List.of()),\n                id -> CompletableFuture.completedFuture(List.of()));\n        assertThrows(CompletionException.class, () -> svc.load(\"p1\"));\n    }\n\n    public void testSlowButInTimeWidgetIsKept() {\n        CompletableFuture<List<String>> late = new CompletableFuture<>();\n        ProductPageService svc = service(\n                id -> CompletableFuture.completedFuture(LAMP),\n                id -> late,\n                id -> CompletableFuture.completedFuture(List.of()));\n        late.complete(List.of(\"p9\"));\n        assertEquals(List.of(\"p9\"), svc.load(\"p1\").recommendations());\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.graceful_degradation",
+    "backend.resilience.timeouts_and_retries",
+    "backend.concurrency.async_programming"
+  ]
+}

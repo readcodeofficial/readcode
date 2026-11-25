@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "prefs/request.go",
+          "content": "package prefs\n\nimport (\n\t\"errors\"\n\t\"strings\"\n)\n\n// UpdateRequest is the body of PATCH /users/{id}/preferences. Fields the\n// client leaves out must not change.\ntype UpdateRequest struct {\n\tDisplayName *string `json:\"displayName\"`\n\tEmailAlerts *bool   `json:\"emailAlerts\"`\n\tDigestHour  *int    `json:\"digestHour\"`\n}\n\nfunc (r UpdateRequest) Validate() error {\n\tif r.DisplayName != nil && strings.TrimSpace(*r.DisplayName) == \"\" {\n\t\treturn errors.New(\"displayName must not be blank\")\n\t}\n\tif r.DigestHour != nil && (*r.DigestHour < 0 || *r.DigestHour > 23) {\n\t\treturn errors.New(\"digestHour must be between 0 and 23\")\n\t}\n\treturn nil\n}\n\n// Apply returns current with the requested changes made.\nfunc (r UpdateRequest) Apply(current Preferences) Preferences {\n\tif r.DisplayName != nil {\n\t\tcurrent.DisplayName = strings.TrimSpace(*r.DisplayName)\n\t}\n\tif r.EmailAlerts != nil {\n\t\tcurrent.EmailAlerts = *r.EmailAlerts\n\t}\n\tif r.DigestHour != nil {\n\t\tcurrent.DigestHour = *r.DigestHour\n\t}\n\treturn current\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "UpdateRequest declares EmailAlerts as a plain bool. When the client omits the field, encoding/json leaves the zero value false, and Apply copies it unconditionally, so every PATCH that does not mention emailAlerts switches alerts off. The other fields are pointers, so nil means absent and a sent zero value (digestHour 0) is still honoured. Making EmailAlerts a *bool and applying it only when non-nil lets the decoder distinguish absent from false, and the handler and the stored preferences stay untouched."
+  ]
+}

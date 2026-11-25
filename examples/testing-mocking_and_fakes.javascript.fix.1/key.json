@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "clock/fakeClock.js",
+          "content": "// Deterministic clock for tests: time only moves when advance() is called.\nexport class FakeClock {\n    #now;\n    #timers = [];\n    #nextId = 1;\n\n    constructor(start = 0) {\n        this.#now = start;\n    }\n\n    now() {\n        return this.#now;\n    }\n\n    setTimeout(fn, ms) {\n        const id = this.#nextId++;\n        this.#timers.push({ id, at: this.#now + ms, fn });\n        return id;\n    }\n\n    clearTimeout(id) {\n        this.#timers = this.#timers.filter((t) => t.id !== id);\n    }\n\n    pending() {\n        return this.#timers.length;\n    }\n\n    advance(ms) {\n        const target = this.#now + ms;\n        for (;;) {\n            let next = null;\n            for (const timer of this.#timers) {\n                if (timer.at <= target && (next === null || timer.at < next.at)) next = timer;\n            }\n            if (next === null) break;\n            this.clearTimeout(next.id);\n            this.#now = Math.max(this.#now, next.at);\n            next.fn();\n        }\n        this.#now = target;\n    }\n}\n\nexport const realClock = {\n    now: () => Date.now(),\n    setTimeout: (fn, ms) => setTimeout(fn, ms),\n    clearTimeout: (id) => clearTimeout(id),\n};\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "advance() jumps the clock to the target time first and then runs a one-time snapshot of the due timers in insertion order. So callbacks run out of deadline order, see now() equal to the end of the window instead of their own deadline, and timers scheduled by a callback (the repeating reminders) are missed because they are not in the snapshot. A faithful fake repeatedly picks the earliest due timer, sets the clock to that timer's time, runs it, and only then moves to the target, so newly scheduled timers inside the window also fire."
+  ]
+}

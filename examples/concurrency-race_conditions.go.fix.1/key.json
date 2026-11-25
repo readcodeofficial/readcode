@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "tickets/box_office.go",
+          "content": "package tickets\n\nimport \"sync\"\n\n// BoxOffice hands out seat holds against an Inventory.\ntype BoxOffice struct {\n\tinv   Inventory\n\tmu    sync.Mutex\n\tholds map[string]int\n}\n\nfunc NewBoxOffice(inv Inventory) *BoxOffice {\n\treturn &BoxOffice{inv: inv, holds: make(map[string]int)}\n}\n\n// Hold reserves n seats for the event, or returns ErrSoldOut if fewer remain.\nfunc (b *BoxOffice) Hold(event string, n int) error {\n\tif n <= 0 {\n\t\treturn ErrBadQuantity\n\t}\n\tb.mu.Lock()\n\tdefer b.mu.Unlock()\n\tleft, err := b.inv.Remaining(event)\n\tif err != nil {\n\t\treturn err\n\t}\n\tif left < n {\n\t\treturn ErrSoldOut\n\t}\n\tif err := b.inv.Take(event, n); err != nil {\n\t\treturn err\n\t}\n\tb.holds[event] += n\n\treturn nil\n}\n\n// Held returns how many seats this box office has held for the event.\nfunc (b *BoxOffice) Held(event string) int {\n\tb.mu.Lock()\n\tdefer b.mu.Unlock()\n\treturn b.holds[event]\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Hold reads the remaining seat count outside the mutex and only locks around the decrement. Two buyers can both read 'two seats left', both pass the check, and then both take their seats one after the other, which drives the counter negative. The lock protects each individual step but not the check-then-act sequence that has to be atomic. The fix takes the mutex before reading the count and holds it through the Take (and the holds bookkeeping), so the second buyer sees the updated count and gets ErrSoldOut."
+  ]
+}

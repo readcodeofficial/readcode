@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "hotels/timeout.js",
+          "content": "export class TimeoutError extends Error {\n  constructor(ms) {\n    super(`timed out after ${ms}ms`);\n    this.name = \"TimeoutError\";\n    this.timeoutMs = ms;\n  }\n}\n\nexport async function callWithTimeout(fn, ms) {\n  const controller = new AbortController();\n  const timer = setTimeout(() => controller.abort(new TimeoutError(ms)), ms);\n  try {\n    return await fn(controller.signal);\n  } finally {\n    clearTimeout(timer);\n  }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "callWithTimeout creates an AbortController and aborts it when the timer fires, but it calls fn() without handing it the controller's signal. The supplier call therefore never learns that it should give up, and a supplier that never answers keeps the awaited promise pending forever, so the timeout has no effect. The fix passes controller.signal into fn, so the abort rejects the supplier call with a TimeoutError that the aggregator turns into a skipped supplier."
+  ]
+}

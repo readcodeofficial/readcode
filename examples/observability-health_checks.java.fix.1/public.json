@@ -1,0 +1,28 @@
+{
+  "id": "e5ceee2c-4431-4776-a80e-14829d157b99",
+  "title": "Warehouse readiness endpoint: aggregating critical and optional checks",
+  "name": "Readiness health registry",
+  "createdAt": "2026-11-25T05:37:16.497Z",
+  "durationMinutes": 20,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "During the database outage the warehouse service kept answering /ready with 200, so the load balancer kept sending scanners to it. It only happened on instances where the label-printer check (optional) was also failing; instances with a healthy printer correctly returned 503. Fix HealthRegistry.java so the tests pass.",
+      "editable": [
+        "warehouse/health/HealthRegistry.java"
+      ],
+      "tests": [
+        {
+          "path": "warehouse/health/HealthTest.java",
+          "content": "package warehouse.health;\n\nimport static readcode.Assert.*;\n\npublic class HealthTest {\n\n    private HealthRegistry registry;\n\n    public void setUp() {\n        registry = new HealthRegistry();\n    }\n\n    public void testAllUp() {\n        registry.register(\"database\", true, Checks.ping(() -> true))\n                .register(\"label-printer\", false, Checks.ping(() -> true));\n        assertEquals(Status.UP, registry.run().status());\n    }\n\n    public void testOptionalDownAloneIsDegraded() {\n        registry.register(\"database\", true, Checks.ping(() -> true))\n                .register(\"label-printer\", false, Checks.ping(() -> false));\n        HealthReport report = registry.run();\n        assertEquals(Status.DEGRADED, report.status());\n        assertTrue(report.isReady(), \"a degraded service is still ready\");\n    }\n\n    public void testCriticalDownIsDown() {\n        registry.register(\"label-printer\", false, Checks.ping(() -> true))\n                .register(\"database\", true, Checks.ping(() -> false));\n        assertEquals(Status.DOWN, registry.run().status());\n    }\n\n    public void testCriticalDownBeforeFailingOptionalStaysDown() {\n        registry.register(\"database\", true, Checks.ping(() -> false))\n                .register(\"label-printer\", false, Checks.ping(() -> false));\n        HealthReport report = registry.run();\n        System.out.println(\"components: \" + report.components() + \" -> \" + report.status());\n        assertEquals(Status.DOWN, report.status(), \"database is critical and down, so the service is down\");\n    }\n\n    public void testThrowingCheckCountsAsDown() {\n        registry.register(\"database\", true, () -> {\n            throw new IllegalStateException(\"connection refused\");\n        });\n        HealthReport report = registry.run();\n        assertEquals(Status.DOWN, report.components().get(\"database\"));\n        assertEquals(Status.DOWN, report.status());\n    }\n\n    public void testQueueDepthThresholds() {\n        registry.register(\"inbound-queue\", false, Checks.queueDepth(() -> 150, 100, 500));\n        assertEquals(Status.DEGRADED, registry.run().status());\n    }\n\n    public void testEndpointReturns503WhenCriticalDependencyIsDown() {\n        registry.register(\"database\", true, Checks.ping(() -> false))\n                .register(\"inbound-queue\", false, Checks.queueDepth(() -> 900, 100, 500));\n        HealthEndpoint.Response response = new HealthEndpoint(registry).readiness();\n        assertEquals(503, response.code(), \"load balancer must stop routing to this instance\");\n    }\n\n    public void testEndpointReturns200WhenDegraded() {\n        registry.register(\"database\", true, Checks.ping(() -> true))\n                .register(\"inbound-queue\", false, Checks.queueDepth(() -> 900, 100, 500));\n        HealthEndpoint.Response response = new HealthEndpoint(registry).readiness();\n        assertEquals(200, response.code());\n        assertTrue(response.body().contains(\"\\\"status\\\":\\\"DEGRADED\\\"\"), response.body());\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.health_checks",
+    "backend.observability.metrics"
+  ]
+}

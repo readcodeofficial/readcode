@@ -1,0 +1,29 @@
+{
+  "id": "07b8dec2-859c-4cd9-b6e4-46e3199d0a3b",
+  "title": "Billing webhooks: signed deliveries with retries and backoff",
+  "name": "Signed webhook retries",
+  "createdAt": "2026-11-25T05:36:41.760Z",
+  "durationMinutes": 20,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Subscribers say that when their server has a short outage they never recover the invoice.paid webhooks: every retry arrives and is rejected by their signature check as 'stale', even though the payload and secret are right. First attempts verify fine. Fix the dispatcher so the tests pass.",
+      "editable": [
+        "webhooks/dispatcher.js"
+      ],
+      "tests": [
+        {
+          "path": "dispatcher.test.js",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createEndpointRegistry } from \"../src/webhooks/endpoints.js\";\nimport { createDispatcher } from \"../src/webhooks/dispatcher.js\";\nimport { verify } from \"../src/webhooks/signing.js\";\n\n// A subscriber that verifies every request exactly as documented, and answers with the next scripted status.\nfunction setup(script = [200]) {\n    let ms = Date.UTC(2026, 10, 20, 9, 0, 0);\n    const clock = { now: () => ms };\n    const sleep = async (d) => void (ms += d);\n    const received = [];\n    const transport = {\n        async post(url, { headers, body }) {\n            const check = verify({\n                secret: \"whsec_test\",\n                header: headers[\"webhook-signature\"],\n                body,\n                nowSeconds: Math.floor(ms / 1000),\n            });\n            received.push({ url, headers, body, check });\n            const status = script[Math.min(received.length - 1, script.length - 1)];\n            if (status === \"throw\") throw new Error(\"ECONNRESET\");\n            return { status };\n        },\n    };\n    const registry = createEndpointRegistry();\n    registry.register({ id: \"ep1\", url: \"https://shop.example/hooks\", secret: \"whsec_test\", events: [\"invoice.paid\"] });\n    registry.register({ id: \"ep2\", url: \"https://other.example/hooks\", secret: \"whsec_other\", events: [\"customer.created\"] });\n    return { dispatcher: createDispatcher({ registry, transport, clock, sleep }), received };\n}\n\nconst event = { id: \"evt_1\", type: \"invoice.paid\", data: { invoice: \"in_77\", amountCents: 4900 } };\n\ntest(\"only endpoints subscribed to the event type are called\", async () => {\n    const { dispatcher, received } = setup();\n    const results = await dispatcher.publish(event);\n    assert.equal(results.length, 1);\n    assert.equal(received[0].url, \"https://shop.example/hooks\");\n});\n\ntest(\"a first-attempt delivery carries a valid signature\", async () => {\n    const { dispatcher, received } = setup([200]);\n    const [res] = await dispatcher.publish(event);\n    assert.deepEqual(res, { delivered: true, attempts: 1 });\n    assert.deepEqual(received[0].check, { ok: true });\n});\n\ntest(\"retries after a 500 and succeeds\", async () => {\n    const { dispatcher } = setup([500, 200]);\n    const [res] = await dispatcher.publish(event);\n    assert.deepEqual(res, { delivered: true, attempts: 2 });\n});\n\ntest(\"every retry is signed freshly enough for the subscriber to accept it\", async () => {\n    const { dispatcher, received } = setup([500, 503, 502, 200]);\n    const [res] = await dispatcher.publish(event);\n    console.log(\"verification per attempt:\", received.map((r) => r.check.ok ? \"ok\" : r.check.reason).join(\", \"));\n    assert.deepEqual(received.map((r) => r.check), [{ ok: true }, { ok: true }, { ok: true }, { ok: true }], \"a retry 21 minutes in must still verify\");\n    assert.equal(res.delivered, true);\n});\n\ntest(\"the signed timestamp moves forward with each attempt\", async () => {\n    const { dispatcher, received } = setup([500, 500, 200]);\n    await dispatcher.publish(event);\n    const stamps = received.map((r) => Number(/t=(\\d+)/.exec(r.headers[\"webhook-signature\"])[1]));\n    assert.equal(stamps[1] - stamps[0], 60, \"second attempt is sent after the 1 minute backoff\");\n    assert.equal(stamps[2] - stamps[1], 300, \"third attempt is sent after the 5 minute backoff\");\n});\n\ntest(\"the webhook-id stays the same across retries so subscribers can dedupe\", async () => {\n    const { dispatcher, received } = setup([500, 200]);\n    await dispatcher.publish(event);\n    assert.equal(received[0].headers[\"webhook-id\"], \"evt_1\");\n    assert.equal(received[1].headers[\"webhook-id\"], \"evt_1\");\n    assert.equal(received[0].body, received[1].body);\n});\n\ntest(\"a 400 is not retried\", async () => {\n    const { dispatcher, received } = setup([400]);\n    const [res] = await dispatcher.publish(event);\n    assert.deepEqual(res, { delivered: false, attempts: 1 });\n    assert.equal(received.length, 1);\n});\n\ntest(\"gives up after the last backoff and records every attempt\", async () => {\n    const { dispatcher } = setup([\"throw\"]);\n    const [res] = await dispatcher.publish(event);\n    assert.deepEqual(res, { delivered: false, attempts: 4 });\n    assert.deepEqual(dispatcher.log().map((l) => l.status), [0, 0, 0, 0]);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.integrations.webhooks_outbound",
+    "backend.resilience.retries_and_backoff",
+    "backend.security.secrets_handling"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "296a4f18-09c6-439b-94dd-895f54ff9964",
+  "title": "Invoice PDF render queue: a consumer that leaves jobs unfinished",
+  "name": "Invoice render consumer",
+  "createdAt": "2026-11-25T05:36:59.185Z",
+  "durationMinutes": 20,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The nightly invoice shutdown hook calls join() on the render queue so it can wait for in-flight work. Since the new templates went out, a few invoices end up in the dead-letter list every night and the deploy then hangs forever at shutdown, even though the queue looks empty. Fix jobs/consumer.py so the tests pass.",
+      "editable": [
+        "jobs/consumer.py"
+      ],
+      "tests": [
+        {
+          "path": "test_consumer.py",
+          "content": "import threading\nimport unittest\n\nfrom jobs.consumer import Consumer\nfrom jobs.jobqueue import JobQueue\nfrom jobs.models import RenderJob\nfrom jobs.renderer import InvoiceRenderer\n\nINVOICES = {\"inv-1\": [\"x\"] * 12, \"inv-2\": [\"x\"] * 65, \"inv-3\": [\"x\"] * 3}\n\n\ndef make(*jobs):\n    q = JobQueue()\n    results, dead = {}, []\n    consumer = Consumer(q, InvoiceRenderer(INVOICES, {\"standard\", \"compact\"}), results, dead)\n    for job in jobs:\n        q.publish(job)\n    return q, consumer, results, dead\n\n\nclass ConsumerTest(unittest.TestCase):\n    def test_renders_every_queued_job(self):\n        q, consumer, results, dead = make(RenderJob(\"j1\", \"inv-1\"), RenderJob(\"j2\", \"inv-2\"))\n        self.assertEqual(consumer.drain(), 2)\n        self.assertEqual(results[\"j2\"].pages, 3)\n        self.assertEqual(dead, [])\n\n    def test_empty_queue_is_a_no_op(self):\n        q, consumer, results, dead = make()\n        self.assertEqual(consumer.drain(), 0)\n\n    def test_bad_job_goes_to_dead_letters_with_reason(self):\n        q, consumer, results, dead = make(RenderJob(\"j1\", \"inv-404\"))\n        consumer.drain()\n        self.assertEqual(len(dead), 1)\n        self.assertIn(\"inv-404\", dead[0][1])\n\n    def test_jobs_after_a_bad_job_are_still_rendered(self):\n        q, consumer, results, dead = make(\n            RenderJob(\"j1\", \"inv-1\"), RenderJob(\"j2\", \"inv-1\", template=\"gone\"), RenderJob(\"j3\", \"inv-3\")\n        )\n        self.assertEqual(consumer.drain(), 2)\n        self.assertEqual(sorted(results), [\"j1\", \"j3\"])\n\n    def test_every_taken_job_is_marked_done_even_when_it_fails(self):\n        q, consumer, results, dead = make(\n            RenderJob(\"j1\", \"inv-1\"), RenderJob(\"j2\", \"inv-404\"), RenderJob(\"j3\", \"inv-404\", template=\"gone\")\n        )\n        consumer.drain()\n        print(\"pending:\", q.pending(), \"unfinished:\", q.unfinished())\n        self.assertEqual(q.pending(), 0)\n        self.assertEqual(q.unfinished(), 0, \"jobs were taken from the queue but never marked done\")\n\n    def test_join_returns_once_the_queue_is_drained(self):\n        q, consumer, results, dead = make(RenderJob(\"j1\", \"inv-404\"), RenderJob(\"j2\", \"inv-3\"))\n        consumer.drain()\n        waiter = threading.Thread(target=q.join, daemon=True)\n        waiter.start()\n        waiter.join(timeout=1.0)\n        self.assertFalse(waiter.is_alive(), \"queue.join() is still blocked after the queue was drained\")\n\n    def test_clean_run_leaves_nothing_unfinished(self):\n        q, consumer, results, dead = make(RenderJob(\"j1\", \"inv-1\"), RenderJob(\"j2\", \"inv-3\"))\n        consumer.drain()\n        self.assertEqual(q.unfinished(), 0)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.queues_and_consumers",
+    "backend.messaging.dead_letter_queues",
+    "backend.errors.error_propagation"
+  ]
+}

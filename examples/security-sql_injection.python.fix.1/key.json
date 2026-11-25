@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "helpdesk/repo.py",
+          "content": "import sqlite3\nfrom typing import Optional\n\nSORT_COLUMNS = {\"created\": \"created\", \"status\": \"status\", \"requester\": \"requester\"}\n\n\nclass TicketRepo:\n    def __init__(self, conn: sqlite3.Connection):\n        self.conn = conn\n        self._clock = 0\n\n    def add(self, subject: str, requester: str, status: str = \"open\") -> int:\n        self._clock += 1\n        cur = self.conn.execute(\n            \"INSERT INTO tickets (subject, requester, status, created) VALUES (?, ?, ?, ?)\",\n            (subject, requester, status, self._clock),\n        )\n        return cur.lastrowid\n\n    def get(self, ticket_id: int) -> Optional[tuple]:\n        return self.conn.execute(\n            \"SELECT id, subject, requester, status FROM tickets WHERE id = ?\", (ticket_id,)\n        ).fetchone()\n\n    def by_requester(self, requester: str) -> list:\n        return self.conn.execute(\n            \"SELECT id, subject, requester, status FROM tickets WHERE requester = ? ORDER BY created\",\n            (requester,),\n        ).fetchall()\n\n    def search(self, text: str, status: Optional[str] = None, order_by: str = \"created\") -> list:\n        column = SORT_COLUMNS.get(order_by, \"created\")\n        sql = \"SELECT id, subject, requester, status FROM tickets WHERE subject LIKE ?\"\n        params: list = [f\"%{text}%\"]\n        if status:\n            sql += \" AND status = ?\"\n            params.append(status)\n        sql += f\" ORDER BY {column}, id\"\n        return self.conn.execute(sql, params).fetchall()\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "search() pasted the user's text into the SQL string with an f-string, so quotes in the text change the statement: an apostrophe breaks it, and ' OR '1'='1 or a UNION clause rewrites it. The sort column is safe because it is looked up in a whitelist, but values must never be interpolated. The fix keeps a ? placeholder in the SQL and passes the wildcard-wrapped text as a bound parameter, so sqlite3 treats it purely as data."
+  ]
+}

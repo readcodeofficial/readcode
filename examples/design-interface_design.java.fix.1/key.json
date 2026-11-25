@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "hotel/InMemoryRoomInventory.java",
+          "content": "package hotel;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic final class InMemoryRoomInventory implements RoomInventory {\n    private final List<Room> rooms = new ArrayList<>();\n\n    @Override\n    public List<Room> rooms() {\n        return new ArrayList<>(rooms);\n    }\n\n    @Override\n    public void add(Room room) {\n        for (Room existing : rooms) {\n            if (existing.number().equals(room.number())) {\n                throw new IllegalStateException(\"duplicate room \" + room.number());\n            }\n        }\n        rooms.add(room);\n    }\n\n    @Override\n    public boolean remove(String number) {\n        return rooms.removeIf(r -> r.number().equals(number));\n    }\n\n    @Override\n    public int size() {\n        return rooms.size();\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "InMemoryRoomInventory.rooms() hands out its own backing list. AvailabilityService treats the returned list as scratch space and calls removeIf and sort on it, so every search permanently deletes booked, wrong-type and too-expensive rooms from the inventory itself. Later searches and the occupancy denominator see the shrunken list. The accessor must return a defensive copy so callers can use the result freely without touching internal state."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "portal/passwords.py",
+          "content": "import hashlib\nimport hmac\nimport os\n\nITERATIONS = 20_000\n\n\ndef _derive(password: str, salt: bytes) -> bytes:\n    return hashlib.pbkdf2_hmac(\"sha256\", password.encode(\"utf-8\"), salt, ITERATIONS)\n\n\ndef hash_password(password: str, salt: bytes | None = None) -> str:\n    \"\"\"Return \"<salt hex>$<digest hex>\" suitable for storing.\"\"\"\n    if salt is None:\n        salt = os.urandom(16)\n    return salt.hex() + \"$\" + _derive(password, salt).hex()\n\n\ndef verify_password(password: str, stored: str) -> bool:\n    salt_hex, digest_hex = stored.split(\"$\", 1)\n    candidate = _derive(password, bytes.fromhex(salt_hex)).hex()\n    return hmac.compare_digest(candidate, digest_hex)\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Python evaluates default argument values once, when the def statement runs, so os.urandom(16) produced a single salt at import time that every later call reused. All users therefore share one salt, which defeats the point of salting: equal passwords hash equally and one precomputed table cracks the whole database. Defaulting to None and generating the salt inside the function gives each call a fresh random salt, while an explicitly passed salt still works for verification and tests."
+  ]
+}

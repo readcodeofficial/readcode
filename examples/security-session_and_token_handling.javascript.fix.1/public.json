@@ -1,0 +1,28 @@
+{
+  "id": "1e139fda-406e-4009-ac86-a3ef3385f095",
+  "title": "Clinic patient portal: sessions that survive the sign-in",
+  "name": "Portal session login",
+  "createdAt": "2026-11-25T05:38:20.858Z",
+  "durationMinutes": 20,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "A penetration test of the patient portal reported that an attacker who gets a victim's browser to use a known session cookie (for example through the pre-login intake form) is signed in as the victim the moment the victim logs in, and can then read their account. Fix the session manager so the tests pass, keeping the intake draft the visitor typed before signing in.",
+      "editable": [
+        "portal/sessions.js"
+      ],
+      "tests": [
+        {
+          "path": "portal.test.js",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createSessionStore } from \"../src/portal/store.js\";\nimport { createSessionManager } from \"../src/portal/sessions.js\";\nimport { createPortal, hashPassword } from \"../src/portal/http.js\";\n\nfunction setup() {\n    let t = 1_000_000;\n    const clock = { now: () => t, advance: (ms) => void (t += ms) };\n    let n = 0;\n    const store = createSessionStore({ now: clock.now });\n    const sessions = createSessionManager({ store, now: clock.now, generateId: () => `sid-${++n}` });\n    const salt = Buffer.from(\"pepper-salt\");\n    const users = new Map([[\"dana@clinic.test\", { id: \"u-dana\", salt, hash: hashPassword(\"correct horse\", salt) }]]);\n    const portal = createPortal({ sessions, users });\n    const cookieOf = (res) => /sid=([^;]*)/.exec(res.headers[\"set-cookie\"])[1];\n    const req = (sid, body, query) => ({ headers: { cookie: sid ? `sid=${sid}` : \"\" }, body, query });\n    return { clock, store, sessions, portal, req, cookieOf };\n}\n\nconst creds = { email: \"dana@clinic.test\", password: \"correct horse\" };\n\ntest(\"anonymous intake visit creates a session cookie\", () => {\n    const { portal, req, cookieOf } = setup();\n    const res = portal.intake(req(null, null, { draft: \"knee pain\" }));\n    assert.equal(res.status, 200);\n    assert.equal(cookieOf(res), \"sid-1\");\n});\n\ntest(\"wrong password is rejected and does not touch the session\", () => {\n    const { portal, req, sessions } = setup();\n    const sid = sessions.start();\n    const res = portal.login(req(sid, { email: creds.email, password: \"nope\" }));\n    assert.equal(res.status, 401);\n    assert.equal(sessions.resolve(sid).userId, null);\n});\n\ntest(\"login issues a new session id instead of reusing the pre-login one\", () => {\n    const { portal, req, cookieOf } = setup();\n    const anon = cookieOf(portal.intake(req(null, null, {})));\n    const res = portal.login(req(anon, creds));\n    console.log(\"session id before login:\", anon, \"after login:\", cookieOf(res));\n    assert.equal(res.status, 200);\n    assert.notEqual(cookieOf(res), anon, \"the session id must change when the user authenticates\");\n});\n\ntest(\"a session id planted before login cannot be used to read the account\", () => {\n    const { portal, req, cookieOf } = setup();\n    const planted = cookieOf(portal.intake(req(null, null, {})));\n    portal.login(req(planted, creds));\n    const res = portal.me(req(planted));\n    assert.equal(res.status, 401, \"the old pre-login id must not be signed in\");\n});\n\ntest(\"the intake draft survives login under the new session\", () => {\n    const { portal, req, cookieOf } = setup();\n    const anon = cookieOf(portal.intake(req(null, null, { draft: \"knee pain\" })));\n    const fresh = cookieOf(portal.login(req(anon, creds)));\n    assert.deepEqual(portal.me(req(fresh)).body, { userId: \"u-dana\", draft: \"knee pain\" });\n});\n\ntest(\"login without any prior session still works\", () => {\n    const { portal, req, cookieOf } = setup();\n    const res = portal.login(req(null, creds));\n    assert.equal(portal.me(req(cookieOf(res))).status, 200);\n});\n\ntest(\"sessions expire after the idle timeout\", () => {\n    const { portal, req, cookieOf, clock } = setup();\n    const sid = cookieOf(portal.login(req(null, creds)));\n    clock.advance(16 * 60_000);\n    assert.equal(portal.me(req(sid)).status, 401);\n});\n\ntest(\"logout destroys the session\", () => {\n    const { portal, req, cookieOf, store } = setup();\n    const sid = cookieOf(portal.login(req(null, creds)));\n    portal.logout(req(sid));\n    assert.equal(portal.me(req(sid)).status, 401);\n    assert.equal(store.size(), 0);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.session_and_token_handling",
+    "backend.security.authentication"
+  ]
+}

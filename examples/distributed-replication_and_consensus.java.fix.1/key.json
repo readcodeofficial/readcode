@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "sessions/QuorumStore.java",
+          "content": "package sessions;\n\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.Optional;\n\npublic final class QuorumStore {\n    private final List<Replica> replicas;\n    private final int quorum;\n    private long clock = 0;\n\n    public QuorumStore(List<Replica> replicas) {\n        if (replicas.isEmpty()) {\n            throw new IllegalArgumentException(\"need at least one replica\");\n        }\n        this.replicas = List.copyOf(replicas);\n        this.quorum = replicas.size() / 2 + 1;\n    }\n\n    public int quorum() {\n        return quorum;\n    }\n\n    public boolean put(String key, String value) {\n        Versioned versioned = new Versioned(++clock, value);\n        int acks = 0;\n        for (Replica replica : replicas) {\n            if (replica.write(key, versioned)) {\n                acks++;\n            }\n        }\n        return acks >= quorum;\n    }\n\n    public Optional<String> get(String key) {\n        List<Optional<Versioned>> responses = new ArrayList<>();\n        for (Replica replica : replicas) {\n            replica.read(key).ifPresent(responses::add);\n        }\n        if (responses.size() < quorum) {\n            throw new NoQuorumException(\"only \" + responses.size() + \" of \" + replicas.size() + \" replicas answered\");\n        }\n        Versioned newest = null;\n        for (Optional<Versioned> response : responses) {\n            if (response.isPresent() && (newest == null || response.get().version() > newest.version())) {\n                newest = response.get();\n            }\n        }\n        return Optional.ofNullable(newest).map(Versioned::value);\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The quorum size is computed as replicas.size() / 2 using integer division. For 3 replicas that is 1 and for 5 it is 2, which is not a majority: two disjoint minorities can each acknowledge writes, and a read quorum need not overlap a write quorum, so acknowledged data can be lost or stale during a partition. A strict majority is n / 2 + 1 (2 of 3, 3 of 5). With that value any read quorum and write quorum intersect in at least one replica that holds the newest version."
+  ]
+}

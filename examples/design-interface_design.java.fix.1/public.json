@@ -1,0 +1,28 @@
+{
+  "id": "ddfdd836-4ff7-4e68-b684-9529b78e0d4b",
+  "title": "Hotel availability search that slowly eats the room inventory",
+  "name": "Room availability search",
+  "createdAt": "2026-11-25T05:36:38.590Z",
+  "durationMinutes": 19,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Front desk reports that the room count keeps dropping: after guests search for a double room, suites and singles stop showing up, and the occupancy percentage on the dashboard gets worse through the day. Restarting the service brings everything back. Fix InMemoryRoomInventory.java so the tests pass.",
+      "editable": [
+        "hotel/InMemoryRoomInventory.java"
+      ],
+      "tests": [
+        {
+          "path": "hotel/AvailabilityTest.java",
+          "content": "package hotel;\n\nimport static readcode.Assert.*;\n\nimport java.time.LocalDate;\nimport java.util.List;\nimport java.util.Optional;\n\npublic class AvailabilityTest {\n    private InMemoryRoomInventory inventory;\n    private AvailabilityService service;\n    private final LocalDate night = LocalDate.of(2026, 12, 24);\n\n    public void setUp() {\n        inventory = new InMemoryRoomInventory();\n        inventory.add(new Room(\"101\", \"double\", 120));\n        inventory.add(new Room(\"102\", \"double\", 95));\n        inventory.add(new Room(\"201\", \"suite\", 260));\n        inventory.add(new Room(\"103\", \"single\", 70));\n        service = new AvailabilityService(inventory);\n    }\n\n    public void testSearchFiltersAndSortsByRate() {\n        List<Room> found = service.search(\"double\", 200, night);\n        assertEquals(2, found.size());\n        assertEquals(\"102\", found.get(0).number());\n        assertEquals(\"101\", found.get(1).number());\n    }\n\n    public void testSearchDoesNotShrinkInventory() {\n        service.search(\"suite\", 300, night);\n        assertEquals(4, inventory.size(), \"inventory lost rooms after a search\");\n    }\n\n    public void testRepeatedSearchGivesSameResult() {\n        List<Room> first = service.search(\"double\", 200, night);\n        List<Room> second = service.search(\"double\", 200, night);\n        assertEquals(first, second, \"second identical search returned different rooms\");\n        assertEquals(2, second.size());\n    }\n\n    public void testSearchForOtherTypeStillFindsRooms() {\n        service.search(\"single\", 100, night);\n        List<Room> suites = service.search(\"suite\", 300, night);\n        assertEquals(1, suites.size(), \"a previous search for another type hid the suite\");\n    }\n\n    public void testBookedRoomOnlyUnavailableForThatNight() {\n        Optional<Room> booked = service.bookCheapest(\"double\", 200, night);\n        assertEquals(\"102\", booked.get().number());\n        assertEquals(1, service.search(\"double\", 200, night).size());\n        List<Room> nextNight = service.search(\"double\", 200, night.plusDays(1));\n        assertEquals(2, nextNight.size(), \"room booked for one night vanished from other nights\");\n    }\n\n    public void testOccupancyUsesFullInventory() {\n        service.bookCheapest(\"double\", 200, night);\n        service.bookCheapest(\"single\", 200, night);\n        double occupancy = service.occupancy(night);\n        System.out.println(\"occupancy on \" + night + \" = \" + occupancy + \" with \" + inventory.size() + \" rooms\");\n        assertEquals(0.5, occupancy, 0.0001);\n    }\n\n    public void testCallerCannotChangeInventoryThroughRooms() {\n        List<Room> view = inventory.rooms();\n        view.clear();\n        assertEquals(4, inventory.size(), \"clearing the returned list emptied the inventory\");\n    }\n\n    public void testRemoveByNumber() {\n        assertTrue(inventory.remove(\"201\"));\n        assertFalse(inventory.remove(\"999\"));\n        assertEquals(3, inventory.size());\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.interface_design",
+    "backend.design.layering"
+  ]
+}

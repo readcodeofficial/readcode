@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "invoicing/TaxPolicy.java",
+          "content": "package invoicing;\n\nimport java.util.HashMap;\nimport java.util.Map;\n\npublic final class TaxPolicy {\n    private final Map<String, Integer> rateCache = new HashMap<>();\n\n    private final RateSource source;\n\n    public TaxPolicy(RateSource source) {\n        this.source = source;\n    }\n\n    public int basisPoints(String region) {\n        return rateCache.computeIfAbsent(region, source::basisPointsFor);\n    }\n\n    public long taxCents(String region, long netCents) {\n        long numerator = netCents * basisPoints(region);\n        return (numerator + 5_000) / 10_000;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "TaxPolicy memoizes rates in a static map, so the cache belongs to the class rather than to the instance and its injected RateSource. Every policy in the JVM shares one table: whichever source answers first for a region wins for all other policies, and a new policy with updated rates never gets asked. Making the cache an instance field keeps the memoization but ties it to the source it was filled from, removing the hidden coupling between unrelated policies."
+  ]
+}

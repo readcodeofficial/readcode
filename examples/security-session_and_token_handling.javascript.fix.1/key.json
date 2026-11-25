@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "portal/sessions.js",
+          "content": "import { newSessionId } from \"./ids.js\";\n\nexport function createSessionManager({ store, now, generateId = newSessionId }) {\n    function start() {\n        const id = generateId();\n        const t = now();\n        store.put(id, { userId: null, data: {}, createdAt: t, lastSeen: t });\n        return id;\n    }\n\n    return {\n        start,\n\n        resolve(id) {\n            return id ? store.get(id) : null;\n        },\n\n        login(id, userId) {\n            const session = id ? store.get(id) : null;\n            if (!session) {\n                const fresh = start();\n                store.get(fresh).userId = userId;\n                return fresh;\n            }\n            store.delete(id);\n            const fresh = start();\n            const next = store.get(fresh);\n            next.userId = userId;\n            next.data = { ...session.data, loggedInAt: now() };\n            return fresh;\n        },\n\n        logout(id) {\n            store.delete(id);\n        },\n    };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "login() promotes the existing anonymous session to an authenticated one in place and returns the same id. An attacker who planted or learned that id before login (session fixation) holds a valid authenticated session as soon as the victim signs in. The fix destroys the old session and creates a new one with a fresh random id, carrying over the non-sensitive data (the intake draft). The old id then resolves to nothing, and the response sets the new cookie."
+  ]
+}

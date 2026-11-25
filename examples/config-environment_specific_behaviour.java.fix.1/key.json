@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "notify/service/ShipmentNotifier.java",
+          "content": "package notify.service;\n\nimport notify.config.AppConfig;\nimport notify.mail.Mailer;\n\npublic final class ShipmentNotifier {\n\n    private final AppConfig config;\n    private final Mailer mailer;\n\n    public ShipmentNotifier(AppConfig config, Mailer mailer) {\n        this.config = config;\n        this.mailer = mailer;\n    }\n\n    public void shipped(String customerEmail, String orderId, String carrier) {\n        String subject = subjectFor(\"Your order \" + orderId + \" has shipped\");\n        String body = \"Order \" + orderId + \" left our warehouse with \" + carrier + \".\\n\"\n                + \"Original recipient: \" + customerEmail;\n        mailer.send(new Mailer.Message(config.fromAddress(), recipientFor(customerEmail), subject, body));\n    }\n\n    public void shippedAll(java.util.Map<String, String> emailByOrderId, String carrier) {\n        for (java.util.Map.Entry<String, String> entry : emailByOrderId.entrySet()) {\n            shipped(entry.getValue(), entry.getKey(), carrier);\n        }\n    }\n\n    public void delayed(String customerEmail, String orderId, int days) {\n        String subject = subjectFor(\"Order \" + orderId + \" is delayed\");\n        String body = \"We expect a delay of \" + days + \" day(s) on order \" + orderId + \".\";\n        mailer.send(new Mailer.Message(config.fromAddress(), recipientFor(customerEmail), subject, body));\n    }\n\n    public void refunded(String customerEmail, String orderId, long amountCents) {\n        String subject = subjectFor(\"Refund issued for order \" + orderId);\n        String amount = String.format(\"%d.%02d\", amountCents / 100, amountCents % 100);\n        String body = \"We refunded \" + amount + \" to your original payment method.\\n\"\n                + \"Original recipient: \" + customerEmail;\n        mailer.send(new Mailer.Message(config.fromAddress(), recipientFor(customerEmail), subject, body));\n    }\n\n    private String recipientFor(String customerEmail) {\n        if (config.environment().equals(\"production\")) {\n            return customerEmail;\n        }\n        return config.sandboxRecipient();\n    }\n\n    private String subjectFor(String subject) {\n        if (config.environment().equals(\"production\")) {\n            return subject;\n        }\n        return \"[\" + config.environment() + \"] \" + subject;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "recipientFor compares the environment name with == , which tests reference identity, not content. The name comes out of AppConfig.fromEnv as a string read from the process environment (and trimmed or lower-cased), so it is a different object from the interned literal \"production\" and the comparison is false: production mail is redirected to the sandbox. subjectFor uses equals and works, which is why the subjects looked right. The fix uses equals."
+  ]
+}

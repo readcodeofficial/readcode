@@ -1,0 +1,29 @@
+{
+  "id": "873e6183-402f-4ccf-b964-db55f3ad39eb",
+  "title": "Product catalog with a read-through price cache and price updates from the merchandising tool",
+  "name": "Catalog price cache",
+  "createdAt": "2026-11-25T05:35:42.710Z",
+  "durationMinutes": 20,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Merchandising changes a price, gets a success response, and the storefront keeps showing and charging the old price until the cache entry is evicted, but only on busy products. Quiet products update correctly. Fix Catalog so the tests pass.",
+      "editable": [
+        "catalog/catalog.go"
+      ],
+      "tests": [
+        {
+          "path": "catalog_test.go",
+          "content": "package tests\n\nimport (\n\t\"errors\"\n\t\"sync\"\n\t\"testing\"\n\n\t\"exercise/src/catalog\"\n)\n\n// memStore is an in-memory Store. OnSave runs just before a write is applied,\n// standing in for a storefront request that lands while the update is in flight.\ntype memStore struct {\n\tmu      sync.Mutex\n\trows    map[string]catalog.Product\n\tloads   int\n\tsaves   int\n\tOnSave  func()\n\tSaveErr error\n}\n\nfunc newStore(products ...catalog.Product) *memStore {\n\ts := &memStore{rows: map[string]catalog.Product{}}\n\tfor _, p := range products {\n\t\ts.rows[p.ID] = p\n\t}\n\treturn s\n}\n\nfunc (s *memStore) Load(id string) (catalog.Product, error) {\n\ts.mu.Lock()\n\tdefer s.mu.Unlock()\n\ts.loads++\n\tp, ok := s.rows[id]\n\tif !ok {\n\t\treturn catalog.Product{}, catalog.ErrNotFound\n\t}\n\treturn p, nil\n}\n\nfunc (s *memStore) Save(p catalog.Product) error {\n\tif s.OnSave != nil {\n\t\ts.OnSave()\n\t}\n\ts.mu.Lock()\n\tdefer s.mu.Unlock()\n\tif s.SaveErr != nil {\n\t\treturn s.SaveErr\n\t}\n\ts.saves++\n\ts.rows[p.ID] = p\n\treturn nil\n}\n\nfunc setup() (*memStore, *catalog.Catalog) {\n\tstore := newStore(\n\t\tcatalog.Product{ID: \"p1\", Name: \"Espresso machine\", PriceCents: 12000},\n\t\tcatalog.Product{ID: \"p2\", Name: \"Grinder\", PriceCents: 4500},\n\t)\n\treturn store, catalog.New(store, catalog.NewCache())\n}\n\nfunc TestGetReadsThroughAndCaches(t *testing.T) {\n\tstore, cat := setup()\n\tfor i := 0; i < 3; i++ {\n\t\tp, err := cat.Get(\"p1\")\n\t\tif err != nil || p.PriceCents != 12000 {\n\t\t\tt.Fatalf(\"Get = %+v, %v\", p, err)\n\t\t}\n\t}\n\tif store.loads != 1 {\n\t\tt.Fatalf(\"store read %d times for 3 Gets, want 1\", store.loads)\n\t}\n}\n\nfunc TestUpdatePriceIsVisibleAfterwards(t *testing.T) {\n\t_, cat := setup()\n\tcat.Get(\"p1\")\n\tif err := cat.UpdatePrice(\"p1\", 9900); err != nil {\n\t\tt.Fatal(err)\n\t}\n\tp, _ := cat.Get(\"p1\")\n\tif p.PriceCents != 9900 {\n\t\tt.Fatalf(\"price after update = %d, want 9900\", p.PriceCents)\n\t}\n}\n\nfunc TestReaderDuringUpdateDoesNotPinOldPrice(t *testing.T) {\n\tstore, cat := setup()\n\tcat.Get(\"p1\")\n\tstore.OnSave = func() { cat.Get(\"p1\") }\n\tif err := cat.UpdatePrice(\"p1\", 9900); err != nil {\n\t\tt.Fatal(err)\n\t}\n\tp, _ := cat.Get(\"p1\")\n\tt.Logf(\"store price: %d, price served after the update: %d\", store.rows[\"p1\"].PriceCents, p.PriceCents)\n\tif p.PriceCents != 9900 {\n\t\tt.Fatalf(\"storefront still serves %d after the update committed 9900\", p.PriceCents)\n\t}\n}\n\nfunc TestCartUsesNewPriceAfterBusyUpdate(t *testing.T) {\n\tstore, cat := setup()\n\tstore.OnSave = func() { cat.Get(\"p1\") }\n\tif err := cat.UpdatePrice(\"p1\", 10000); err != nil {\n\t\tt.Fatal(err)\n\t}\n\ttotal, err := catalog.CartTotal(cat, []catalog.Item{{ProductID: \"p1\", Qty: 2}, {ProductID: \"p2\", Qty: 1}})\n\tif err != nil {\n\t\tt.Fatal(err)\n\t}\n\tif total != 24500 {\n\t\tt.Fatalf(\"cart total = %d, want 24500 (2 x 10000 + 4500)\", total)\n\t}\n}\n\nfunc TestUpdateUnknownProduct(t *testing.T) {\n\tstore, cat := setup()\n\terr := cat.UpdatePrice(\"nope\", 100)\n\tif !errors.Is(err, catalog.ErrNotFound) {\n\t\tt.Fatalf(\"err = %v, want ErrNotFound\", err)\n\t}\n\tif store.saves != 0 {\n\t\tt.Fatal(\"nothing should be saved for an unknown product\")\n\t}\n}\n\nfunc TestInvalidPriceKeepsCachedValue(t *testing.T) {\n\tstore, cat := setup()\n\tcat.Get(\"p1\")\n\tif err := cat.UpdatePrice(\"p1\", 0); !errors.Is(err, catalog.ErrInvalidPrice) {\n\t\tt.Fatalf(\"err = %v, want ErrInvalidPrice\", err)\n\t}\n\tcat.Get(\"p1\")\n\tif store.loads != 1 {\n\t\tt.Fatalf(\"a rejected update should not evict the cache, but the store was read %d times\", store.loads)\n\t}\n}\n\nfunc TestFailedSaveKeepsOldPrice(t *testing.T) {\n\tstore, cat := setup()\n\tstore.SaveErr = errors.New(\"connection reset\")\n\tif err := cat.UpdatePrice(\"p1\", 9900); err == nil {\n\t\tt.Fatal(\"expected the save error to be returned\")\n\t}\n\tp, _ := cat.Get(\"p1\")\n\tif p.PriceCents != 12000 {\n\t\tt.Fatalf(\"price = %d after a failed update, want the old 12000\", p.PriceCents)\n\t}\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.caching.stale_reads",
+    "backend.caching.cache_invalidation",
+    "backend.concurrency.race_conditions"
+  ]
+}

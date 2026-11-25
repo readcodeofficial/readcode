@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "payroll/policy.py",
+          "content": "from .principal import Principal\n\n\ndef can_view_payslip(principal: Principal, employee_id: str) -> bool:\n    if principal.employee_id == employee_id:\n        return True\n    if principal.is_hr():\n        return True\n    return principal.manages(employee_id)\n\n\ndef can_publish_payslips(principal: Principal) -> bool:\n    return principal.is_hr()\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "is_hr is a method, and the check referenced it without calling it. A bound method object is always truthy, so the HR branch returned True for every caller and the manager-chain check below it was never reached. Calling principal.is_hr() evaluates the caller's roles, so only HR staff are let through here and everyone else falls through to the own-record and management checks."
+  ]
+}

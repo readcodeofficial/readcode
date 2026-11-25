@@ -1,0 +1,29 @@
+{
+  "id": "b64b6463-b206-4188-be67-5d690da1d4ae",
+  "title": "Warehouse bin transfers: one lock per bin, taken in a fixed order",
+  "name": "Warehouse bin transfers",
+  "createdAt": "2026-11-25T05:35:57.947Z",
+  "durationMinutes": 20,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "A picker on the warehouse floor scanned the same bin for both 'from' and 'to' while rearranging a shelf. That request never returned, and afterwards every other request touching that bin hung as well until the service was restarted. Transfers between two different bins, even opposite ones at the same time, have always been fine. Fix Registry.Move so the tests pass, keeping one lock per bin.",
+      "editable": [
+        "bins/transfer.go"
+      ],
+      "tests": [
+        {
+          "path": "bins_test.go",
+          "content": "package tests\n\nimport (\n\t\"errors\"\n\t\"sync\"\n\t\"testing\"\n\t\"time\"\n\n\t\"exercise/src/bins\"\n)\n\n// within fails the test instead of hanging if work does not finish in time.\nfunc within(t *testing.T, d time.Duration, what string, work func()) {\n\tt.Helper()\n\tdone := make(chan struct{})\n\tgo func() {\n\t\tdefer close(done)\n\t\twork()\n\t}()\n\tselect {\n\tcase <-done:\n\tcase <-time.After(d):\n\t\tt.Fatalf(\"%s still blocked after %v (deadlock?)\", what, d)\n\t}\n}\n\nfunc newRegistry() *bins.Registry {\n\treturn bins.NewRegistry(map[string]int{\"A-01\": 100, \"A-02\": 100, \"B-07\": 40})\n}\n\nfunc TestMoveBetweenBins(t *testing.T) {\n\tr := newRegistry()\n\tif err := r.Move(\"A-01\", \"B-07\", 30); err != nil {\n\t\tt.Fatal(err)\n\t}\n\ta, _ := r.Qty(\"A-01\")\n\tb, _ := r.Qty(\"B-07\")\n\tif a != 70 || b != 70 {\n\t\tt.Fatalf(\"A-01=%d B-07=%d, want 70 and 70\", a, b)\n\t}\n}\n\nfunc TestMoveRejectsBadRequests(t *testing.T) {\n\tr := newRegistry()\n\tif err := r.Move(\"B-07\", \"A-01\", 41); !errors.Is(err, bins.ErrInsufficient) {\n\t\tt.Fatalf(\"got %v, want ErrInsufficient\", err)\n\t}\n\tif err := r.Move(\"A-01\", \"Z-99\", 1); !errors.Is(err, bins.ErrUnknownBin) {\n\t\tt.Fatalf(\"got %v, want ErrUnknownBin\", err)\n\t}\n\tif err := r.Move(\"A-01\", \"A-02\", 0); !errors.Is(err, bins.ErrBadQuantity) {\n\t\tt.Fatalf(\"got %v, want ErrBadQuantity\", err)\n\t}\n\tif len(r.Movements()) != 0 {\n\t\tt.Fatalf(\"rejected moves must not be logged: %v\", r.Movements())\n\t}\n}\n\nfunc TestOppositeTransfersDoNotDeadlock(t *testing.T) {\n\tr := newRegistry()\n\twithin(t, 5*time.Second, \"opposite transfers\", func() {\n\t\tvar wg sync.WaitGroup\n\t\tfor _, dir := range [][2]string{{\"A-01\", \"A-02\"}, {\"A-02\", \"A-01\"}} {\n\t\t\twg.Add(1)\n\t\t\tgo func() {\n\t\t\t\tdefer wg.Done()\n\t\t\t\tfor i := 0; i < 500; i++ {\n\t\t\t\t\t_ = r.Move(dir[0], dir[1], 1)\n\t\t\t\t}\n\t\t\t}()\n\t\t}\n\t\twg.Wait()\n\t})\n\tif total := r.Total(); total != 240 {\n\t\tt.Fatalf(\"total stock = %d, want 240 (units created or lost)\", total)\n\t}\n}\n\nfunc TestMovesAreLogged(t *testing.T) {\n\tr := newRegistry()\n\t_ = r.Move(\"A-01\", \"A-02\", 5)\n\t_ = r.Move(\"B-07\", \"A-01\", 2)\n\tlog := r.Movements()\n\tif len(log) != 2 || log[0] != (bins.Movement{From: \"A-01\", To: \"A-02\", Qty: 5}) {\n\t\tt.Fatalf(\"unexpected movement log: %+v\", log)\n\t}\n}\n\nfunc TestMoveWithinSameBinDoesNotHang(t *testing.T) {\n\tr := newRegistry()\n\tvar err error\n\twithin(t, 500*time.Millisecond, \"move from A-01 to A-01\", func() {\n\t\terr = r.Move(\"A-01\", \"A-01\", 10)\n\t})\n\tif err != nil {\n\t\tt.Fatalf(\"same-bin move returned %v\", err)\n\t}\n\tif q, _ := r.Qty(\"A-01\"); q != 100 {\n\t\tt.Fatalf(\"same-bin move changed the quantity to %d, want 100\", q)\n\t}\n}\n\nfunc TestSameBinMoveReleasesTheLock(t *testing.T) {\n\tr := newRegistry()\n\tgo func() { _ = r.Move(\"A-02\", \"A-02\", 1) }()\n\ttime.Sleep(50 * time.Millisecond)\n\twithin(t, 500*time.Millisecond, \"later transfer out of A-02\", func() {\n\t\t_ = r.Move(\"A-02\", \"B-07\", 20)\n\t})\n\tif q, _ := r.Qty(\"B-07\"); q != 60 {\n\t\tt.Fatalf(\"B-07 = %d, want 60 after the later transfer\", q)\n\t}\n}\n\nfunc TestStockCountAfterMixedTraffic(t *testing.T) {\n\tr := newRegistry()\n\twithin(t, 5*time.Second, \"mixed traffic\", func() {\n\t\tvar wg sync.WaitGroup\n\t\tpairs := [][2]string{{\"A-01\", \"B-07\"}, {\"B-07\", \"A-02\"}, {\"A-02\", \"A-01\"}}\n\t\tfor _, p := range pairs {\n\t\t\twg.Add(1)\n\t\t\tgo func() {\n\t\t\t\tdefer wg.Done()\n\t\t\t\tfor i := 0; i < 200; i++ {\n\t\t\t\t\t_ = r.Move(p[0], p[1], 2)\n\t\t\t\t}\n\t\t\t}()\n\t\t}\n\t\twg.Wait()\n\t})\n\tt.Logf(\"final stock A-01=%d A-02=%d B-07=%d\", must(r.Qty(\"A-01\")), must(r.Qty(\"A-02\")), must(r.Qty(\"B-07\")))\n\tif r.Total() != 240 {\n\t\tt.Fatalf(\"total = %d, want 240\", r.Total())\n\t}\n}\n\nfunc must(n int, err error) int {\n\tif err != nil {\n\t\tpanic(err)\n\t}\n\treturn n\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.concurrency.deadlocks",
+    "backend.data.transactions"
+  ]
+}

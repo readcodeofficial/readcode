@@ -1,0 +1,28 @@
+{
+  "id": "6cf692a1-b30c-41d2-8645-915ce00da1a3",
+  "title": "Bank statement importer: file handles that never come back",
+  "name": "Statement file importer",
+  "createdAt": "2026-11-25T05:38:11.006Z",
+  "durationMinutes": 20,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The nightly statement import runs fine for weeks, then starts failing every file with 'too many open files' until the service is restarted. The failures started after a partner began sending a few malformed statements each night. Fix ingest/importer.go so the tests pass.",
+      "editable": [
+        "ingest/importer.go"
+      ],
+      "tests": [
+        {
+          "path": "ingest_test.go",
+          "content": "package tests\n\nimport (\n\t\"errors\"\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"exercise/src/ingest\"\n)\n\ntype errReader struct{}\n\nfunc (errReader) Read([]byte) (int, error) { return 0, errors.New(\"connection reset\") }\n\ntype fakeSource struct {\n\tfiles    map[string]string\n\tfailRead map[string]bool\n\topened   int\n\tclosed   int\n}\n\ntype handle struct {\n\tio.Reader\n\tsrc    *fakeSource\n\tclosed bool\n}\n\nfunc (h *handle) Close() error {\n\tif h.closed {\n\t\treturn errors.New(\"double close\")\n\t}\n\th.closed = true\n\th.src.closed++\n\treturn nil\n}\n\nfunc (s *fakeSource) Open(name string) (io.ReadCloser, error) {\n\tc, ok := s.files[name]\n\tif !ok {\n\t\treturn nil, os.ErrNotExist\n\t}\n\ts.opened++\n\tvar r io.Reader = strings.NewReader(c)\n\tif s.failRead[name] {\n\t\tr = io.MultiReader(r, errReader{})\n\t}\n\treturn &handle{Reader: r, src: s}, nil\n}\n\nfunc newSource() *fakeSource {\n\treturn &fakeSource{\n\t\tfiles: map[string]string{\n\t\t\t\"good1.csv\": \"ACC1,USD\\n10,deposit\\n-4,fee\\n\",\n\t\t\t\"good2.csv\": \"ACC2,EUR\\n5,deposit\\n\",\n\t\t\t\"bad.csv\":   \"not a header\\n1,2\\n\",\n\t\t\t\"empty.csv\": \"\",\n\t\t\t\"cut.csv\":   \"ACC3,GBP\\n1,x\\n\",\n\t\t},\n\t\tfailRead: map[string]bool{\"cut.csv\": true},\n\t}\n}\n\nfunc TestImportCountsRows(t *testing.T) {\n\tsrc := newSource()\n\tres := ingest.ImportAll(src, []string{\"good1.csv\", \"good2.csv\"})\n\tif res[0].Err != nil || res[0].Rows != 2 || res[0].Account != \"ACC1\" || res[0].Currency != \"USD\" {\n\t\tt.Fatalf(\"good1: got %+v\", res[0])\n\t}\n\tif res[1].Rows != 1 {\n\t\tt.Fatalf(\"good2 rows: want 1, got %d\", res[1].Rows)\n\t}\n}\n\nfunc TestHandlesClosedOnSuccess(t *testing.T) {\n\tsrc := newSource()\n\tingest.ImportAll(src, []string{\"good1.csv\", \"good2.csv\"})\n\tif src.opened != 2 || src.closed != 2 {\n\t\tt.Fatalf(\"opened %d, closed %d; want 2 and 2\", src.opened, src.closed)\n\t}\n}\n\nfunc TestBadHeaderClosesHandle(t *testing.T) {\n\tsrc := newSource()\n\tres := ingest.ImportAll(src, []string{\"bad.csv\"})\n\tif !errors.Is(res[0].Err, ingest.ErrBadHeader) {\n\t\tt.Fatalf(\"want ErrBadHeader, got %v\", res[0].Err)\n\t}\n\tif src.closed != src.opened {\n\t\tt.Fatalf(\"leaked %d handle(s) after a malformed header\", src.opened-src.closed)\n\t}\n}\n\nfunc TestEmptyFileClosesHandle(t *testing.T) {\n\tsrc := newSource()\n\tres := ingest.ImportAll(src, []string{\"empty.csv\"})\n\tif res[0].Err == nil {\n\t\tt.Fatal(\"empty file should be an error\")\n\t}\n\tif src.closed != src.opened {\n\t\tt.Fatalf(\"leaked %d handle(s) after an empty file\", src.opened-src.closed)\n\t}\n}\n\nfunc TestReadErrorClosesHandle(t *testing.T) {\n\tsrc := newSource()\n\tres := ingest.ImportAll(src, []string{\"cut.csv\"})\n\tif res[0].Err == nil {\n\t\tt.Fatal(\"truncated transfer should be reported\")\n\t}\n\tif src.closed != src.opened {\n\t\tt.Fatalf(\"opened %d, closed %d\", src.opened, src.closed)\n\t}\n}\n\nfunc TestOpenFailureDoesNotStopBatch(t *testing.T) {\n\tsrc := newSource()\n\tres := ingest.ImportAll(src, []string{\"missing.csv\", \"good2.csv\"})\n\tif !errors.Is(res[0].Err, os.ErrNotExist) {\n\t\tt.Fatalf(\"want ErrNotExist, got %v\", res[0].Err)\n\t}\n\tif res[1].Err != nil || res[1].Rows != 1 {\n\t\tt.Fatalf(\"second file should import, got %+v\", res[1])\n\t}\n}\n\nfunc TestNightlyBatchLeavesNothingOpen(t *testing.T) {\n\tsrc := newSource()\n\tvar names []string\n\tfor i := 0; i < 30; i++ {\n\t\tswitch i % 3 {\n\t\tcase 0:\n\t\t\tnames = append(names, \"good1.csv\")\n\t\tcase 1:\n\t\t\tnames = append(names, \"bad.csv\")\n\t\tdefault:\n\t\t\tnames = append(names, \"empty.csv\")\n\t\t}\n\t}\n\tres := ingest.ImportAll(src, names)\n\tsum := ingest.Summarize(res)\n\tfmt.Printf(\"batch of %d: imported=%d failed=%d, handles opened=%d closed=%d\\n\",\n\t\tlen(names), sum.Imported, sum.Failed, src.opened, src.closed)\n\tif src.opened-src.closed != 0 {\n\t\tt.Fatalf(\"%d handles still open after the batch\", src.opened-src.closed)\n\t}\n}\n\nfunc TestSummarize(t *testing.T) {\n\tsrc := newSource()\n\tres := ingest.ImportAll(src, []string{\"good1.csv\", \"bad.csv\", \"good2.csv\"})\n\ts := ingest.Summarize(res)\n\tif s.Imported != 2 || s.Failed != 1 || s.Rows != 3 {\n\t\tt.Fatalf(\"got %+v\", s)\n\t}\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.file_and_socket_handle_leaks",
+    "backend.errors.error_handling_and_propagation"
+  ]
+}

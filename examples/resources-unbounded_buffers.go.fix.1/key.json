@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "feedsync/fetch.go",
+          "content": "package feedsync\n\nimport (\n\t\"context\"\n\t\"errors\"\n\t\"fmt\"\n\t\"io\"\n\t\"net/http\"\n)\n\nvar ErrTooLarge = errors.New(\"feed exceeds size limit\")\n\n// Doer is the part of *http.Client the fetcher needs.\ntype Doer interface {\n\tDo(req *http.Request) (*http.Response, error)\n}\n\n// Fetcher downloads a supplier feed into memory, refusing bodies larger\n// than MaxBytes.\ntype Fetcher struct {\n\tClient   Doer\n\tMaxBytes int64\n}\n\nfunc (f *Fetcher) Get(ctx context.Context, url string) ([]byte, error) {\n\treq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tresp, err := f.Client.Do(req)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"fetch %s: %w\", url, err)\n\t}\n\tdefer resp.Body.Close()\n\tif resp.StatusCode != http.StatusOK {\n\t\treturn nil, fmt.Errorf(\"fetch %s: status %d\", url, resp.StatusCode)\n\t}\n\tbody, err := io.ReadAll(io.LimitReader(resp.Body, f.MaxBytes+1))\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"read %s: %w\", url, err)\n\t}\n\tif int64(len(body)) > f.MaxBytes {\n\t\treturn nil, ErrTooLarge\n\t}\n\treturn body, nil\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "io.LimitReader(body, max) stops after max bytes and then reports a clean EOF, so a response larger than the cap is silently truncated instead of rejected. The truncated feed still parses when the cut falls on a line boundary, so the sync succeeds with missing products. The fix reads one byte more than allowed (max+1) and treats len(body) > max as ErrTooLarge; memory stays bounded at max+1 bytes and oversize responses fail loudly."
+  ]
+}

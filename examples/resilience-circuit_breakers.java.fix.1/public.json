@@ -1,0 +1,29 @@
+{
+  "id": "1513cb6e-6993-45a2-aeb6-abc062b78a18",
+  "title": "Card payments behind a circuit breaker: a breaker that never forgets old failures",
+  "name": "Payment circuit breaker",
+  "createdAt": "2026-11-25T05:37:31.670Z",
+  "durationMinutes": 20,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Checkout keeps getting 'payments temporarily unavailable' even though the gateway has been healthy for hours. The breaker trips on scattered errors that happened hours apart, and right after it recovers a single failed charge opens it again. Fix CircuitBreaker.java so the tests pass.",
+      "editable": [
+        "pay/CircuitBreaker.java"
+      ],
+      "tests": [
+        {
+          "path": "pay/PaymentServiceTest.java",
+          "content": "package pay;\n\nimport static readcode.Assert.*;\n\nimport java.time.Duration;\nimport java.time.Instant;\n\npublic class PaymentServiceTest {\n    private ManualClock clock;\n    private CircuitBreaker breaker;\n    private PaymentService service;\n    private boolean gatewayDown;\n    private int gatewayCalls;\n\n    public void setUp() {\n        clock = new ManualClock(Instant.parse(\"2026-11-19T12:00:00Z\"));\n        breaker = new CircuitBreaker(3, Duration.ofSeconds(30), clock);\n        gatewayDown = false;\n        gatewayCalls = 0;\n        Gateway gateway = (token, cents) -> {\n            gatewayCalls++;\n            if (gatewayDown) {\n                throw new GatewayException(\"503 from gateway\");\n            }\n            return \"ch_\" + gatewayCalls;\n        };\n        service = new PaymentService(gateway, breaker);\n    }\n\n    private void failOnce() {\n        gatewayDown = true;\n        service.charge(\"tok\", 1000);\n        gatewayDown = false;\n    }\n\n    public void testHealthyChargeIsApproved() {\n        PaymentService.Result r = service.charge(\"tok\", 1000);\n        assertEquals(PaymentService.Status.APPROVED, r.status());\n        assertEquals(CircuitBreaker.State.CLOSED, breaker.state());\n    }\n\n    public void testOpensAfterThreeConsecutiveFailures() {\n        failOnce();\n        failOnce();\n        assertEquals(CircuitBreaker.State.CLOSED, breaker.state(), \"two failures should not trip a threshold of 3\");\n        failOnce();\n        assertEquals(CircuitBreaker.State.OPEN, breaker.state());\n    }\n\n    public void testOpenCircuitRejectsWithoutCallingGateway() {\n        failOnce();\n        failOnce();\n        failOnce();\n        int before = gatewayCalls;\n        PaymentService.Result r = service.charge(\"tok\", 1000);\n        assertEquals(PaymentService.Status.REJECTED_CIRCUIT_OPEN, r.status());\n        assertEquals(before, gatewayCalls, \"gateway must not be called while open\");\n    }\n\n    public void testSuccessInBetweenKeepsFailuresFromAccumulating() {\n        failOnce();\n        failOnce();\n        service.charge(\"tok\", 1000);\n        failOnce();\n        failOnce();\n        System.out.println(\"state after fail, fail, success, fail, fail: \" + breaker.state());\n        assertEquals(CircuitBreaker.State.CLOSED, breaker.state(), \"failures separated by a success are not consecutive\");\n    }\n\n    public void testProbeSuccessClosesAndNeedsFullThresholdToReopen() {\n        failOnce();\n        failOnce();\n        failOnce();\n        clock.advance(Duration.ofSeconds(31));\n        assertEquals(PaymentService.Status.APPROVED, service.charge(\"tok\", 1000).status());\n        assertEquals(CircuitBreaker.State.CLOSED, breaker.state());\n        failOnce();\n        assertEquals(CircuitBreaker.State.CLOSED, breaker.state(), \"one failure after recovery must not re-open the circuit\");\n    }\n\n    public void testFailedProbeReopensForAnotherWindow() {\n        failOnce();\n        failOnce();\n        failOnce();\n        clock.advance(Duration.ofSeconds(31));\n        failOnce();\n        assertEquals(CircuitBreaker.State.OPEN, breaker.state());\n        assertEquals(PaymentService.Status.REJECTED_CIRCUIT_OPEN, service.charge(\"tok\", 1000).status());\n    }\n\n    public void testOnlyOneProbeWhileHalfOpen() {\n        failOnce();\n        failOnce();\n        failOnce();\n        clock.advance(Duration.ofSeconds(31));\n        assertTrue(breaker.tryAcquire(), \"first caller after the window is the probe\");\n        assertFalse(breaker.tryAcquire(), \"second caller must be rejected while the probe is in flight\");\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.circuit_breakers",
+    "backend.resilience.timeouts_and_retries",
+    "backend.resilience.graceful_degradation"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "f84520cf-01c1-43f1-b036-c89ac2e75877",
+  "title": "Ticket booking API: error mapper answers the wrong status for a taken seat",
+  "name": "Seat hold error mapping",
+  "createdAt": "2026-11-25T05:34:53.631Z",
+  "durationMinutes": 20,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The mobile app is supposed to show 'Someone just took that seat, pick another' when a hold fails because the seat is already held, but it shows a generic 'Check your input' form error instead and the seat map never refreshes. Other failures (unknown event, malformed JSON, server bugs) look right. Fix booking/mapError.js so the tests pass.",
+      "editable": [
+        "booking/mapError.js"
+      ],
+      "tests": [
+        {
+          "path": "booking.test.js",
+          "content": "import { test, before, after } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createBookingService } from \"../src/booking/service.js\";\nimport { createServer } from \"../src/booking/server.js\";\n\nconst events = new Map([[\"e1\", { seats: [\"A1\", \"A2\", \"B1\"] }]]);\nlet service;\nlet server;\nlet base;\n\nbefore(async () => {\n  service = createBookingService(events);\n  const real = service.holdSeat;\n  service.holdSeat = (eventId, seat, customer) => {\n    if (customer === \"explode\") throw new TypeError(\"secret internal detail: db password\");\n    return real(eventId, seat, customer);\n  };\n  server = createServer(service);\n  await new Promise((resolve) => server.listen(0, \"127.0.0.1\", resolve));\n  base = `http://127.0.0.1:${server.address().port}`;\n});\n\nafter(async () => {\n  server.closeAllConnections();\n  await new Promise((resolve) => server.close(resolve));\n});\n\nasync function post(path, body, raw) {\n  const res = await fetch(base + path, {\n    method: \"POST\",\n    headers: { \"Content-Type\": \"application/json\" },\n    body: raw ?? JSON.stringify(body),\n    signal: AbortSignal.timeout(3000),\n  });\n  return { status: res.status, json: await res.json() };\n}\n\ntest(\"a free seat is held: 201\", async () => {\n  const res = await post(\"/events/e1/holds\", { seat: \"A1\", customer: \"ann\" });\n  assert.equal(res.status, 201);\n  assert.deepEqual(res.json, { eventId: \"e1\", seat: \"A1\", customer: \"ann\" });\n});\n\ntest(\"the same customer re-holding their seat is fine\", async () => {\n  await post(\"/events/e1/holds\", { seat: \"A2\", customer: \"ann\" });\n  const res = await post(\"/events/e1/holds\", { seat: \"A2\", customer: \"ann\" });\n  assert.equal(res.status, 201);\n});\n\ntest(\"a seat held by someone else is 409 seat_taken\", async () => {\n  await post(\"/events/e1/holds\", { seat: \"B1\", customer: \"ann\" });\n  const res = await post(\"/events/e1/holds\", { seat: \"B1\", customer: \"bob\" });\n  console.log(\"conflict response:\", res.status, JSON.stringify(res.json));\n  assert.equal(res.status, 409);\n  assert.equal(res.json.error.code, \"seat_taken\");\n  assert.deepEqual(res.json.error.details, { seat: \"B1\" });\n});\n\ntest(\"a malformed seat is 422 invalid_request naming the field\", async () => {\n  const res = await post(\"/events/e1/holds\", { seat: \"17\", customer: \"ann\" });\n  assert.equal(res.status, 422);\n  assert.equal(res.json.error.code, \"invalid_request\");\n  assert.deepEqual(res.json.error.details, { field: \"seat\" });\n});\n\ntest(\"an unknown event is 404 and an unknown route is 404\", async () => {\n  assert.equal((await post(\"/events/nope/holds\", { seat: \"A1\", customer: \"ann\" })).status, 404);\n  assert.equal((await post(\"/something/else\", {})).status, 404);\n});\n\ntest(\"a body that is not JSON is 400\", async () => {\n  const res = await post(\"/events/e1/holds\", null, \"{not json\");\n  assert.equal(res.status, 400);\n  assert.equal(res.json.error.code, \"malformed_json\");\n});\n\ntest(\"an unexpected bug is 500 and does not leak its message\", async () => {\n  const res = await post(\"/events/e1/holds\", { seat: \"A1\", customer: \"explode\" });\n  assert.equal(res.status, 500);\n  assert.equal(res.json.error.code, \"internal\");\n  assert.ok(!JSON.stringify(res.json).includes(\"password\"), \"internal details leaked to the client\");\n});\n\ntest(\"a lost race leaves the first holder in place and tells every later customer 409\", async () => {\n  await post(\"/events/e1/holds\", { seat: \"A1\", customer: \"zed\" });\n  const statuses = [];\n  for (const customer of [\"cy\", \"di\"]) {\n    statuses.push((await post(\"/events/e1/holds\", { seat: \"A1\", customer })).status);\n  }\n  assert.deepEqual(statuses, [409, 409]);\n  assert.ok(service.heldSeats(\"e1\").includes(\"A1\"));\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.status_codes_and_error_responses",
+    "backend.api.request_validation",
+    "backend.errors.error_propagation"
+  ]
+}

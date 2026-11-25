@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "warehouse/reserve.js",
+          "content": "import { OutOfStock } from \"./inventory.js\";\n\nexport async function reserveOrder(inventory, lines) {\n  const reserved = [];\n  const failed = [];\n\n  await Promise.all(\n    lines.map(async (line) => {\n      try {\n        const hold = await inventory.reserve(line.sku, line.qty);\n        reserved.push(hold);\n      } catch (err) {\n        if (!(err instanceof OutOfStock)) throw err;\n        failed.push({ sku: line.sku, reason: err.message });\n      }\n    }),\n  );\n\n  return { reserved, failed };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "reserveOrder starts one async callback per order line with Array.prototype.forEach, but forEach ignores the promises those callbacks return, so nothing awaits them. The function returns { reserved, failed } while both arrays are still empty, so fulfilOrder sees no failures and ships an empty pick list; the reservations only land later. The fix maps the lines to promises and awaits them with Promise.all, so the result is complete before it is returned."
+  ]
+}

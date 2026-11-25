@@ -1,0 +1,28 @@
+{
+  "id": "65b65019-a2d1-46aa-9ba5-f17059aef176",
+  "title": "Shipment notifications: sandbox redirects outside production",
+  "name": "Shipment notifier environments",
+  "createdAt": "2026-11-25T05:36:18.802Z",
+  "durationMinutes": 18,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "After Tuesday's release no customer received a shipping email. All of them landed in the mail-sink mailbox that we use for staging, even though the production deployment has APP_ENV=production. Staging behaves exactly as intended, and the subject lines in production are correct. Fix ShipmentNotifier.java so the tests pass.",
+      "editable": [
+        "notify/service/ShipmentNotifier.java"
+      ],
+      "tests": [
+        {
+          "path": "notify/NotifierTest.java",
+          "content": "package notify;\n\nimport static readcode.Assert.*;\n\nimport java.util.Map;\n\nimport notify.config.AppConfig;\nimport notify.mail.Mailer;\nimport notify.service.ShipmentNotifier;\n\npublic class NotifierTest {\n\n    private Mailer.Recording mailer;\n\n    public void setUp() {\n        mailer = new Mailer.Recording();\n    }\n\n    private ShipmentNotifier notifierFor(String appEnv) {\n        // values read from the real process environment are never interned literals\n        Map<String, String> env = Map.of(\"APP_ENV\", new String(appEnv));\n        return new ShipmentNotifier(AppConfig.fromEnv(env), mailer);\n    }\n\n    public void testConfigDefaultsToDevelopment() {\n        assertEquals(\"development\", AppConfig.fromEnv(Map.of()).environment());\n    }\n\n    public void testConfigNormalisesEnvironmentName() {\n        assertEquals(\"production\", AppConfig.fromEnv(Map.of(\"APP_ENV\", \"  Production \")).environment());\n    }\n\n    public void testProductionSendsToTheCustomer() {\n        notifierFor(\"production\").shipped(\"ana@customer.test\", \"A-100\", \"UPS\");\n        Mailer.Message sent = mailer.sent().get(0);\n        System.out.println(\"to=\" + sent.to() + \" subject=\" + sent.subject());\n        assertEquals(\"ana@customer.test\", sent.to(), \"production mail must reach the customer\");\n    }\n\n    public void testProductionSubjectHasNoEnvironmentPrefix() {\n        notifierFor(\"PRODUCTION\").delayed(\"ana@customer.test\", \"A-101\", 2);\n        assertEquals(\"Order A-101 is delayed\", mailer.sent().get(0).subject());\n        assertEquals(\"ana@customer.test\", mailer.sent().get(0).to());\n    }\n\n    public void testStagingRedirectsToSandbox() {\n        notifierFor(\"staging\").shipped(\"ana@customer.test\", \"A-102\", \"DHL\");\n        Mailer.Message sent = mailer.sent().get(0);\n        assertEquals(\"mail-sink@example.test\", sent.to());\n        assertTrue(sent.subject().startsWith(\"[staging] \"), sent.subject());\n    }\n\n    public void testDevelopmentRedirectsToConfiguredSandbox() {\n        AppConfig config = AppConfig.fromEnv(Map.of(\"MAIL_SANDBOX_RECIPIENT\", \"qa@example.test\"));\n        new ShipmentNotifier(config, mailer).delayed(\"ana@customer.test\", \"A-103\", 1);\n        assertEquals(\"qa@example.test\", mailer.sent().get(0).to());\n    }\n\n    public void testProductionRefundGoesToTheCustomer() {\n        notifierFor(\"production\").refunded(\"ana@customer.test\", \"A-105\", 1999);\n        Mailer.Message sent = mailer.sent().get(0);\n        assertEquals(\"ana@customer.test\", sent.to());\n        assertTrue(sent.body().contains(\"19.99\"), sent.body());\n    }\n\n    public void testSandboxMailKeepsOriginalRecipientInBody() {\n        notifierFor(\"staging\").shipped(\"ana@customer.test\", \"A-104\", \"FedEx\");\n        assertTrue(mailer.sent().get(0).body().contains(\"ana@customer.test\"), \"body should name the real customer\");\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.config.environment_specific_behaviour",
+    "backend.config.configuration_loading"
+  ]
+}

@@ -53,7 +53,8 @@ const have = new Map<string, number>();
 for (const entry of existsSync(out) ? readdirSync(out, { withFileTypes: true }) : []) {
     const pub = path.join(out, entry.name, "public.json");
     if (!entry.isDirectory() || !existsSync(pub)) continue;
-    const { concepts, language } = JSON.parse(readFileSync(pub, "utf8")) as { concepts: string[]; language: string };
+    const { concepts, language, questions } = JSON.parse(readFileSync(pub, "utf8")) as { concepts: string[]; language: string; questions: { kind?: string }[] };
+    if (questions.some((q) => q.kind === "fix")) continue; // runnable bug-fix exercises are counted separately (pipeline/RUNNABLE.md)
     const key = pairKey(concepts[0], language);
     have.set(key, (have.get(key) ?? 0) + 1);
 }

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "jobs/consumer.py",
+          "content": "import queue\nfrom typing import Callable\n\nfrom .jobqueue import JobQueue\nfrom .models import RenderError, RenderJob, RenderResult\n\n\nclass Consumer:\n    def __init__(\n        self,\n        jobs: JobQueue,\n        render: Callable[[RenderJob], RenderResult],\n        results: dict,\n        dead_letters: list,\n    ):\n        self.jobs = jobs\n        self.render = render\n        self.results = results\n        self.dead_letters = dead_letters\n\n    def drain(self) -> int:\n        \"\"\"Process everything currently queued. Returns how many jobs rendered successfully.\"\"\"\n        handled = 0\n        while True:\n            try:\n                job = self.jobs.take()\n            except queue.Empty:\n                break\n            try:\n                result = self.render(job)\n                self.results[job.job_id] = result\n                handled += 1\n            except RenderError as exc:\n                self.dead_letters.append((job, str(exc)))\n            finally:\n                self.jobs.done()\n        return handled\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "queue.Queue counts every get() as an unfinished task until task_done() is called, and join() blocks until that count reaches zero. The consumer only calls done() on the success path, so each job that raises RenderError is removed from the queue and sent to the dead letters but stays counted as unfinished, and join() never returns. Moving done() into a finally block acknowledges every job that was taken, whether it rendered or was dead-lettered."
+  ]
+}

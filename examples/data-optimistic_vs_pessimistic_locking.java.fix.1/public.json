@@ -1,0 +1,29 @@
+{
+  "id": "943b5702-b2a4-4a90-b15a-a537b0429621",
+  "title": "Warehouse stock with optimistic locking: version checks that stop working after the first hundred edits",
+  "name": "Stock version check",
+  "createdAt": "2026-11-25T05:36:21.180Z",
+  "durationMinutes": 20,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Warehouse staff adjust stock through the admin screen, which sends the version it last saw as If-Match. New SKUs work fine, but busy SKUs start answering 409 Conflict to perfectly valid edits, and nobody else has touched them. It only happens once a SKU has been edited a lot. Fix StockRepository.java so the tests pass.",
+      "editable": [
+        "warehouse/StockRepository.java"
+      ],
+      "tests": [
+        {
+          "path": "warehouse/StockServiceTest.java",
+          "content": "package warehouse;\n\nimport static readcode.Assert.*;\n\npublic class StockServiceTest {\n    private StockRepository repo;\n    private StockService service;\n\n    public void setUp() {\n        repo = new StockRepository();\n        service = new StockService(repo);\n        repo.insert(\"LAMP-1\", 100, 1L);\n    }\n\n    public void testAdjustWithMatchingVersionBumpsVersion() {\n        StockRecord saved = service.adjust(\"LAMP-1\", -10, 1);\n        assertEquals(90, saved.onHand());\n        assertEquals(2L, saved.version().longValue());\n    }\n\n    public void testStaleVersionIsRejected() {\n        service.adjust(\"LAMP-1\", -10, 1);\n        assertThrows(StockService.StaleVersionException.class, () -> service.adjust(\"LAMP-1\", -5, 1));\n        assertEquals(90, repo.find(\"LAMP-1\").orElseThrow().onHand(), \"rejected edit must not change stock\");\n    }\n\n    public void testCannotGoNegative() {\n        assertThrows(StockService.InsufficientStockException.class, () -> service.adjust(\"LAMP-1\", -101, 1));\n    }\n\n    public void testMatchingVersionAbove127IsAccepted() {\n        repo.insert(\"BUSY-1\", 50, 500L);\n        StockRecord saved = service.adjust(\"BUSY-1\", 5, 500);\n        assertEquals(55, saved.onHand(), \"a correct If-Match on a heavily edited SKU must be accepted\");\n        assertEquals(501L, saved.version().longValue());\n    }\n\n    public void testStaleVersionAbove127IsStillRejected() {\n        repo.insert(\"BUSY-1\", 50, 500L);\n        assertThrows(StockService.StaleVersionException.class, () -> service.adjust(\"BUSY-1\", 5, 499));\n    }\n\n    public void testClientFollowingReturnedVersionsForManyEdits() {\n        long version = 1;\n        int edits = 0;\n        try {\n            for (; edits < 200; edits++) {\n                version = service.adjust(\"LAMP-1\", 1, version).version();\n            }\n        } catch (StockService.StaleVersionException e) {\n            System.out.println(\"rejected at edit #\" + (edits + 1) + \" with version \" + version);\n            fail(\"valid edit #\" + (edits + 1) + \" (version \" + version + \") was rejected as stale\");\n        }\n        assertEquals(300, repo.find(\"LAMP-1\").orElseThrow().onHand());\n    }\n\n    public void testRetryPathAppliesDeltas() {\n        service.adjustWithRetry(\"LAMP-1\", -1);\n        StockRecord saved = service.adjustWithRetry(\"LAMP-1\", -1);\n        assertEquals(98, saved.onHand());\n        assertEquals(3L, saved.version().longValue());\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.optimistic_vs_pessimistic_locking",
+    "backend.api.concurrency_control_etags",
+    "backend.concurrency.race_conditions"
+  ]
+}

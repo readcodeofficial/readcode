@@ -1,0 +1,29 @@
+{
+  "id": "46f6c910-34eb-40e2-9483-591c4a6e2697",
+  "title": "Notification preferences API: partial updates decoded from JSON",
+  "name": "Preferences PATCH",
+  "createdAt": "2026-11-25T05:35:21.794Z",
+  "durationMinutes": 19,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The mobile app sends PATCH /users/{id}/preferences with just the field the user changed. Since the release that added display names, support is getting reports that renaming yourself silently turns your email alerts off. Fix UpdateRequest so the tests pass.",
+      "editable": [
+        "prefs/request.go"
+      ],
+      "tests": [
+        {
+          "path": "prefs_test.go",
+          "content": "package tests\n\nimport (\n\t\"encoding/json\"\n\t\"net/http\"\n\t\"net/http/httptest\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"exercise/src/prefs\"\n)\n\nfunc do(t *testing.T, h http.Handler, method, path, body string) (int, prefs.Preferences, string) {\n\tt.Helper()\n\treq := httptest.NewRequest(method, path, strings.NewReader(body))\n\trec := httptest.NewRecorder()\n\th.ServeHTTP(rec, req)\n\tvar p prefs.Preferences\n\tjson.Unmarshal(rec.Body.Bytes(), &p)\n\treturn rec.Code, p, rec.Body.String()\n}\n\nfunc newServer() (http.Handler, *prefs.MemoryStore) {\n\tstore := prefs.NewMemoryStore()\n\treturn prefs.NewHandler(store), store\n}\n\nfunc TestGetReturnsDefaultsForNewUser(t *testing.T) {\n\th, _ := newServer()\n\tcode, p, body := do(t, h, \"GET\", \"/users/u1/preferences\", \"\")\n\tt.Logf(\"GET body: %s\", strings.TrimSpace(body))\n\tif code != 200 || !p.EmailAlerts || p.DigestHour != 8 {\n\t\tt.Fatalf(\"GET = %d %+v\", code, p)\n\t}\n}\n\nfunc TestRenameKeepsEmailAlertsOn(t *testing.T) {\n\th, _ := newServer()\n\tcode, p, _ := do(t, h, \"PATCH\", \"/users/u1/preferences\", `{\"displayName\":\"Dana\"}`)\n\tif code != 200 || p.DisplayName != \"Dana\" {\n\t\tt.Fatalf(\"PATCH = %d %+v\", code, p)\n\t}\n\tif !p.EmailAlerts {\n\t\tt.Fatal(\"renaming a user turned emailAlerts off, but the request never mentioned it\")\n\t}\n}\n\nfunc TestEmptyPatchChangesNothing(t *testing.T) {\n\th, store := newServer()\n\tstore.Put(\"u1\", prefs.Preferences{DisplayName: \"Dana\", EmailAlerts: true, DigestHour: 17})\n\tcode, p, _ := do(t, h, \"PATCH\", \"/users/u1/preferences\", `{}`)\n\twant := prefs.Preferences{DisplayName: \"Dana\", EmailAlerts: true, DigestHour: 17}\n\tif code != 200 || p != want {\n\t\tt.Fatalf(\"empty PATCH produced %d %+v, want unchanged %+v\", code, p, want)\n\t}\n}\n\nfunc TestExplicitFalseTurnsAlertsOff(t *testing.T) {\n\th, store := newServer()\n\tcode, p, _ := do(t, h, \"PATCH\", \"/users/u1/preferences\", `{\"emailAlerts\":false}`)\n\tif code != 200 || p.EmailAlerts {\n\t\tt.Fatalf(\"PATCH emailAlerts=false = %d %+v\", code, p)\n\t}\n\tif store.Get(\"u1\").EmailAlerts {\n\t\tt.Fatal(\"the stored preferences still have alerts on\")\n\t}\n}\n\nfunc TestExplicitTrueTurnsAlertsBackOn(t *testing.T) {\n\th, store := newServer()\n\tstore.Put(\"u1\", prefs.Preferences{EmailAlerts: false, DigestHour: 6})\n\t_, p, _ := do(t, h, \"PATCH\", \"/users/u1/preferences\", `{\"emailAlerts\":true}`)\n\tif !p.EmailAlerts || p.DigestHour != 6 {\n\t\tt.Fatalf(\"got %+v, want alerts on and digestHour still 6\", p)\n\t}\n}\n\nfunc TestDigestHourZeroIsHonoured(t *testing.T) {\n\th, _ := newServer()\n\tcode, p, _ := do(t, h, \"PATCH\", \"/users/u1/preferences\", `{\"digestHour\":0}`)\n\tif code != 200 || p.DigestHour != 0 {\n\t\tt.Fatalf(\"digestHour 0 gave %d %+v, want midnight\", code, p)\n\t}\n}\n\nfunc TestUnknownFieldIsRejected(t *testing.T) {\n\th, store := newServer()\n\tcode, _, _ := do(t, h, \"PATCH\", \"/users/u1/preferences\", `{\"emailAlert\":false}`)\n\tif code != http.StatusBadRequest {\n\t\tt.Fatalf(\"status = %d for a misspelled field, want 400\", code)\n\t}\n\tif !store.Get(\"u1\").EmailAlerts {\n\t\tt.Fatal(\"a rejected request must not change anything\")\n\t}\n}\n\nfunc TestOutOfRangeHourIsRejected(t *testing.T) {\n\th, _ := newServer()\n\tcode, _, _ := do(t, h, \"PATCH\", \"/users/u1/preferences\", `{\"digestHour\":30}`)\n\tif code != http.StatusUnprocessableEntity {\n\t\tt.Fatalf(\"status = %d for digestHour 30, want 422\", code)\n\t}\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.serialization_and_deserialization",
+    "backend.api.rest_design",
+    "backend.api.request_validation"
+  ]
+}

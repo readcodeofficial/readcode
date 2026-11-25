@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "warehouse/StockRepository.java",
+          "content": "package warehouse;\n\nimport java.util.HashMap;\nimport java.util.Map;\nimport java.util.Optional;\n\n/** In-memory stand-in for the stock table. */\npublic final class StockRepository {\n    private final Map<String, StockRecord> rows = new HashMap<>();\n\n    public synchronized void insert(String sku, int onHand, Long version) {\n        rows.put(sku, new StockRecord(sku, onHand, version));\n    }\n\n    public synchronized Optional<StockRecord> find(String sku) {\n        return Optional.ofNullable(rows.get(sku));\n    }\n\n    /**\n     * Equivalent of {@code UPDATE stock SET on_hand = ?, version = version + 1\n     * WHERE sku = ? AND version = ?}. Returns the stored row, or empty if nothing matched.\n     */\n    public synchronized Optional<StockRecord> updateIfVersion(StockRecord next, Long expectedVersion) {\n        StockRecord current = rows.get(next.sku());\n        if (current == null || !current.version().equals(expectedVersion)) {\n            return Optional.empty();\n        }\n        StockRecord saved = new StockRecord(next.sku(), next.onHand(), current.version() + 1);\n        rows.put(saved.sku(), saved);\n        return Optional.of(saved);\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Versions are boxed Long objects and the repository compares them with !=, which compares references, not values. Long.valueOf caches only -128..127, so for small versions two boxes of the same number happen to be the same object and the check works. Once a version exceeds 127, the expectedVersion boxed from the caller's primitive is a different object from the stored one, the comparison says they differ, and every valid update is rejected as stale. equals() compares the numeric value and fixes it."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "ade15fed-77e1-4994-aef7-e9ba93d7d291",
+  "title": "Newsletter dispatcher: sending a batch of emails through a thread pool",
+  "name": "Newsletter worker pool",
+  "createdAt": "2026-11-25T05:35:59.741Z",
+  "durationMinutes": 20,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "After a campaign, support noticed that when a few mailboxes bounced, the retry list contained the wrong people: customers who had received the newsletter got it again, while the ones who bounced were never retried. It only happens on larger sends, and the sent/failed totals always look right. Fix BulkDispatcher so the tests pass.",
+      "editable": [
+        "mailing/dispatcher.py"
+      ],
+      "tests": [
+        {
+          "path": "test_dispatcher.py",
+          "content": "import threading\nimport unittest\n\nfrom mailing.campaign import run_campaign\nfrom mailing.dispatcher import BulkDispatcher\nfrom mailing.sender import Message, TransportError\nfrom mailing.suppression import SuppressionList\n\n\nclass FakeTransport:\n    \"\"\"In-memory transport. hold={\"a@x\": \"c@x\"} makes the send to a@x wait until c@x was handled.\"\"\"\n\n    def __init__(self, fail=(), hold=None):\n        self.fail = set(fail)\n        self.hold = hold or {}\n        self.sent = []\n        self.active = 0\n        self.max_active = 0\n        self._lock = threading.Lock()\n        self._events = {}\n\n    def _event(self, name):\n        with self._lock:\n            return self._events.setdefault(name, threading.Event())\n\n    def send(self, message):\n        with self._lock:\n            self.active += 1\n            self.max_active = max(self.max_active, self.active)\n        try:\n            waits_for = self.hold.get(message.to)\n            if waits_for and not self._event(waits_for).wait(3):\n                raise AssertionError(f\"{message.to} was never released\")\n            if message.to in self.fail:\n                raise TransportError(\"mailbox full\")\n            with self._lock:\n                self.sent.append(message.to)\n        finally:\n            self._event(message.to).set()\n            with self._lock:\n                self.active -= 1\n\n\ndef msgs(*addresses):\n    return [Message(a, \"hi\", \"body\") for a in addresses]\n\n\ndef people(*addresses):\n    return [{\"email\": a, \"name\": a.split(\"@\")[0]} for a in addresses]\n\n\nclass DispatcherTests(unittest.TestCase):\n    def test_every_message_is_delivered(self):\n        transport = FakeTransport()\n        outcomes = BulkDispatcher(transport, workers=3).send_all(msgs(\"a@x\", \"b@x\", \"c@x\", \"d@x\"))\n        self.assertEqual(sorted(transport.sent), [\"a@x\", \"b@x\", \"c@x\", \"d@x\"])\n        self.assertTrue(all(o.ok for o in outcomes))\n\n    def test_failure_is_reported_not_raised(self):\n        outcomes = BulkDispatcher(FakeTransport(fail={\"b@x\"}), workers=1).send_all(msgs(\"a@x\", \"b@x\"))\n        self.assertEqual([(o.to, o.ok) for o in outcomes], [(\"a@x\", True), (\"b@x\", False)])\n        self.assertEqual(outcomes[1].error, \"mailbox full\")\n\n    def test_outcomes_line_up_with_messages_when_sends_finish_out_of_order(self):\n        transport = FakeTransport(hold={\"a@x\": \"c@x\"})\n        outcomes = BulkDispatcher(transport, workers=3).send_all(msgs(\"a@x\", \"b@x\", \"c@x\"))\n        self.assertEqual([o.to for o in outcomes], [\"a@x\", \"b@x\", \"c@x\"],\n                         \"outcomes must be in the same order as the messages that were sent\")\n\n    def test_retry_list_names_the_recipients_that_bounced(self):\n        transport = FakeTransport(fail={\"a@x\"}, hold={\"a@x\": \"c@x\"})\n        report = run_campaign(BulkDispatcher(transport, workers=3), people(\"a@x\", \"b@x\", \"c@x\"), \"Hi $name\", \"Plan: $plan\")\n        print(\"retry list:\", report.retry, \"(expected ['a@x'])\")\n        self.assertEqual(report.retry, [\"a@x\"])\n\n    def test_campaign_totals(self):\n        transport = FakeTransport(fail={\"b@x\", \"d@x\"})\n        report = run_campaign(BulkDispatcher(transport, workers=2), people(\"a@x\", \"b@x\", \"c@x\", \"d@x\"), \"Hi\", \"Body\")\n        self.assertEqual((report.sent, report.failed), (2, 2))\n\n    def test_never_more_sends_in_flight_than_workers(self):\n        transport = FakeTransport()\n        BulkDispatcher(transport, workers=2).send_all(msgs(*[f\"u{i}@x\" for i in range(10)]))\n        self.assertLessEqual(transport.max_active, 2)\n\n    def test_suppressed_addresses_are_skipped(self):\n        transport = FakeTransport()\n        blocked = SuppressionList([\"B@x \"])\n        report = run_campaign(BulkDispatcher(transport, workers=2), people(\"a@x\", \"b@x\", \"c@x\"), \"Hi\", \"Body\", blocked)\n        self.assertEqual(sorted(transport.sent), [\"a@x\", \"c@x\"])\n        self.assertEqual((report.sent, report.skipped), (2, 1))\n\n    def test_messages_are_personalised(self):\n        captured = []\n\n        class Capture:\n            def send_all(self, messages):\n                captured.extend(messages)\n                return [type(\"O\", (), {\"ok\": True})() for _ in messages]\n\n        run_campaign(Capture(), [{\"email\": \"z@x\", \"name\": \"Zed\", \"plan\": \"pro\"}], \"Hello $name\", \"You are on $plan\")\n        self.assertEqual((captured[0].subject, captured[0].body), (\"Hello Zed\", \"You are on pro\"))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.thread_and_worker_pools",
+    "backend.concurrency.futures_and_promises",
+    "backend.integrations.third_party_adapters"
+  ]
+}

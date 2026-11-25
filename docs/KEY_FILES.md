@@ -21,6 +21,7 @@ styling) and can change freely; these deserve care, review, and a note when they
 | `pipeline/src/languageLift.ts` | Corpus evidence for the fit table: how often each language co-occurs with each topic in the postings (`docs/language_lift.json`). |
 | `pipeline/src/exampleGenerator.ts` | The example-generation prompt, and validation of a generated draft into the example format. |
 | `pipeline/src/generateBank.ts` | Runs generation for a whole plan (API, or prepare/assemble for subagents). |
+| `pipeline/src/checkRunnable.ts` | Verifies runnable exercises (tests fail on the bug, pass with the fix) and writes authored ones into the bank; see `pipeline/RUNNABLE.md`. |
 | `pipeline/src/floorPlan.ts` | Builds `postings/plans/floor.json`: the extra examples that bring every topic up to a minimum count, in languages with fit ≥ 0.7. |
 
 ## Data (generated, committed)
@@ -37,7 +38,8 @@ styling) and can change freely; these deserve care, review, and a note when they
 |---|---|
 | `web/lib/examples.ts` | Reads examples from disk. |
 | `web/lib/jobs.ts` | Matches each posting's plan to bank examples (coverage, per-topic examples). |
-| `web/app/examples/[name]/ExampleViewer.tsx` | Answering and grading questions (locate-the-defect, multiple choice). |
+| `web/app/examples/[name]/ExampleViewer.tsx` | Answering and grading questions (locate-the-defect, multiple choice, runnable fix). |
+| `shared/runTests.ts` | Runs a fix question's tests (TypeScript/JavaScript, Python, Go, Java) and reports per-test results. Used by the web app's server action and by `pipeline/src/checkRunnable.ts`. Local dev only: no sandbox. |
 
 ## Coming with Postgres
 

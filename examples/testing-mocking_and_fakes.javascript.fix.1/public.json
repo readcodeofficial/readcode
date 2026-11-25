@@ -1,0 +1,28 @@
+{
+  "id": "60f4c988-edb6-40a7-8cc0-f6a1dd02e375",
+  "title": "Seat holds on a fake clock: a test double that does not behave like a clock",
+  "name": "Seat hold fake clock",
+  "createdAt": "2026-11-25T05:38:24.116Z",
+  "durationMinutes": 20,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The ticketing team swapped real timers for the shared FakeClock in their hold-expiry tests, and now the expiry-order and reminder tests fail even though the production hold code works fine in staging. The hold and reminder code is correct: the fake is not faithful to how timers behave. Fix FakeClock so the tests pass.",
+      "editable": [
+        "clock/fakeClock.js"
+      ],
+      "tests": [
+        {
+          "path": "holds.test.js",
+          "content": "import { test, mock } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { FakeClock } from \"../src/clock/fakeClock.js\";\nimport { createHoldService } from \"../src/ticketing/holds.js\";\nimport { scheduleReminders } from \"../src/ticketing/reminders.js\";\n\nconst MIN = 60_000;\n\nfunction setup() {\n    const clock = new FakeClock(1_000_000);\n    const notifier = { seatReleased: mock.fn() };\n    const holds = createHoldService({ clock, notifier });\n    return { clock, notifier, holds };\n}\n\ntest(\"a held seat cannot be held by someone else\", () => {\n    const { holds } = setup();\n    assert.equal(holds.hold(\"A1\", \"ana\").ok, true);\n    assert.deepEqual(holds.hold(\"A1\", \"ben\"), { ok: false, reason: \"held\" });\n});\n\ntest(\"advancing less than the TTL keeps the hold\", () => {\n    const { holds, clock, notifier } = setup();\n    holds.hold(\"A1\", \"ana\");\n    clock.advance(9 * MIN);\n    assert.equal(holds.isHeld(\"A1\"), true);\n    assert.equal(notifier.seatReleased.mock.callCount(), 0);\n});\n\ntest(\"an expired hold is released and the buyer is told\", () => {\n    const { holds, clock, notifier } = setup();\n    holds.hold(\"A1\", \"ana\");\n    clock.advance(10 * MIN);\n    assert.equal(holds.isHeld(\"A1\"), false);\n    assert.equal(notifier.seatReleased.mock.callCount(), 1);\n    assert.deepEqual(notifier.seatReleased.mock.calls[0].arguments, [\"ana\", \"A1\"]);\n});\n\ntest(\"confirming a hold cancels its expiry timer\", () => {\n    const { holds, clock, notifier } = setup();\n    holds.hold(\"A1\", \"ana\");\n    assert.equal(holds.confirm(\"A1\", \"ana\"), true);\n    assert.equal(clock.pending(), 0);\n    clock.advance(30 * MIN);\n    assert.equal(notifier.seatReleased.mock.callCount(), 0);\n});\n\ntest(\"holds expire in deadline order and are stamped with their own deadline\", () => {\n    const { holds, clock } = setup();\n    const start = clock.now();\n    holds.hold(\"B1\", \"ben\", 8 * MIN);\n    holds.hold(\"B2\", \"cy\", 2 * MIN);\n    holds.hold(\"B3\", \"di\", 5 * MIN);\n    clock.advance(10 * MIN);\n    const log = holds.releaseLog();\n    console.log(\"release log:\", log.map((r) => `${r.seatId}@+${(r.at - start) / MIN}min`).join(\", \"));\n    assert.deepEqual(log.map((r) => r.seatId), [\"B2\", \"B3\", \"B1\"], \"earliest deadline must fire first\");\n    assert.deepEqual(log.map((r) => r.at - start), [2 * MIN, 5 * MIN, 8 * MIN], \"now() inside a callback is its own deadline\");\n});\n\ntest(\"reminders keep firing at their interval within a single advance\", () => {\n    const clock = new FakeClock(0);\n    const send = mock.fn();\n    scheduleReminders({ clock, send, firstAfterMs: 5 * MIN, everyMs: 2 * MIN, maxReminders: 3 });\n    clock.advance(10 * MIN);\n    assert.deepEqual(send.mock.calls.map((c) => c.arguments[0].at), [5 * MIN, 7 * MIN, 9 * MIN]);\n});\n\ntest(\"cancelled reminders never fire\", () => {\n    const clock = new FakeClock(0);\n    const send = mock.fn();\n    const r = scheduleReminders({ clock, send, firstAfterMs: 5 * MIN, everyMs: 2 * MIN, maxReminders: 3 });\n    r.cancel();\n    clock.advance(20 * MIN);\n    assert.equal(send.mock.callCount(), 0);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.mocking_and_fakes",
+    "backend.testing.flaky_tests"
+  ]
+}

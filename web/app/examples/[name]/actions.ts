@@ -27,7 +27,7 @@ export async function runFixQuestion(
     }));
     const tests = question.tests.map((t) => ({ path: `tests/${t.path}`, content: t.content }));
     try {
-        return await runTests([...src, ...tests], tests.map((t) => t.path));
+        return await runTests(example.public.language, [...src, ...tests], tests.map((t) => t.path));
     } catch (err) {
         return { ...empty, error: err instanceof Error ? err.message : String(err) };
     }

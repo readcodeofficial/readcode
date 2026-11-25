@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "dispatch/tracer.go",
+          "content": "package dispatch\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"sync\"\n)\n\ntype SpanRecord struct {\n\tTraceID  string\n\tSpanID   string\n\tParentID string\n\tName     string\n\tAttrs    map[string]string\n}\n\ntype Tracer struct {\n\tmu   sync.Mutex\n\tseq  int\n\tdone []SpanRecord\n}\n\nfunc NewTracer() *Tracer { return &Tracer{} }\n\nfunc (t *Tracer) next(prefix string) string {\n\tt.mu.Lock()\n\tdefer t.mu.Unlock()\n\tt.seq++\n\treturn fmt.Sprintf(\"%s-%d\", prefix, t.seq)\n}\n\ntype Span struct {\n\tt   *Tracer\n\trec SpanRecord\n}\n\n// StartSpan begins a span as a child of whatever span ctx carries, or as the\n// root of a new trace when ctx carries none.\nfunc (t *Tracer) StartSpan(ctx context.Context, name string) (context.Context, *Span) {\n\trec := SpanRecord{Name: name, SpanID: t.next(\"span\"), Attrs: map[string]string{}}\n\tif parent, ok := SpanContextFrom(ctx); ok {\n\t\trec.TraceID = parent.TraceID\n\t\trec.ParentID = parent.SpanID\n\t} else {\n\t\trec.TraceID = t.next(\"trace\")\n\t}\n\tctx = WithSpanContext(ctx, SpanContext{TraceID: rec.TraceID, SpanID: rec.SpanID})\n\treturn ctx, &Span{t: t, rec: rec}\n}\n\nfunc (s *Span) SetAttr(key, value string) { s.rec.Attrs[key] = value }\n\n// End records the span; spans that never end are never reported.\nfunc (s *Span) End() {\n\ts.t.mu.Lock()\n\tdefer s.t.mu.Unlock()\n\ts.t.done = append(s.t.done, s.rec)\n}\n\nfunc (t *Tracer) Finished() []SpanRecord {\n\tt.mu.Lock()\n\tdefer t.mu.Unlock()\n\treturn append([]SpanRecord(nil), t.done...)\n}\n\n// Parallel runs the tasks concurrently, each inside its own span, and waits\n// for all of them.\nfunc (t *Tracer) Parallel(ctx context.Context, name string, tasks ...func(context.Context)) {\n\tvar wg sync.WaitGroup\n\tfor i, task := range tasks {\n\t\twg.Add(1)\n\t\tgo func(i int, task func(context.Context)) {\n\t\t\tdefer wg.Done()\n\t\t\ttctx, span := t.StartSpan(ctx, fmt.Sprintf(\"%s[%d]\", name, i))\n\t\t\tdefer span.End()\n\t\t\ttask(tctx)\n\t\t}(i, task)\n\t}\n\twg.Wait()\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Parallel starts each task's span from context.Background() instead of the ctx it was given. Background carries no SpanContext, so StartSpan treats every fan-out span as the root of a brand new trace, and the spans below it (assign_courier, quote_fare) inherit that new trace ID. The handler itself and the outgoing headers are fine, which is why the symptom only appears for work done in goroutines. Passing the caller's ctx makes the per-task spans children of handle_order in the same trace."
+  ]
+}

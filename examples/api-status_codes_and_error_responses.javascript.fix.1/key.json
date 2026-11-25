@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "booking/mapError.js",
+          "content": "import { ConflictError, NotFoundError, ValidationError } from \"./errors.js\";\n\nexport function toHttpError(err) {\n  if (err instanceof ConflictError) {\n    return {\n      status: 409,\n      body: { error: { code: err.code, message: err.message, details: err.details } },\n    };\n  }\n  if (err instanceof ValidationError) {\n    return {\n      status: 422,\n      body: { error: { code: \"invalid_request\", message: err.message, details: err.details } },\n    };\n  }\n  if (err instanceof NotFoundError) {\n    return { status: 404, body: { error: { code: \"not_found\", message: err.message } } };\n  }\n  if (err instanceof SyntaxError) {\n    return { status: 400, body: { error: { code: \"malformed_json\", message: \"request body is not valid JSON\" } } };\n  }\n  return { status: 500, body: { error: { code: \"internal\", message: \"internal error\" } } };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "ConflictError extends ValidationError, and toHttpError checks for ValidationError first, so every seat conflict is caught by that branch and answered as 422 with the generic invalid_request code. The more specific class must be tested before its parent. The fix moves the ConflictError branch above the ValidationError branch, giving 409 with the seat_taken code the client switches on."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "f3ce6c41-6c84-485a-9f20-c9195519fbf9",
+  "title": "Customer portal login: password hashing that is less random than it looks",
+  "name": "Portal password hashing",
+  "createdAt": "2026-11-25T05:38:16.299Z",
+  "durationMinutes": 20,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "A security review of a database snapshot found that every customer who signed up with the same password has an identical stored hash, and in fact every hash in the table starts with the same 32 characters. Logins work normally. Fix portal/passwords.py so the tests pass.",
+      "editable": [
+        "portal/passwords.py"
+      ],
+      "tests": [
+        {
+          "path": "test_auth.py",
+          "content": "import unittest\r\n\r\nfrom portal.passwords import hash_password, verify_password\r\nfrom portal.service import AuthError, AuthService\r\nfrom portal.store import AccountStore\r\n\r\n\r\nclass Clock:\r\n    def __init__(self):\r\n        self.now = 1000.0\r\n\r\n    def __call__(self):\r\n        return self.now\r\n\r\n\r\ndef make():\r\n    clock = Clock()\r\n    store = AccountStore()\r\n    return AuthService(store, clock), store, clock\r\n\r\n\r\nclass AuthTest(unittest.TestCase):\r\n    def test_registered_user_can_log_in(self):\r\n        svc, store, _ = make()\r\n        svc.register(\"ana@example.com\", \"correct horse\")\r\n        self.assertEqual(svc.login(\"ANA@example.com\", \"correct horse\").email, \"ana@example.com\")\r\n        session = svc.login_session(\"ana@example.com\", \"correct horse\")\r\n        self.assertEqual(svc.sessions.lookup(session.token).email, \"ana@example.com\")\r\n\r\n    def test_wrong_password_is_rejected(self):\r\n        svc, store, _ = make()\r\n        svc.register(\"ana@example.com\", \"correct horse\")\r\n        with self.assertRaises(AuthError):\r\n            svc.login(\"ana@example.com\", \"battery staple\")\r\n\r\n    def test_stored_hash_does_not_contain_the_password(self):\r\n        svc, store, _ = make()\r\n        svc.register(\"ana@example.com\", \"correct horse\")\r\n        self.assertNotIn(\"correct horse\", store.get(\"ana@example.com\").password_hash)\r\n\r\n    def test_explicit_salt_gives_a_reproducible_hash(self):\r\n        salt = bytes(range(16))\r\n        self.assertEqual(hash_password(\"pw-12345678\", salt), hash_password(\"pw-12345678\", salt))\r\n        self.assertTrue(verify_password(\"pw-12345678\", hash_password(\"pw-12345678\", salt)))\r\n\r\n    def test_two_users_with_the_same_password_get_different_salts(self):\r\n        svc, store, _ = make()\r\n        svc.register(\"ana@example.com\", \"hunter2hunter2\")\r\n        svc.register(\"bob@example.com\", \"hunter2hunter2\")\r\n        a = store.get(\"ana@example.com\").password_hash\r\n        b = store.get(\"bob@example.com\").password_hash\r\n        print(\"ana:\", a[:24] + \"...\")\r\n        print(\"bob:\", b[:24] + \"...\")\r\n        self.assertNotEqual(a.split(\"$\")[0], b.split(\"$\")[0], \"both accounts were given the same salt\")\r\n        self.assertNotEqual(a, b, \"identical passwords produced identical stored hashes\")\r\n\r\n    def test_hashing_the_same_password_twice_gives_different_records(self):\r\n        self.assertNotEqual(hash_password(\"same-password\"), hash_password(\"same-password\"))\r\n\r\n    def test_account_locks_after_three_failures(self):\r\n        svc, store, clock = make()\r\n        svc.register(\"ana@example.com\", \"correct horse\")\r\n        for _ in range(3):\r\n            with self.assertRaises(AuthError):\r\n                svc.login(\"ana@example.com\", \"nope\")\r\n        with self.assertRaisesRegex(AuthError, \"locked\"):\r\n            svc.login(\"ana@example.com\", \"correct horse\")\r\n        clock.now += 301\r\n        self.assertEqual(svc.login(\"ana@example.com\", \"correct horse\").email, \"ana@example.com\")\r\n\r\n    def test_unknown_email_gets_the_same_error_as_a_bad_password(self):\r\n        svc, store, _ = make()\r\n        with self.assertRaisesRegex(AuthError, \"invalid credentials\"):\r\n            svc.login(\"ghost@example.com\", \"whatever1\")\r\n\r\n\r\nif __name__ == \"__main__\":\r\n    unittest.main()\r\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.authentication",
+    "backend.security.secrets_handling",
+    "backend.security.session_and_token_handling"
+  ]
+}

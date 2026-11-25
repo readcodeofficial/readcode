@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "ingest/importer.go",
+          "content": "package ingest\n\nimport (\n\t\"bufio\"\n\t\"fmt\"\n\t\"io\"\n\t\"strings\"\n)\n\ntype Result struct {\n\tFile     string\n\tAccount  string\n\tCurrency string\n\tRows     int\n\tErr      error\n}\n\ntype Summary struct {\n\tImported int\n\tFailed   int\n\tRows     int\n}\n\n// ImportAll reads every named statement and reports one Result per file.\n// A bad file never stops the batch.\nfunc ImportAll(src Source, names []string) []Result {\n\tresults := make([]Result, 0, len(names))\n\tfor _, name := range names {\n\t\tres := Result{File: name}\n\t\trc, err := src.Open(name)\n\t\tif err != nil {\n\t\t\tres.Err = fmt.Errorf(\"open %s: %w\", name, err)\n\t\t\tresults = append(results, res)\n\t\t\tcontinue\n\t\t}\n\t\tbr := bufio.NewReader(rc)\n\t\th, err := ReadHeader(br)\n\t\tif err != nil {\n\t\t\trc.Close()\n\t\t\tres.Err = fmt.Errorf(\"header %s: %w\", name, err)\n\t\t\tresults = append(results, res)\n\t\t\tcontinue\n\t\t}\n\t\trows, err := countRows(br)\n\t\trc.Close()\n\t\tif err != nil {\n\t\t\tres.Err = fmt.Errorf(\"rows %s: %w\", name, err)\n\t\t} else {\n\t\t\tres.Account = h.Account\n\t\t\tres.Currency = h.Currency\n\t\t\tres.Rows = rows\n\t\t}\n\t\tresults = append(results, res)\n\t}\n\treturn results\n}\n\nfunc countRows(br *bufio.Reader) (int, error) {\n\trows := 0\n\tfor {\n\t\tline, err := br.ReadString('\\n')\n\t\tif strings.TrimSpace(line) != \"\" {\n\t\t\trows++\n\t\t}\n\t\tif err == io.EOF {\n\t\t\treturn rows, nil\n\t\t}\n\t\tif err != nil {\n\t\t\treturn rows, err\n\t\t}\n\t}\n}\n\nfunc Summarize(results []Result) Summary {\n\tvar s Summary\n\tfor _, r := range results {\n\t\tif r.Err != nil {\n\t\t\ts.Failed++\n\t\t\tcontinue\n\t\t}\n\t\ts.Imported++\n\t\ts.Rows += r.Rows\n\t}\n\treturn s\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "ImportAll opens each statement and closes it only on the path where the whole file was read. When the header is malformed (or the file is empty) the loop records the error and continues without closing the handle, so every bad statement leaks one descriptor until the process hits its limit. The fix closes the handle on that early-exit path too; the cleanest form is to move the per-file work into a helper that does `defer rc.Close()` right after a successful Open, so no later branch can forget it."
+  ]
+}

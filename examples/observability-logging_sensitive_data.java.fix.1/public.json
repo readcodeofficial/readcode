@@ -1,0 +1,28 @@
+{
+  "id": "b2f87e2e-87f1-491f-a57a-ca188a4a04ca",
+  "title": "Loan intake service: what ends up in the application logs",
+  "name": "Loan application logging",
+  "createdAt": "2026-11-25T05:37:16.542Z",
+  "durationMinutes": 19,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "A security review of our log aggregator found applicants' social security numbers and birth dates in plain text in the lending intake logs. The service code explicitly logs only a masked SSN on the approval line, and nobody added a log statement for the other fields, yet they are there on the received and rejected lines. Fix LoanApplication.java so the tests pass.",
+      "editable": [
+        "lending/model/LoanApplication.java"
+      ],
+      "tests": [
+        {
+          "path": "lending/LoggingTest.java",
+          "content": "package lending;\n\nimport static readcode.Assert.*;\n\nimport java.util.List;\n\nimport lending.log.Logger;\nimport lending.model.LoanApplication;\nimport lending.service.ApplicationService;\nimport lending.service.ApplicationService.Decision;\n\npublic class LoggingTest {\n\n    private static final String SSN = \"529-14-8836\";\n    private static final String DOB = \"1987-03-14\";\n\n    private Logger log;\n    private ApplicationService service;\n\n    public void setUp() {\n        log = Logger.inMemory(\"applications\");\n        service = new ApplicationService(log, 5_000_000L);\n    }\n\n    private LoanApplication application(String id, long amountCents) {\n        return new LoanApplication(id, \"Dana Whitfield\", SSN, DOB, amountCents);\n    }\n\n    private static boolean anyLineContains(List<String> lines, String text) {\n        return lines.stream().anyMatch(line -> line.contains(text));\n    }\n\n    public void testApprovedApplicationDoesNotLogRawSsn() {\n        service.submit(application(\"app-1\", 1_000_000L));\n        System.out.println(String.join(\"\\n\", log.lines()));\n        assertFalse(anyLineContains(log.lines(), SSN), \"raw SSN found in logs\");\n    }\n\n    public void testRejectedApplicationDoesNotLogRawSsn() {\n        Decision decision = service.submit(application(\"app-2\", 9_000_000L));\n        assertEquals(Decision.REJECTED, decision);\n        assertFalse(anyLineContains(log.lines(), SSN), \"raw SSN found in the rejection log line\");\n    }\n\n    public void testDateOfBirthIsNeverLogged() {\n        service.submit(application(\"app-3\", 1_000_000L));\n        assertFalse(anyLineContains(log.lines(), DOB), \"date of birth found in logs\");\n    }\n\n    public void testLogsStillIdentifyTheApplication() {\n        service.submit(application(\"app-4\", 9_000_000L));\n        assertTrue(anyLineContains(log.lines(), \"app-4\"), \"application id missing from logs\");\n        assertTrue(anyLineContains(log.lines(), \"9000000\"), \"amount missing from logs\");\n    }\n\n    public void testMaskedSsnKeepsLastFourDigits() {\n        assertEquals(\"***-**-8836\", application(\"app-5\", 1L).maskedSsn());\n        assertEquals(\"***\", new LoanApplication(\"x\", \"n\", \"12\", \"d\", 1L).maskedSsn());\n    }\n\n    public void testApprovedApplicationsAreKeptWithFullData() {\n        service.submit(application(\"app-6\", 1_000_000L));\n        assertEquals(1, service.approved().size());\n        assertEquals(SSN, service.approved().get(0).ssn());\n    }\n\n    public void testRecordEqualityStillUsesAllFields() {\n        assertEquals(application(\"app-7\", 5L), application(\"app-7\", 5L));\n        assertFalse(application(\"app-7\", 5L).equals(application(\"app-7\", 6L)), \"amounts differ\");\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.logging_sensitive_data",
+    "backend.observability.structured_logging"
+  ]
+}

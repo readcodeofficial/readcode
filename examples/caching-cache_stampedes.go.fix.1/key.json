@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "rates/cache.go",
+          "content": "package rates\n\nimport (\n\t\"sync\"\n\t\"time\"\n)\n\ntype entry struct {\n\tquote   Quote\n\texpires time.Time\n}\n\ntype flight struct {\n\tdone  chan struct{}\n\tquote Quote\n\terr   error\n}\n\n// Cache keeps quotes for ttl so the provider is not called for every\n// conversion. It is safe for concurrent use.\ntype Cache struct {\n\tmu       sync.Mutex\n\tttl      time.Duration\n\tclock    Clock\n\tload     Loader\n\tentries  map[string]entry\n\tinflight map[string]*flight\n}\n\nfunc NewCache(load Loader, ttl time.Duration, clock Clock) *Cache {\n\treturn &Cache{\n\t\tttl:      ttl,\n\t\tclock:    clock,\n\t\tload:     load,\n\t\tentries:  make(map[string]entry),\n\t\tinflight: make(map[string]*flight),\n\t}\n}\n\n// Get returns the cached quote for pair, loading it when missing or expired.\nfunc (c *Cache) Get(pair string) (Quote, error) {\n\tc.mu.Lock()\n\tif e, ok := c.entries[pair]; ok && c.clock.Now().Before(e.expires) {\n\t\tc.mu.Unlock()\n\t\treturn e.quote, nil\n\t}\n\tif f, ok := c.inflight[pair]; ok {\n\t\tc.mu.Unlock()\n\t\t<-f.done\n\t\treturn f.quote, f.err\n\t}\n\tf := &flight{done: make(chan struct{})}\n\tc.inflight[pair] = f\n\tc.mu.Unlock()\n\n\tf.quote, f.err = c.load(pair)\n\n\tc.mu.Lock()\n\tif f.err == nil {\n\t\tc.entries[pair] = entry{quote: f.quote, expires: c.clock.Now().Add(c.ttl)}\n\t}\n\tdelete(c.inflight, pair)\n\tc.mu.Unlock()\n\tclose(f.done)\n\treturn f.quote, f.err\n}\n\n// Invalidate drops the cached quote for pair.\nfunc (c *Cache) Invalidate(pair string) {\n\tc.mu.Lock()\n\tdelete(c.entries, pair)\n\tc.mu.Unlock()\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Get checks the cache, releases the lock, and then calls the loader. When an entry is missing or expired, every goroutine that arrives before the first load finishes sees the same miss and calls the provider itself, so the provider takes one request per caller (a cache stampede). The fix records an in-flight load per key: the first caller becomes the loader, and later callers wait on its done channel and share its result. The in-flight entry is removed once the load finishes, and only successful results are cached, so an error is shared with the waiters but retried on the next call."
+  ]
+}

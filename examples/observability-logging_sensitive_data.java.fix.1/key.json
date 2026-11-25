@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "lending/model/LoanApplication.java",
+          "content": "package lending.model;\n\npublic record LoanApplication(\n        String id,\n        String applicantName,\n        String ssn,\n        String dateOfBirth,\n        long amountCents) {\n\n    public String maskedSsn() {\n        if (ssn == null || ssn.length() < 4) {\n            return \"***\";\n        }\n        return \"***-**-\" + ssn.substring(ssn.length() - 4);\n    }\n\n    @Override\n    public String toString() {\n        return \"LoanApplication[id=\" + id + \", applicantName=\" + applicantName\n                + \", ssn=\" + maskedSsn() + \", amountCents=\" + amountCents + \"]\";\n    }\n\n    public boolean exceeds(long limitCents) {\n        return amountCents > limitCents;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "LoanApplication is a record, so it gets a generated toString() that prints every component, including ssn and dateOfBirth. The service concatenates the application into the received and rejected log lines, which silently calls that toString(). The fix overrides toString() to print the masked SSN and omit the date of birth, so any code that logs the object is safe by default, while equals/hashCode and accessors keep using the full data."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "mailing/dispatcher.py",
+          "content": "from concurrent.futures import ThreadPoolExecutor\n\nfrom mailing.sender import Message, Outcome, TransportError\n\n\nclass BulkDispatcher:\n    def __init__(self, transport, workers: int = 4):\n        if workers < 1:\n            raise ValueError(\"workers must be at least 1\")\n        self._transport = transport\n        self._workers = workers\n\n    def _deliver(self, message: Message) -> Outcome:\n        try:\n            self._transport.send(message)\n        except TransportError as exc:\n            return Outcome(message.to, False, str(exc))\n        return Outcome(message.to, True)\n\n    def send_all(self, messages: list[Message]) -> list[Outcome]:\n        with ThreadPoolExecutor(max_workers=self._workers) as pool:\n            futures = [pool.submit(self._deliver, message) for message in messages]\n            return [future.result() for future in futures]\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "send_all() appends each Outcome as its future completes (as_completed), so the list is in completion order, not in the order of the messages that were submitted. run_campaign() zips the recipients with the outcomes and assumes they line up, so whenever the pool finishes messages out of order a failure is attributed to the wrong recipient. The counts stay correct because they only depend on how many outcomes failed, which hides the problem. The fix collects the results from the futures in submission order (future.result() for each future in the list), which still runs the sends concurrently but returns one outcome per message at the same index."
+  ]
+}

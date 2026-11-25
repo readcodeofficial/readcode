@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "catalog/catalog.go",
+          "content": "package catalog\n\n// Catalog serves product reads through a cache and applies price updates.\ntype Catalog struct {\n\tstore Store\n\tcache *Cache\n}\n\nfunc New(store Store, cache *Cache) *Catalog {\n\treturn &Catalog{store: store, cache: cache}\n}\n\n// Get returns the product, reading through to the store on a cache miss.\nfunc (c *Catalog) Get(id string) (Product, error) {\n\tif p, ok := c.cache.Get(id); ok {\n\t\treturn p, nil\n\t}\n\tp, err := c.store.Load(id)\n\tif err != nil {\n\t\treturn Product{}, err\n\t}\n\tc.cache.Set(id, p)\n\treturn p, nil\n}\n\n// UpdatePrice changes the price of a product.\nfunc (c *Catalog) UpdatePrice(id string, cents int64) error {\n\tif cents <= 0 {\n\t\treturn ErrInvalidPrice\n\t}\n\tp, err := c.store.Load(id)\n\tif err != nil {\n\t\treturn err\n\t}\n\tp.PriceCents = cents\n\n\tif err := c.store.Save(p); err != nil {\n\t\treturn err\n\t}\n\tc.cache.Delete(id)\n\treturn nil\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "UpdatePrice evicts the cache entry and only then writes the new price to the store. In the gap between those two steps, any concurrent reader misses the cache, reads the old row from the store, and puts the old price back in the cache. The update then commits, but nothing evicts the entry again, so readers keep getting the stale price. On busy products a reader almost always lands in that gap. The fix writes to the store first and invalidates afterwards, so any entry cached after the eviction was read after the commit and is fresh. It also leaves the cache untouched when the save fails."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "fb8e55ad-ac0d-49ab-aecc-c429b0d6c200",
+  "title": "Shipment label worker: acknowledging messages from an in-memory queue",
+  "name": "Label worker acks",
+  "createdAt": "2026-11-25T05:36:58.889Z",
+  "durationMinutes": 20,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Warehouse staff report that some orders never get a shipping label. The label printer was down for ten minutes yesterday, the worker logged a failure for each order in that window, and none of those orders were ever retried afterwards. Orders that printed normally are fine. Fix LabelWorker so the tests pass.",
+      "editable": [
+        "shipping/LabelWorker.java"
+      ],
+      "tests": [
+        {
+          "path": "shipping/LabelWorkerTest.java",
+          "content": "package shipping;\n\nimport static readcode.Assert.*;\n\nimport java.io.IOException;\nimport java.util.ArrayList;\nimport java.util.HashSet;\nimport java.util.List;\nimport java.util.Set;\n\npublic class LabelWorkerTest {\n    private InMemoryQueue queue;\n    private final List<String> printed = new ArrayList<>();\n    private final Set<String> down = new HashSet<>();\n    private LabelWorker worker;\n\n    public void setUp() {\n        queue = new InMemoryQueue();\n        worker = new LabelWorker(queue, orderId -> {\n            if (down.contains(orderId)) throw new IOException(\"printer offline\");\n            printed.add(orderId);\n        });\n    }\n\n    public void testSuccessfulMessageIsPrintedAndAcked() {\n        queue.publish(\"A-1\");\n        assertTrue(worker.pollOnce());\n        assertEquals(List.of(\"A-1\"), printed);\n        assertEquals(0, queue.readyCount());\n        assertEquals(0, queue.inFlightCount());\n    }\n\n    public void testEmptyQueueReturnsFalse() {\n        assertFalse(worker.pollOnce());\n    }\n\n    public void testFailedMessageGoesBackToTheQueue() {\n        queue.publish(\"A-1\");\n        down.add(\"A-1\");\n        worker.pollOnce();\n        System.out.println(\"after a failed print: ready=\" + queue.readyCount() + \" inFlight=\" + queue.inFlightCount()\n                + \" failures=\" + worker.failures());\n        assertEquals(1, queue.readyCount(), \"the failed order must be redelivered\");\n        assertEquals(0, queue.inFlightCount());\n    }\n\n    public void testFailureIsRecordedWithAttemptNumber() {\n        queue.publish(\"A-1\");\n        down.add(\"A-1\");\n        worker.pollOnce();\n        assertEquals(List.of(\"order A-1 attempt 1: printer offline\"), worker.failures());\n    }\n\n    public void testRedeliveredMessageIsPrintedOnceThePrinterIsBack() {\n        queue.publish(\"A-1\");\n        queue.publish(\"A-2\");\n        down.add(\"A-1\");\n        worker.drain(2);\n        down.clear();\n        worker.drain(10);\n        assertEquals(List.of(\"A-2\", \"A-1\"), printed);\n        assertEquals(0, queue.readyCount());\n    }\n\n    public void testRedeliveryCarriesAHigherAttemptNumber() {\n        queue.publish(\"A-1\");\n        down.add(\"A-1\");\n        worker.drain(3);\n        assertEquals(3, worker.failures().size());\n        assertTrue(worker.failures().get(2).contains(\"attempt 3\"), \"got \" + worker.failures());\n    }\n\n    public void testDrainHandlesEveryMessage() {\n        for (int i = 0; i < 5; i++) queue.publish(\"B-\" + i);\n        assertEquals(5, worker.drain(100));\n        assertEquals(5, printed.size());\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.queues_and_consumers",
+    "backend.errors.exception_handling"
+  ]
+}

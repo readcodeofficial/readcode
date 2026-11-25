@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "webhooks/dispatcher.js",
+          "content": "import { sign, signatureHeader } from \"./signing.js\";\n\nconst RETRY_BACKOFF_MS = [60_000, 5 * 60_000, 15 * 60_000];\n\nexport function createDispatcher({ registry, transport, clock, sleep }) {\n    const log = [];\n\n    async function deliver(endpoint, event) {\n        const body = JSON.stringify({ id: event.id, type: event.type, data: event.data });\n\n        for (let attempt = 1; attempt <= RETRY_BACKOFF_MS.length + 1; attempt++) {\n            const timestamp = Math.floor(clock.now() / 1000);\n            const signature = sign(endpoint.secret, timestamp, body);\n            let status;\n            try {\n                const res = await transport.post(endpoint.url, {\n                    headers: {\n                        \"content-type\": \"application/json\",\n                        \"webhook-id\": event.id,\n                        \"webhook-signature\": signatureHeader(timestamp, signature),\n                    },\n                    body,\n                });\n                status = res.status;\n            } catch {\n                status = 0;\n            }\n            log.push({ endpointId: endpoint.id, eventId: event.id, attempt, status });\n            if (status >= 200 && status < 300) return { delivered: true, attempts: attempt };\n            if (status >= 400 && status < 500 && status !== 429) return { delivered: false, attempts: attempt };\n            if (attempt <= RETRY_BACKOFF_MS.length) await sleep(RETRY_BACKOFF_MS[attempt - 1]);\n        }\n        return { delivered: false, attempts: RETRY_BACKOFF_MS.length + 1 };\n    }\n\n    return {\n        async publish(event) {\n            const targets = registry.subscribedTo(event.type);\n            return Promise.all(targets.map((endpoint) => deliver(endpoint, event)));\n        },\n        log: () => log.map((l) => ({ ...l })),\n    };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The timestamp and signature are computed once, before the retry loop, so a retry sent minutes later still carries the original timestamp. Subscribers enforce a replay window (5 minutes here), so the second and later attempts are rejected as stale; the 15-minute backoff guarantees it. The signature covers the timestamp, so the fix computes both inside the loop for each attempt, while keeping the body and the webhook-id identical so subscribers can still deduplicate."
+  ]
+}

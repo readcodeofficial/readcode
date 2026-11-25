@@ -1,0 +1,29 @@
+{
+  "id": "11dce1d1-cca1-40cd-8f44-53c628b4b283",
+  "title": "Grocery cart API: a PUT that is not safe to retry",
+  "name": "Grocery cart endpoints",
+  "createdAt": "2026-11-25T05:34:51.227Z",
+  "durationMinutes": 19,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Customers on flaky mobile connections report that their grocery cart quantities keep growing: setting 'milk' to 2 and having the app retry the request after a timeout leaves them with 4 or 6 litres of milk. The same happens when they re-send the request from the cart page. Fix cart/handlers.js so the tests pass.",
+      "editable": [
+        "cart/handlers.js"
+      ],
+      "tests": [
+        {
+          "path": "cart.test.js",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createCartStore, createCatalog } from \"../src/cart/store.js\";\nimport { makeRouter } from \"../src/cart/router.js\";\n\nfunction setup() {\n  const store = createCartStore();\n  const catalog = createCatalog({ milk: 150, bread: 250, rice: 1200 });\n  const route = makeRouter(store, catalog);\n  const put = (cartId, sku, body) =>\n    route({ method: \"PUT\", path: `/carts/${cartId}/lines/${sku}`, rawBody: JSON.stringify(body) });\n  return { route, put };\n}\n\ntest(\"PUT on a new line creates it: 201 with a Location header\", () => {\n  const { put } = setup();\n  const res = put(\"c1\", \"milk\", { qty: 2 });\n  assert.equal(res.status, 201);\n  assert.equal(res.headers.Location, \"/carts/c1/lines/milk\");\n  assert.deepEqual(res.body.lines, [{ sku: \"milk\", qty: 2, unitCents: 150, lineCents: 300 }]);\n});\n\ntest(\"repeating the same PUT leaves the cart unchanged\", () => {\n  const { put, route } = setup();\n  put(\"c1\", \"milk\", { qty: 2 });\n  const again = put(\"c1\", \"milk\", { qty: 2 });\n  const cart = route({ method: \"GET\", path: \"/carts/c1\" });\n  console.log(\"after PUT milk=2 twice:\", JSON.stringify(cart.body.lines));\n  assert.equal(again.status, 200);\n  assert.equal(cart.body.lines[0].qty, 2, \"a retried PUT must not change the quantity\");\n});\n\ntest(\"PUT with a different quantity replaces the old one\", () => {\n  const { put } = setup();\n  put(\"c1\", \"bread\", { qty: 3 });\n  const res = put(\"c1\", \"bread\", { qty: 1 });\n  assert.equal(res.status, 200);\n  assert.equal(res.body.lines[0].qty, 1);\n  assert.equal(res.body.subtotalCents, 250);\n});\n\ntest(\"totals add delivery below the free-delivery threshold\", () => {\n  const { put } = setup();\n  put(\"c1\", \"milk\", { qty: 2 });\n  const res = put(\"c1\", \"bread\", { qty: 1 });\n  assert.equal(res.body.subtotalCents, 550);\n  assert.equal(res.body.deliveryCents, 399);\n  assert.equal(res.body.totalCents, 949);\n  const big = put(\"c1\", \"rice\", { qty: 4 });\n  assert.equal(big.body.deliveryCents, 0);\n});\n\ntest(\"PUT validates sku and quantity\", () => {\n  const { put } = setup();\n  assert.equal(put(\"c1\", \"unicorn\", { qty: 1 }).status, 404);\n  assert.equal(put(\"c1\", \"milk\", { qty: 0 }).status, 422);\n  assert.equal(put(\"c1\", \"milk\", { qty: 1.5 }).status, 422);\n  assert.equal(put(\"c1\", \"milk\", {}).status, 422);\n  assert.equal(put(\"c1\", \"milk\", { qty: 100 }).status, 422);\n});\n\ntest(\"DELETE removes a line and is repeatable\", () => {\n  const { put, route } = setup();\n  put(\"c1\", \"milk\", { qty: 2 });\n  const del = () => route({ method: \"DELETE\", path: \"/carts/c1/lines/milk\" });\n  assert.equal(del().status, 204);\n  assert.equal(del().status, 204);\n  assert.deepEqual(route({ method: \"GET\", path: \"/carts/c1\" }).body.lines, []);\n});\n\ntest(\"unsupported methods get 405 with an Allow header; unknown carts 404\", () => {\n  const { route } = setup();\n  const res = route({ method: \"POST\", path: \"/carts/c1/lines/milk\", rawBody: \"{}\" });\n  assert.equal(res.status, 405);\n  assert.equal(res.headers.Allow, \"PUT, DELETE\");\n  assert.equal(route({ method: \"GET\", path: \"/carts/missing\" }).status, 404);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.rest_design",
+    "backend.api.idempotency",
+    "backend.api.status_codes_and_error_responses"
+  ]
+}

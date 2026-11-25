@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "shop/api/Versions.java",
+          "content": "package shop.api;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\n/** Knows which API versions exist and which one a client's requested version maps to. */\npublic final class Versions {\n    private final List<String> supported = new ArrayList<>();\n\n    public Versions(List<String> supportedVersions) {\n        supported.addAll(supportedVersions);\n        supported.sort(Versions::compare);\n    }\n\n    public static int compare(String a, String b) {\n        String[] x = a.split(\"[.]\");\n        String[] y = b.split(\"[.]\");\n        for (int i = 0; i < Math.max(x.length, y.length); i++) {\n            int xi = i < x.length ? Integer.parseInt(x[i]) : 0;\n            int yi = i < y.length ? Integer.parseInt(y[i]) : 0;\n            if (xi != yi) return Integer.compare(xi, yi);\n        }\n        return 0;\n    }\n\n    public static boolean atLeast(String version, String minimum) {\n        return compare(version, minimum) >= 0;\n    }\n\n    public String oldest() {\n        return supported.get(0);\n    }\n\n    /** The newest supported version that does not exceed the requested one, or null if the request predates them all. */\n    public String resolve(String requested) {\n        String best = null;\n        for (String v : supported) {\n            if (compare(v, requested) <= 0) best = v;\n        }\n        return best;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Versions.compare orders dotted version numbers with String.compareTo, which is lexicographic: \"1.10\" sorts before \"1.2\" and \"1.9\" because '1' < '2'. So the highest supported version that does not exceed the request is chosen wrongly once a minor version reaches two digits (a request for 2.0 resolves to 1.9, and 1.20 resolves to 1.2). The fix compares each dot-separated component as an integer, padding missing components with zero. Negotiation and the version checks used when rendering then agree with the real release order."
+  ]
+}

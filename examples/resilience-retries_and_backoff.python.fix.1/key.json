@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "sms/retry.py",
+          "content": "import random\nimport time\n\nfrom sms.errors import GatewayError, RateLimited, TransientError\n\n\ndef backoff_ceiling(attempt: int, base_delay: float, max_delay: float) -> float:\n    return min(max_delay, base_delay * (2 ** attempt))\n\n\ndef call_with_retry(\n    fn,\n    *,\n    attempts: int = 4,\n    base_delay: float = 0.5,\n    max_delay: float = 8.0,\n    sleep=time.sleep,\n    rng: random.Random | None = None,\n    retry_on=TransientError,\n):\n    rng = rng or random.Random()\n    for attempt in range(attempts):\n        try:\n            return fn()\n        except retry_on as exc:\n            if attempt == attempts - 1:\n                raise\n            delay = rng.uniform(0, backoff_ceiling(attempt, base_delay, max_delay))\n            if isinstance(exc, RateLimited):\n                delay = max(delay, exc.retry_after)\n            sleep(delay)\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "call_with_retry() defaults retry_on to GatewayError, the base class of every gateway failure, so permanent errors such as InvalidNumber are retried exactly like timeouts. A request that can never succeed is resubmitted with backoff until the attempts run out, burning provider quota and making the user wait. Only TransientError (timeouts, rate limits, 5xx) is worth retrying, so the default becomes TransientError, which lets InvalidNumber propagate on the first attempt with no sleep. send_otp() already maps that exception to an 'invalid_number' result."
+  ]
+}

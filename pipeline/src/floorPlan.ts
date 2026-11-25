@@ -56,7 +56,8 @@ const haveLanguage = new Map<string, number>();
 for (const entry of readdirSync(values.examples, { withFileTypes: true })) {
     const pub = path.join(values.examples, entry.name, "public.json");
     if (!entry.isDirectory() || !existsSync(pub)) continue;
-    const { concepts, language } = JSON.parse(readFileSync(pub, "utf8")) as { concepts: string[]; language: string };
+    const { concepts, language, questions } = JSON.parse(readFileSync(pub, "utf8")) as { concepts: string[]; language: string; questions: { kind?: string }[] };
+    if (questions.some((q) => q.kind === "fix")) continue; // runnable bug-fix exercises are counted separately (pipeline/RUNNABLE.md)
     havePair.set(key(concepts[0], language), (havePair.get(key(concepts[0], language)) ?? 0) + 1);
     if (ignore?.test(entry.name)) continue; // counted for job numbering, not toward the topic minimum
     haveTopic.set(concepts[0], (haveTopic.get(concepts[0]) ?? 0) + 1);

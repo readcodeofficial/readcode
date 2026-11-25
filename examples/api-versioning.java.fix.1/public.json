@@ -1,0 +1,29 @@
+{
+  "id": "7b2c0ea7-36f1-4b35-9063-717c27a7a28e",
+  "title": "Customer API: picking the response version a client asked for",
+  "name": "Customer API versions",
+  "createdAt": "2026-11-25T05:35:11.427Z",
+  "durationMinutes": 20,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "After we shipped API version 1.10 of the customer endpoint, mobile clients that send X-Api-Version: 1.10 (or anything newer, like 2.0) still get the 1.9 response shape, and clients on 1.20 are served 1.2. Clients that send no header or an old version look fine. Fix Versions so the tests pass.",
+      "editable": [
+        "shop/api/Versions.java"
+      ],
+      "tests": [
+        {
+          "path": "shop/api/CustomerApiTest.java",
+          "content": "package shop.api;\r\n\r\nimport static readcode.Assert.*;\r\n\r\nimport java.util.Map;\r\n\r\npublic class CustomerApiTest {\r\n    private CustomerApi api;\r\n\r\n    public void setUp() {\r\n        api = new CustomerApi();\r\n        api.save(new Customer(\"c1\", \"Ada\", \"Lovelace\", \"ada@example.com\", \"555-0100\"));\r\n    }\r\n\r\n    private CustomerApi.Response get(String version) {\r\n        return api.get(\"c1\", version == null ? Map.of() : Map.of(CustomerApi.VERSION_HEADER, version));\r\n    }\r\n\r\n    public void testNoHeaderGetsTheOldestShape() {\r\n        CustomerApi.Response r = get(null);\r\n        assertEquals(200, r.status());\r\n        assertEquals(Map.of(\"id\", \"c1\", \"name\", \"Ada Lovelace\"), r.body());\r\n    }\r\n\r\n    public void testExactVersionIsServed() {\r\n        assertEquals(\"1.9\", get(\"1.9\").headers().get(\"X-Resolved-Version\"));\r\n        assertEquals(\"1.2\", get(\"1.2\").headers().get(\"X-Resolved-Version\"));\r\n    }\r\n\r\n    public void testOlderRequestFallsBackToTheNewestNotExceedingIt() {\r\n        assertEquals(\"1.2\", get(\"1.5\").headers().get(\"X-Resolved-Version\"));\r\n        assertEquals(\"1.0\", get(\"1.1\").headers().get(\"X-Resolved-Version\"));\r\n    }\r\n\r\n    public void testOlderShapesKeepTheCombinedName() {\r\n        assertEquals(Map.of(\"id\", \"c1\", \"name\", \"Ada Lovelace\", \"email\", \"ada@example.com\", \"phone\", \"555-0100\"), get(\"1.9\").body());\r\n        assertEquals(Map.of(\"id\", \"c1\", \"name\", \"Ada Lovelace\", \"email\", \"ada@example.com\"), get(\"1.2\").body());\r\n    }\r\n\r\n    public void testVersion1_10SplitsTheName() {\r\n        CustomerApi.Response r = get(\"1.10\");\r\n        System.out.println(\"GET /customers/c1 with X-Api-Version: 1.10 -> \" + r.headers() + \" \" + r.body());\r\n        assertEquals(\"1.10\", r.headers().get(\"X-Resolved-Version\"));\r\n        assertEquals(\"Ada\", ((Map<?, ?>) r.body()).get(\"firstName\"));\r\n        assertNull(((Map<?, ?>) r.body()).get(\"name\"));\r\n    }\r\n\r\n    public void testNewerThanAnythingSupportedGetsTheLatest() {\r\n        assertEquals(\"1.10\", get(\"2.0\").headers().get(\"X-Resolved-Version\"));\r\n        assertEquals(\"1.10\", get(\"1.20\").headers().get(\"X-Resolved-Version\"));\r\n    }\r\n\r\n    public void testVersionBeforeAllSupportedIsRejected() {\r\n        assertEquals(400, get(\"0.5\").status());\r\n    }\r\n\r\n    public void testUnknownCustomerIs404() {\r\n        assertEquals(404, api.get(\"nope\", Map.of()).status());\r\n    }\r\n}\r\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.versioning",
+    "backend.api.serialization_and_deserialization",
+    "backend.api.status_codes_and_error_responses"
+  ]
+}

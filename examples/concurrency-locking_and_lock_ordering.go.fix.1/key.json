@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "bins/transfer.go",
+          "content": "package bins\n\n// Move transfers qty units from one bin to another. Bins are always locked in\n// ID order so that opposite transfers between the same two bins cannot wait on\n// each other.\nfunc (r *Registry) Move(fromID, toID string, qty int) error {\n\tif qty <= 0 {\n\t\treturn ErrBadQuantity\n\t}\n\tfrom, err := r.lookup(fromID)\n\tif err != nil {\n\t\treturn err\n\t}\n\tto, err := r.lookup(toID)\n\tif err != nil {\n\t\treturn err\n\t}\n\n\tfirst, second := from, to\n\tif second.id < first.id {\n\t\tfirst, second = second, first\n\t}\n\tfirst.mu.Lock()\n\tdefer first.mu.Unlock()\n\tif second != first {\n\t\tsecond.mu.Lock()\n\t\tdefer second.mu.Unlock()\n\t}\n\n\tif from.qty < qty {\n\t\treturn ErrInsufficient\n\t}\n\tfrom.qty -= qty\n\tto.qty += qty\n\tr.record(Movement{From: fromID, To: toID, Qty: qty})\n\treturn nil\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Move already avoids the classic opposite-direction deadlock by always locking the bin with the smaller ID first. But when the source and destination are the same bin, 'first' and 'second' are the same sync.Mutex, and Go mutexes are not reentrant, so the second Lock blocks forever on a lock the goroutine itself holds. The bin stays locked, so every later transfer touching it hangs too. The fix locks the second bin only when it is a different bin from the first, which keeps the global lock order and makes a same-bin move a harmless no-op."
+  ]
+}

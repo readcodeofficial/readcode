@@ -1,0 +1,29 @@
+{
+  "id": "52f2123e-b133-4917-b4de-60f36a84aa6e",
+  "title": "Hotel search aggregator: one slow supplier stalls the whole results page",
+  "name": "Hotel search timeouts",
+  "createdAt": "2026-11-25T05:37:51.640Z",
+  "durationMinutes": 20,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Last night one supplier's API stopped answering and every hotel search hung until the load balancer killed it, even though the search is configured with a 1.5 second per-supplier timeout and the other suppliers had answered instantly. Fix hotels/timeout.js so the tests pass.",
+      "editable": [
+        "hotels/timeout.js"
+      ],
+      "tests": [
+        {
+          "path": "search.test.js",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { searchHotels } from \"../src/hotels/search.js\";\nimport { callWithTimeout, TimeoutError } from \"../src/hotels/timeout.js\";\nimport { instantSupplier, failingSupplier, hangingSupplier } from \"../src/hotels/suppliers.js\";\n\n// Fails the test instead of hanging it if the promise never settles.\nfunction within(ms, promise, what) {\n  let timer;\n  const guard = new Promise((_, reject) => {\n    timer = setTimeout(() => reject(new Error(`${what} still pending after ${ms}ms: the timeout never fired`)), ms);\n  });\n  return Promise.race([promise, guard]).finally(() => clearTimeout(timer));\n}\n\nconst query = { city: \"Lisbon\", nights: 2 };\nconst ritz = { hotelId: \"ritz\", pricePerNight: 300 };\nconst casa = { hotelId: \"casa\", pricePerNight: 90 };\n\ntest(\"all suppliers answering: offers are merged, cheapest first\", async () => {\n  const a = instantSupplier(\"alpha\", [ritz, casa]);\n  const b = instantSupplier(\"beta\", [{ hotelId: \"casa\", pricePerNight: 80 }]);\n  const res = await searchHotels([a, b], query, { timeoutMs: 50 });\n  assert.deepEqual(\n    res.offers.map((o) => [o.hotelId, o.supplier, o.total]),\n    [\n      [\"casa\", \"beta\", 160],\n      [\"ritz\", \"alpha\", 600],\n    ],\n  );\n  assert.deepEqual(res.skipped, []);\n});\n\ntest(\"a failing supplier is skipped with reason 'error'\", async () => {\n  const res = await searchHotels([instantSupplier(\"alpha\", [ritz]), failingSupplier(\"beta\")], query, { timeoutMs: 50 });\n  assert.equal(res.offers.length, 1);\n  assert.deepEqual(res.skipped, [{ supplier: \"beta\", reason: \"error\" }]);\n});\n\ntest(\"a hanging supplier is skipped with reason 'timeout' and the rest still answer\", async () => {\n  const slow = hangingSupplier(\"gamma\");\n  const res = await within(1000, searchHotels([instantSupplier(\"alpha\", [ritz]), slow], query, { timeoutMs: 30 }), \"searchHotels\");\n  console.log(\"skipped:\", res.skipped, \"offers:\", res.offers.map((o) => o.hotelId));\n  assert.deepEqual(res.skipped, [{ supplier: \"gamma\", reason: \"timeout\" }]);\n  assert.deepEqual(res.offers.map((o) => o.hotelId), [\"ritz\"]);\n});\n\ntest(\"the hanging supplier's request is cancelled when the timeout fires\", async () => {\n  const slow = hangingSupplier(\"gamma\");\n  await within(1000, searchHotels([slow], query, { timeoutMs: 20 }), \"searchHotels\").catch(() => {});\n  assert.equal(slow.started, true);\n  assert.equal(slow.aborted, true, \"the supplier call should have received an abort signal\");\n});\n\ntest(\"callWithTimeout rejects with a TimeoutError carrying the limit\", async () => {\n  const err = await within(1000, callWithTimeout((signal) => new Promise((_, reject) => signal?.addEventListener(\"abort\", () => reject(signal.reason))), 25), \"callWithTimeout\").then(\n    () => null,\n    (e) => e,\n  );\n  assert.ok(err instanceof TimeoutError, `expected TimeoutError, got ${err}`);\n  assert.equal(err.timeoutMs, 25);\n});\n\ntest(\"callWithTimeout returns the value of a fast call\", async () => {\n  assert.equal(await callWithTimeout(async () => 42, 1000), 42);\n});\n\ntest(\"callWithTimeout passes through the callee's own error\", async () => {\n  await assert.rejects(\n    callWithTimeout(async () => {\n      throw new RangeError(\"bad date range\");\n    }, 1000),\n    RangeError,\n  );\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.timeouts",
+    "backend.resources.context_cancellation",
+    "backend.resilience.graceful_degradation"
+  ]
+}

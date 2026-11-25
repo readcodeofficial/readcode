@@ -1,0 +1,28 @@
+{
+  "id": "f17c0d8d-0200-4d0f-a138-52bb6c95ead2",
+  "title": "Session store replicated across nodes with quorum reads and writes",
+  "name": "Quorum session store",
+  "createdAt": "2026-11-25T05:36:54.660Z",
+  "durationMinutes": 21,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "During a network partition last week, users were told they were logged in and then logged out again once the partition healed. Logins that the API acknowledged had only reached a single node of the session cluster, and later reads returned sessions that were missing or stale. The cluster is supposed to acknowledge writes and serve reads only with a majority of replicas. Fix QuorumStore.java so the tests pass.",
+      "editable": [
+        "sessions/QuorumStore.java"
+      ],
+      "tests": [
+        {
+          "path": "sessions/QuorumTest.java",
+          "content": "package sessions;\n\nimport static readcode.Assert.*;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class QuorumTest {\n    private List<Replica> replicas(int n) {\n        List<Replica> list = new ArrayList<>();\n        for (int i = 0; i < n; i++) {\n            list.add(new Replica(\"r\" + i));\n        }\n        return list;\n    }\n\n    public void testQuorumIsStrictMajority() {\n        assertEquals(2, new QuorumStore(replicas(3)).quorum());\n        assertEquals(3, new QuorumStore(replicas(4)).quorum());\n        assertEquals(3, new QuorumStore(replicas(5)).quorum());\n    }\n\n    public void testPutThenGetWithAllReplicasUp() {\n        QuorumStore store = new QuorumStore(replicas(3));\n        assertTrue(store.put(\"k\", \"v1\"));\n        assertEquals(\"v1\", store.get(\"k\").get());\n    }\n\n    public void testWriteToOneOfThreeIsNotAcknowledged() {\n        List<Replica> rs = replicas(3);\n        rs.get(1).setUp(false);\n        rs.get(2).setUp(false);\n        QuorumStore store = new QuorumStore(rs);\n        assertFalse(store.put(\"k\", \"lonely\"), \"write reached 1 of 3 replicas but was acknowledged\");\n    }\n\n    public void testWriteWithMajorityAlive() {\n        List<Replica> rs = replicas(5);\n        rs.get(3).setUp(false);\n        rs.get(4).setUp(false);\n        QuorumStore store = new QuorumStore(rs);\n        assertTrue(store.put(\"k\", \"v\"));\n    }\n\n    public void testMinorityPartitionCannotAcknowledgeWrites() {\n        List<Replica> rs = replicas(5);\n        for (int i = 2; i < 5; i++) {\n            rs.get(i).setUp(false);\n        }\n        QuorumStore store = new QuorumStore(rs);\n        boolean acked = store.put(\"session:7\", \"tok-a\");\n        System.out.println(\"2-of-5 replicas up, write acknowledged: \" + acked);\n        assertFalse(acked, \"a minority of 2 replicas acknowledged a write\");\n    }\n\n    public void testReadNeedsQuorumOfReplicas() {\n        List<Replica> rs = replicas(3);\n        QuorumStore store = new QuorumStore(rs);\n        store.put(\"k\", \"v\");\n        rs.get(0).setUp(false);\n        rs.get(1).setUp(false);\n        assertThrows(NoQuorumException.class, () -> store.get(\"k\"));\n    }\n\n    public void testReadReturnsNewestVersionAcrossReplicas() {\n        List<Replica> rs = replicas(3);\n        QuorumStore store = new QuorumStore(rs);\n        store.put(\"k\", \"old\");\n        rs.get(0).setUp(false);\n        assertTrue(store.put(\"k\", \"new\"));\n        rs.get(0).setUp(true);\n        rs.get(2).setUp(false);\n        assertEquals(\"new\", store.get(\"k\").get());\n    }\n\n    public void testLogoutIsVisibleToSessionService() {\n        QuorumStore store = new QuorumStore(replicas(3));\n        SessionService sessions = new SessionService(store);\n        assertTrue(sessions.login(\"u1\", \"tok\"));\n        assertTrue(sessions.isLoggedIn(\"u1\", \"tok\"));\n        assertTrue(sessions.logout(\"u1\"));\n        assertFalse(sessions.isLoggedIn(\"u1\", \"tok\"));\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.distributed.replication_and_consensus",
+    "backend.distributed.cross_service_consistency"
+  ]
+}

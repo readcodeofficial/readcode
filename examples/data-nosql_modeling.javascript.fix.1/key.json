@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "support/keys.js",
+          "content": "// Key design for the support table:\n//   pk ACCOUNT#<id>   sk PROFILE        the account\n//   pk ACCOUNT#<id>   sk COUNTER        next ticket number\n//   pk ACCOUNT#<id>   sk TICKET#<n>     one item per ticket, so an account's tickets are one query\nexport const accountPk = (accountId) => `ACCOUNT#${accountId}`;\n\nexport const TICKET_PREFIX = \"TICKET#\";\n\nexport const ticketSk = (number) => `${TICKET_PREFIX}${String(number).padStart(10, \"0\")}`;\n\nexport function parseTicketSk(sk) {\n    if (!sk.startsWith(TICKET_PREFIX)) return null;\n    return Number(sk.slice(TICKET_PREFIX.length));\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The table orders items by comparing sort keys as strings, so TICKET#10 sorts before TICKET#9 and every ordered query (newest-first, between, paging) is wrong once ticket numbers reach two digits. Numeric sort keys must be fixed-width and zero-padded so lexicographic order equals numeric order. parseTicketSk uses Number(), which accepts the zero-padded form, so reading keys back keeps working."
+  ]
+}

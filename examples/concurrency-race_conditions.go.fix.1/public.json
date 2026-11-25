@@ -1,0 +1,29 @@
+{
+  "id": "c25d49c1-f09c-4fd4-8465-ef6bb050205a",
+  "title": "Box office seat holds: check availability, then take the seats",
+  "name": "Box office seat holds",
+  "createdAt": "2026-11-25T05:36:00.909Z",
+  "durationMinutes": 20,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "On the opening night of a small theatre run, the box office sold 112 tickets for a 100-seat house. The inventory counter went negative, and the holds report shows more seats held than exist. It only happens when many buyers hit checkout at once. Fix BoxOffice so the tests pass.",
+      "editable": [
+        "tickets/box_office.go"
+      ],
+      "tests": [
+        {
+          "path": "tickets_test.go",
+          "content": "package tests\n\nimport (\n\t\"errors\"\n\t\"sync\"\n\t\"testing\"\n\t\"time\"\n\n\t\"exercise/src/tickets\"\n)\n\n// gatedInventory makes concurrent buyers overlap: Remaining waits until `peers`\n// callers have read the count (or 30ms passes), so every buyer sees the same\n// count before any of them takes seats.\ntype gatedInventory struct {\n\ttickets.Inventory\n\tmu      sync.Mutex\n\tpeers   int\n\tarrived int\n\topen    chan struct{}\n}\n\nfunc newGated(inv tickets.Inventory, peers int) *gatedInventory {\n\treturn &gatedInventory{Inventory: inv, peers: peers, open: make(chan struct{})}\n}\n\nfunc (g *gatedInventory) Remaining(event string) (int, error) {\n\tleft, err := g.Inventory.Remaining(event)\n\tg.mu.Lock()\n\tg.arrived++\n\tif g.arrived == g.peers {\n\t\tclose(g.open)\n\t}\n\tg.mu.Unlock()\n\tselect {\n\tcase <-g.open:\n\tcase <-time.After(30 * time.Millisecond):\n\t}\n\treturn left, err\n}\n\nfunc holdAll(b *tickets.BoxOffice, event string, buyers, each int) (ok int) {\n\tvar wg sync.WaitGroup\n\tvar mu sync.Mutex\n\tfor i := 0; i < buyers; i++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tif err := b.Hold(event, each); err == nil {\n\t\t\t\tmu.Lock()\n\t\t\t\tok++\n\t\t\t\tmu.Unlock()\n\t\t\t}\n\t\t}()\n\t}\n\twg.Wait()\n\treturn ok\n}\n\nfunc TestHoldTakesSeats(t *testing.T) {\n\tinv := tickets.NewMemoryInventory(map[string]int{\"hamlet\": 10})\n\tb := tickets.NewBoxOffice(inv)\n\tif err := b.Hold(\"hamlet\", 4); err != nil {\n\t\tt.Fatal(err)\n\t}\n\tleft, _ := inv.Remaining(\"hamlet\")\n\tif left != 6 || b.Held(\"hamlet\") != 4 {\n\t\tt.Fatalf(\"remaining=%d held=%d, want 6 and 4\", left, b.Held(\"hamlet\"))\n\t}\n}\n\nfunc TestSoldOut(t *testing.T) {\n\tb := tickets.NewBoxOffice(tickets.NewMemoryInventory(map[string]int{\"hamlet\": 3}))\n\tif err := b.Hold(\"hamlet\", 4); !errors.Is(err, tickets.ErrSoldOut) {\n\t\tt.Fatalf(\"got %v, want ErrSoldOut\", err)\n\t}\n\tif b.Held(\"hamlet\") != 0 {\n\t\tt.Fatalf(\"failed hold must not be recorded, held=%d\", b.Held(\"hamlet\"))\n\t}\n}\n\nfunc TestBadQuantityAndUnknownEvent(t *testing.T) {\n\tb := tickets.NewBoxOffice(tickets.NewMemoryInventory(map[string]int{\"hamlet\": 3}))\n\tif err := b.Hold(\"hamlet\", 0); !errors.Is(err, tickets.ErrBadQuantity) {\n\t\tt.Fatalf(\"got %v, want ErrBadQuantity\", err)\n\t}\n\tif err := b.Hold(\"macbeth\", 1); !errors.Is(err, tickets.ErrUnknownEvent) {\n\t\tt.Fatalf(\"got %v, want ErrUnknownEvent\", err)\n\t}\n}\n\nfunc TestTwoBuyersOneLastPair(t *testing.T) {\n\tinv := tickets.NewMemoryInventory(map[string]int{\"hamlet\": 2})\n\tb := tickets.NewBoxOffice(newGated(inv, 2))\n\tok := holdAll(b, \"hamlet\", 2, 2)\n\tleft, _ := inv.Remaining(\"hamlet\")\n\tif ok != 1 || left != 0 {\n\t\tt.Fatalf(\"%d buyers got the last 2 seats and %d remain; want exactly 1 buyer and 0 left\", ok, left)\n\t}\n}\n\nfunc TestManyBuyersNeverOversell(t *testing.T) {\n\tinv := tickets.NewMemoryInventory(map[string]int{\"hamlet\": 5})\n\tb := tickets.NewBoxOffice(newGated(inv, 12))\n\tok := holdAll(b, \"hamlet\", 12, 1)\n\tleft, _ := inv.Remaining(\"hamlet\")\n\tif left < 0 || ok != 5 {\n\t\tt.Fatalf(\"12 buyers for 5 seats: %d succeeded, %d remaining (want 5 and 0)\", ok, left)\n\t}\n}\n\nfunc TestHeldNeverExceedsCapacity(t *testing.T) {\n\tinv := tickets.NewMemoryInventory(map[string]int{\"hamlet\": 6})\n\tb := tickets.NewBoxOffice(newGated(inv, 4))\n\tholdAll(b, \"hamlet\", 4, 3)\n\tif b.Held(\"hamlet\") > 6 {\n\t\tt.Fatalf(\"held %d seats of a 6-seat house\", b.Held(\"hamlet\"))\n\t}\n}\n\nfunc TestReport(t *testing.T) {\n\tcapacity := map[string]int{\"hamlet\": 4, \"othello\": 2}\n\tinv := tickets.NewMemoryInventory(capacity)\n\tb := tickets.NewBoxOffice(newGated(inv, 3))\n\tholdAll(b, \"hamlet\", 3, 2)\n\t_ = b.Hold(\"othello\", 1)\n\tout := tickets.Report(b, capacity)\n\tt.Log(\"\\n\" + out)\n\tif want := \"hamlet: 4/4 held\\nothello: 1/2 held\\n\"; out != want {\n\t\tt.Fatalf(\"report:\\n%s\\nwant:\\n%s\", out, want)\n\t}\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.race_conditions",
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.data.transactions"
+  ]
+}

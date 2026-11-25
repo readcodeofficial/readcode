@@ -1,0 +1,28 @@
+{
+  "id": "214e7005-dc56-4814-aed2-1d3433b3118a",
+  "title": "Supplier catalog sync: a size cap that only half works",
+  "name": "Supplier feed sync",
+  "createdAt": "2026-11-25T05:38:22.268Z",
+  "durationMinutes": 19,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "We added a 'max feed size' to the supplier catalog sync after an out-of-memory incident, but yesterday a supplier sent a feed bigger than the limit and the sync reported success, leaving us with a catalog that was missing the last products. Fix feedsync/fetch.go so the tests pass.",
+      "editable": [
+        "feedsync/fetch.go"
+      ],
+      "tests": [
+        {
+          "path": "feedsync_test.go",
+          "content": "package tests\n\nimport (\n\t\"context\"\n\t\"errors\"\n\t\"fmt\"\n\t\"io\"\n\t\"net/http\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"exercise/src/feedsync\"\n)\n\nconst (\n\tlineA = `{\"sku\":\"A-1\",\"price_cents\":100}` + \"\\n\"\n\tlineB = `{\"sku\":\"B-2\",\"price_cents\":250}` + \"\\n\"\n\tlineC = `{\"sku\":\"C-3\",\"price_cents\":999}` + \"\\n\"\n)\n\ntype countingBody struct {\n\tr      io.Reader\n\tread   int64\n\tclosed *int\n}\n\nfunc (b *countingBody) Read(p []byte) (int, error) {\n\tn, err := b.r.Read(p)\n\tb.read += int64(n)\n\treturn n, err\n}\n\nfunc (b *countingBody) Close() error { *b.closed++; return nil }\n\ntype endless struct{}\n\nfunc (endless) Read(p []byte) (int, error) {\n\tfor i := range p {\n\t\tp[i] = 'x'\n\t}\n\treturn len(p), nil\n}\n\ntype fakeDoer struct {\n\tstatus int\n\tbody   io.Reader\n\tlast   *countingBody\n\tclosed int\n}\n\nfunc (d *fakeDoer) Do(req *http.Request) (*http.Response, error) {\n\td.last = &countingBody{r: d.body, closed: &d.closed}\n\treturn &http.Response{StatusCode: d.status, Body: d.last}, nil\n}\n\nfunc newCatalog(body io.Reader, max int64) (*feedsync.Catalog, *fakeDoer) {\n\td := &fakeDoer{status: 200, body: body}\n\treturn feedsync.NewCatalog(&feedsync.Fetcher{Client: d, MaxBytes: max}), d\n}\n\nfunc TestSyncSmallFeed(t *testing.T) {\n\tc, _ := newCatalog(strings.NewReader(lineA+lineB+lineC), 1<<20)\n\tn, err := c.Sync(context.Background(), \"http://supplier/feed\")\n\tif err != nil || n != 3 {\n\t\tt.Fatalf(\"want 3 items and no error, got %d, %v\", n, err)\n\t}\n\tif p, ok := c.Price(\"B-2\"); !ok || p != 250 {\n\t\tt.Fatalf(\"price of B-2: got %d, %v\", p, ok)\n\t}\n}\n\nfunc TestFeedExactlyAtLimitIsAccepted(t *testing.T) {\n\tfeed := lineA + lineB + lineC\n\tc, _ := newCatalog(strings.NewReader(feed), int64(len(feed)))\n\tn, err := c.Sync(context.Background(), \"http://supplier/feed\")\n\tif err != nil || n != 3 {\n\t\tt.Fatalf(\"a feed of exactly MaxBytes must be accepted, got %d, %v\", n, err)\n\t}\n}\n\nfunc TestFeedOneByteOverTheLimitIsRejected(t *testing.T) {\n\tfeed := lineA + lineB + lineC\n\tc, _ := newCatalog(strings.NewReader(feed), int64(len(feed)-1))\n\t_, err := c.Sync(context.Background(), \"http://supplier/feed\")\n\tif !errors.Is(err, feedsync.ErrTooLarge) {\n\t\tt.Fatalf(\"want ErrTooLarge for a feed 1 byte over the limit, got %v\", err)\n\t}\n}\n\nfunc TestOversizeFeedCutOnLineBoundaryIsNotAppliedPartially(t *testing.T) {\n\tfeed := lineA + lineB + lineC\n\tc, _ := newCatalog(strings.NewReader(feed), int64(len(lineA+lineB)))\n\tn, err := c.Sync(context.Background(), \"http://supplier/feed\")\n\tif err == nil {\n\t\tt.Fatalf(\"sync reported success with %d of 3 products: the rest was silently dropped\", n)\n\t}\n\tif c.Len() != 0 {\n\t\tt.Fatalf(\"catalog must stay empty after a rejected feed, has %d items\", c.Len())\n\t}\n}\n\nfunc TestRejectedSyncKeepsPreviousCatalog(t *testing.T) {\n\tc, d := newCatalog(strings.NewReader(lineA+lineB+lineC), 1<<20)\n\tif _, err := c.Sync(context.Background(), \"u\"); err != nil {\n\t\tt.Fatal(err)\n\t}\n\td.body = strings.NewReader(lineB + lineC + lineA + lineB)\n\tc.Fetcher.MaxBytes = int64(len(lineB + lineC))\n\tif _, err := c.Sync(context.Background(), \"u\"); err == nil {\n\t\tt.Fatal(\"oversize feed should be an error\")\n\t}\n\tif _, ok := c.Price(\"A-1\"); !ok || c.Len() != 3 {\n\t\tt.Fatalf(\"previous catalog must survive, has %d items\", c.Len())\n\t}\n}\n\nfunc TestEndlessBodyIsBoundedAndRejected(t *testing.T) {\n\tconst max = 64 * 1024\n\tc, d := newCatalog(endless{}, max)\n\t_, err := c.Sync(context.Background(), \"http://supplier/feed\")\n\tfmt.Printf(\"endless body: read %d bytes with MaxBytes=%d, err=%v\\n\", d.last.read, int64(max), err)\n\tif !errors.Is(err, feedsync.ErrTooLarge) {\n\t\tt.Fatalf(\"want ErrTooLarge, got %v\", err)\n\t}\n\tif d.last.read > max+1 {\n\t\tt.Fatalf(\"read %d bytes, more than MaxBytes+1\", d.last.read)\n\t}\n}\n\nfunc TestNon200IsAnError(t *testing.T) {\n\tc, d := newCatalog(strings.NewReader(\"oops\"), 1024)\n\td.status = 503\n\tif _, err := c.Sync(context.Background(), \"u\"); err == nil {\n\t\tt.Fatal(\"503 must be an error\")\n\t}\n}\n\nfunc TestBodyAlwaysClosed(t *testing.T) {\n\tc, d := newCatalog(strings.NewReader(lineA), 1024)\n\tc.Sync(context.Background(), \"u\")\n\tif d.closed != 1 {\n\t\tt.Fatalf(\"body closed %d times, want 1\", d.closed)\n\t}\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.unbounded_buffers",
+    "backend.api.request_validation"
+  ]
+}

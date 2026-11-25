@@ -1,0 +1,28 @@
+{
+  "id": "46c1fc9c-1607-4436-84c6-4542e7be6a99",
+  "title": "Support tickets in a single-table store: sort keys that order wrong",
+  "name": "Ticket sort keys",
+  "createdAt": "2026-11-25T05:36:02.815Z",
+  "durationMinutes": 19,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Customers with a lot of history report that the dashboard's 'latest tickets' widget shows old tickets (like #9 and #8) above their newest ones once they pass ten tickets, and the export job returns the wrong range. Accounts with fewer than ten tickets look fine. Fix the key design so the tests pass without changing the table.",
+      "editable": [
+        "support/keys.js"
+      ],
+      "tests": [
+        {
+          "path": "tickets.test.js",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createTable } from \"../src/support/table.js\";\nimport { createTicketRepo } from \"../src/support/tickets.js\";\nimport { parseTicketSk, ticketSk } from \"../src/support/keys.js\";\n\nfunction setup(openCount = 0, accountId = \"acme\") {\n    const table = createTable();\n    let tick = 0;\n    const repo = createTicketRepo({ table, now: () => `2026-11-01T00:00:${String(tick++ % 60).padStart(2, \"0\")}Z` });\n    for (let i = 1; i <= openCount; i++) repo.open(accountId, `issue ${i}`);\n    return { table, repo };\n}\n\ntest(\"tickets are numbered per account starting at 1\", () => {\n    const { repo } = setup();\n    assert.equal(repo.open(\"acme\", \"login broken\").number, 1);\n    assert.equal(repo.open(\"acme\", \"invoice wrong\").number, 2);\n    assert.equal(repo.open(\"globex\", \"hello\").number, 1);\n});\n\ntest(\"get returns the ticket that was opened\", () => {\n    const { repo } = setup(3);\n    assert.equal(repo.get(\"acme\", 2).subject, \"issue 2\");\n    assert.equal(repo.get(\"acme\", 9), null);\n});\n\ntest(\"sort keys round-trip through parseTicketSk\", () => {\n    assert.equal(parseTicketSk(ticketSk(42)), 42);\n    assert.equal(parseTicketSk(\"PROFILE\"), null);\n});\n\ntest(\"latest returns the newest tickets first with few tickets\", () => {\n    const { repo } = setup(5);\n    assert.deepEqual(repo.latest(\"acme\", 2).map((t) => t.number), [5, 4]);\n});\n\ntest(\"latest returns the newest tickets once the account passes ten tickets\", () => {\n    const { repo } = setup(12);\n    const numbers = repo.latest(\"acme\", 3).map((t) => t.number);\n    console.log(\"latest 3 of 12 tickets:\", numbers);\n    assert.deepEqual(numbers, [12, 11, 10]);\n});\n\ntest(\"range returns tickets numbered 8 to 11 in order\", () => {\n    const { repo } = setup(12);\n    assert.deepEqual(repo.range(\"acme\", 8, 11).map((t) => t.number), [8, 9, 10, 11]);\n});\n\ntest(\"history pages through every ticket oldest first\", () => {\n    const { repo } = setup(11);\n    const seen = [];\n    let page = repo.history(\"acme\", { pageSize: 4 });\n    seen.push(...page.tickets.map((t) => t.number));\n    while (page.next) {\n        page = repo.history(\"acme\", { pageSize: 4, after: page.next });\n        seen.push(...page.tickets.map((t) => t.number));\n    }\n    assert.deepEqual(seen, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);\n});\n\ntest(\"the counter item never shows up as a ticket\", () => {\n    const { repo } = setup(2);\n    assert.equal(repo.history(\"acme\", {}).tickets.length, 2);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.nosql_modeling",
+    "backend.data.pagination"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "badf8414-7d4a-48ce-ac09-8543293a00a1",
+  "title": "Warehouse order fulfilment: stock reserved for an order that never finished reserving",
+  "name": "Order stock reservation",
+  "createdAt": "2026-11-25T05:35:34.818Z",
+  "durationMinutes": 19,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Support says orders are being marked 'shipped' with an empty pick list, and orders that should have been backordered because an item was out of stock go out the door anyway. Inventory counts only drop a moment after the order is already reported as shipped. Fix warehouse/reserve.js so the tests pass.",
+      "editable": [
+        "warehouse/reserve.js"
+      ],
+      "tests": [
+        {
+          "path": "warehouse.test.js",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createInventory } from \"../src/warehouse/inventory.js\";\nimport { reserveOrder } from \"../src/warehouse/reserve.js\";\nimport { fulfilOrder } from \"../src/warehouse/fulfil.js\";\nimport { fulfilAll, describe } from \"../src/warehouse/batch.js\";\n\nfunction fakeShipper() {\n  const shipped = [];\n  return {\n    shipped,\n    async ship(orderId, holds) {\n      shipped.push({ orderId, holds });\n      return `TRK-${orderId}`;\n    },\n  };\n}\n\nconst sorted = (holds) => [...holds].sort((a, b) => a.sku.localeCompare(b.sku));\n\ntest(\"reserveOrder returns every hold once the call resolves\", async () => {\n  const inv = createInventory({ A: 5, B: 5, C: 5 });\n  const res = await reserveOrder(inv, [\n    { sku: \"A\", qty: 2 },\n    { sku: \"B\", qty: 1 },\n    { sku: \"C\", qty: 5 },\n  ]);\n  assert.deepEqual(sorted(res.reserved), [\n    { sku: \"A\", qty: 2 },\n    { sku: \"B\", qty: 1 },\n    { sku: \"C\", qty: 5 },\n  ]);\n  assert.deepEqual(res.failed, []);\n});\n\ntest(\"stock is already decremented when reserveOrder resolves\", async () => {\n  const inv = createInventory({ A: 5, B: 3 });\n  await reserveOrder(inv, [\n    { sku: \"A\", qty: 2 },\n    { sku: \"B\", qty: 3 },\n  ]);\n  console.log(\"available after reserveOrder:\", { A: inv.available(\"A\"), B: inv.available(\"B\") });\n  assert.equal(inv.available(\"A\"), 3, \"A should be reserved before the call returns\");\n  assert.equal(inv.available(\"B\"), 0, \"B should be reserved before the call returns\");\n});\n\ntest(\"out-of-stock lines are reported in failed\", async () => {\n  const inv = createInventory({ A: 5, B: 0 });\n  const res = await reserveOrder(inv, [\n    { sku: \"A\", qty: 1 },\n    { sku: \"B\", qty: 1 },\n  ]);\n  assert.deepEqual(\n    res.failed.map((f) => f.sku),\n    [\"B\"],\n  );\n  assert.deepEqual(res.reserved, [{ sku: \"A\", qty: 1 }]);\n});\n\ntest(\"an empty order reserves nothing\", async () => {\n  const inv = createInventory({ A: 1 });\n  assert.deepEqual(await reserveOrder(inv, []), { reserved: [], failed: [] });\n});\n\ntest(\"fulfilOrder ships the reserved items\", async () => {\n  const inv = createInventory({ A: 4, B: 4 });\n  const shipper = fakeShipper();\n  const order = {\n    id: \"o1\",\n    lines: [\n      { sku: \"A\", qty: 1 },\n      { sku: \"B\", qty: 2 },\n    ],\n  };\n  const res = await fulfilOrder(inv, order, shipper);\n  assert.equal(res.status, \"shipped\");\n  assert.equal(res.picked, 2);\n  assert.equal(shipper.shipped[0].holds.length, 2, \"the shipment must carry the holds\");\n});\n\ntest(\"a partially available order is backordered and its stock released\", async () => {\n  const inv = createInventory({ A: 4, B: 0 });\n  const shipper = fakeShipper();\n  const order = {\n    id: \"o2\",\n    lines: [\n      { sku: \"A\", qty: 3 },\n      { sku: \"B\", qty: 1 },\n    ],\n  };\n  const res = await fulfilOrder(inv, order, shipper);\n  assert.equal(res.status, \"backordered\");\n  assert.deepEqual(res.missing, [\"B\"]);\n  assert.equal(shipper.shipped.length, 0);\n  assert.equal(inv.available(\"A\"), 4, \"A must be released back\");\n});\n\ntest(\"fulfilAll processes orders against the remaining stock\", async () => {\n  const inv = createInventory({ A: 3 });\n  const shipper = fakeShipper();\n  const summary = await fulfilAll(\n    inv,\n    [\n      { id: \"o1\", lines: [{ sku: \"A\", qty: 2 }] },\n      { id: \"o2\", lines: [{ sku: \"A\", qty: 2 }] },\n    ],\n    shipper,\n  );\n  assert.equal(summary.shipped, 1);\n  assert.equal(summary.backordered, 1);\n  assert.match(describe(summary), /o2: backordered \\[A\\]/);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.concurrency.async_await_pitfalls",
+    "backend.concurrency.race_conditions",
+    "backend.errors.cleanup_on_error_paths"
+  ]
+}

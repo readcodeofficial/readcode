@@ -1,0 +1,28 @@
+{
+  "id": "17562b6e-b09f-49ae-b033-b777f1d26c6f",
+  "title": "Invoicing with a tax-rate cache that outlives the objects using it",
+  "name": "Invoice tax policy",
+  "createdAt": "2026-11-25T05:36:37.869Z",
+  "durationMinutes": 19,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "After we onboarded the EU entity, invoices for the same region code come out with the wrong tax depending on which entity's service handled the first invoice since the last restart. The two entities each configure their own rate table. A rate table swap in the admin tool is also ignored until the process restarts. Fix TaxPolicy.java so the tests pass.",
+      "editable": [
+        "invoicing/TaxPolicy.java"
+      ],
+      "tests": [
+        {
+          "path": "invoicing/InvoiceTest.java",
+          "content": "package invoicing;\n\nimport static readcode.Assert.*;\n\nimport java.util.List;\nimport java.util.Map;\n\npublic class InvoiceTest {\n    static final class MapSource implements RateSource {\n        final Map<String, Integer> rates;\n        int lookups;\n\n        MapSource(Map<String, Integer> rates) {\n            this.rates = rates;\n        }\n\n        @Override\n        public int basisPointsFor(String region) {\n            lookups++;\n            return rates.get(region);\n        }\n    }\n\n    public void testTaxIsRoundedHalfUp() {\n        TaxPolicy policy = new TaxPolicy(new MapSource(Map.of(\"NY-A\", 875)));\n        assertEquals(88, policy.taxCents(\"NY-A\", 1000));\n        assertEquals(0, policy.taxCents(\"NY-A\", 5));\n    }\n\n    public void testInvoiceTotalsAcrossLines() {\n        InvoiceService service = new InvoiceService(new TaxPolicy(new MapSource(Map.of(\"TX-A\", 625))));\n        Invoice invoice = service.issue(\"acme\", List.of(\n                new LineItem(\"widget\", 3, 1000, \"TX-A\"),\n                new LineItem(\"gadget\", 1, 2500, \"TX-A\")));\n        assertEquals(5500, invoice.netCents());\n        assertEquals(344, invoice.taxCents());\n        assertEquals(5844, invoice.totalCents());\n    }\n\n    public void testPolicyAsksItsSourceOncePerRegion() {\n        MapSource source = new MapSource(Map.of(\"WA-A\", 1000));\n        TaxPolicy policy = new TaxPolicy(source);\n        policy.taxCents(\"WA-A\", 100);\n        policy.taxCents(\"WA-A\", 200);\n        assertEquals(1, source.lookups, \"rate for the same region was looked up repeatedly\");\n    }\n\n    public void testTwoPoliciesWithDifferentSourcesDoNotShareRates() {\n        TaxPolicy us = new TaxPolicy(new MapSource(Map.of(\"DE-1\", 0)));\n        TaxPolicy eu = new TaxPolicy(new MapSource(Map.of(\"DE-1\", 1900)));\n        long usTax = us.taxCents(\"DE-1\", 10_000);\n        long euTax = eu.taxCents(\"DE-1\", 10_000);\n        System.out.println(\"tax for the same region from two policies: \" + usTax + \" and \" + euTax);\n        assertEquals(0, usTax);\n        assertEquals(1900, euTax, \"second policy saw the rate of the first policy's source\");\n    }\n\n    public void testRateChangeInNewSourceIsPickedUpByNewService() {\n        TaxPolicy before = new TaxPolicy(new MapSource(Map.of(\"FR-1\", 2000)));\n        Invoice first = new InvoiceService(before).issue(\"c1\", List.of(new LineItem(\"a\", 1, 10_000, \"FR-1\")));\n        assertEquals(2000, first.taxCents());\n        TaxPolicy after = new TaxPolicy(new MapSource(Map.of(\"FR-1\", 2200)));\n        Invoice second = new InvoiceService(after).issue(\"c2\", List.of(new LineItem(\"a\", 1, 10_000, \"FR-1\")));\n        assertEquals(2200, second.taxCents(), \"new rate ignored after the rate table was replaced\");\n    }\n\n    public void testMixedRegionsOnOneInvoice() {\n        InvoiceService service = new InvoiceService(new TaxPolicy(new MapSource(Map.of(\"OR-1\", 0, \"CA-1\", 725))));\n        Invoice invoice = service.issue(\"c3\", List.of(\n                new LineItem(\"a\", 1, 10_000, \"OR-1\"),\n                new LineItem(\"b\", 2, 5_000, \"CA-1\")));\n        assertEquals(725, invoice.taxCents());\n        assertEquals(20_725, service.totalBilled());\n    }\n\n    public void testFormattedInvoice() {\n        InvoiceService service = new InvoiceService(new TaxPolicy(new MapSource(Map.of(\"NV-1\", 800))));\n        Invoice invoice = service.issue(\"c5\", List.of(new LineItem(\"desk\", 2, 12_345, \"NV-1\")));\n        String text = InvoiceFormatter.render(invoice);\n        assertTrue(text.contains(\"total 266.65\"), text);\n        assertEquals(Map.of(\"NV-1\", 1975L), service.taxByRegion());\n    }\n\n    public void testEmptyInvoiceRejected() {\n        InvoiceService service = new InvoiceService(new TaxPolicy(new MapSource(Map.of())));\n        assertThrows(IllegalArgumentException.class, () -> service.issue(\"c4\", List.of()));\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.coupling_and_cohesion",
+    "backend.design.dependency_injection"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "cart/handlers.js",
+          "content": "import { cartView } from \"./pricing.js\";\n\nconst MAX_QTY = 99;\n\nfunction problem(status, code, message) {\n  return { status, body: { error: { code, message } } };\n}\n\nexport function cartHandlers(store, catalog) {\n  return {\n    getCart({ cartId }) {\n      const cart = store.get(cartId);\n      if (!cart) return problem(404, \"cart_not_found\", `no cart ${cartId}`);\n      return { status: 200, body: cartView(cart, catalog) };\n    },\n\n    putLine({ cartId, sku, body }) {\n      if (!catalog.has(sku)) return problem(404, \"unknown_sku\", `no product ${sku}`);\n      const qty = body?.qty;\n      if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) {\n        return problem(422, \"invalid_qty\", `qty must be an integer between 1 and ${MAX_QTY}`);\n      }\n\n      const cart = store.getOrCreate(cartId);\n      const existing = cart.lines.get(sku);\n      cart.lines.set(sku, { sku, qty });\n\n      if (existing) return { status: 200, body: cartView(cart, catalog) };\n      return {\n        status: 201,\n        headers: { Location: `/carts/${cartId}/lines/${sku}` },\n        body: cartView(cart, catalog),\n      };\n    },\n\n    deleteLine({ cartId, sku }) {\n      const cart = store.get(cartId);\n      if (!cart) return problem(404, \"cart_not_found\", `no cart ${cartId}`);\n      cart.lines.delete(sku);\n      return { status: 204 };\n    },\n  };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "PUT /carts/:id/lines/:sku is meant to set the line to the representation the client sends, so repeating the identical request must leave the cart unchanged. The handler instead adds the sent quantity to whatever is already in the cart, which turns PUT into an increment: every retry changes the state. The fix stores the quantity from the request as is, so the first call creates the line (201) and every repeat or change replaces it (200)."
+  ]
+}

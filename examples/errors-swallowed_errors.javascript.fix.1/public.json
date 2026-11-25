@@ -1,0 +1,29 @@
+{
+  "id": "c0d157c1-87ec-4243-a0c8-7883cd46a36e",
+  "title": "Invoice PDF worker: failed jobs disappear from the queue without being retried",
+  "name": "Invoice job worker",
+  "createdAt": "2026-11-25T05:36:39.751Z",
+  "durationMinutes": 18,
+  "language": "JavaScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Finance noticed that about 2% of customers never received their invoice PDF. The worker logs show 'job failed' lines for those jobs (the renderer was timing out), yet the queue dashboard shows nothing retried and nothing dead-lettered: the jobs just vanished. Fix jobs/worker.js so the tests pass.",
+      "editable": [
+        "jobs/worker.js"
+      ],
+      "tests": [
+        {
+          "path": "worker.test.js",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createQueue } from \"../src/jobs/queue.js\";\nimport { createHandlers } from \"../src/jobs/handlers.js\";\nimport { Worker } from \"../src/jobs/worker.js\";\n\nfunction setup({ renderFailures = new Set() } = {}) {\n  const queue = createQueue({ maxAttempts: 3 });\n  const sent = [];\n  const logs = [];\n  const renders = [];\n  const renderer = {\n    async render(id) {\n      renders.push(id);\n      if (renderFailures.has(id)) throw new Error(`renderer timeout for ${id}`);\n      return Buffer.from(`%PDF-${id}`);\n    },\n    async discard() {},\n  };\n  const mailer = {\n    async send(to, subject) {\n      sent.push({ to, subject });\n    },\n  };\n  const logger = { error: (m) => logs.push(m) };\n  const worker = new Worker({ queue, handlers: createHandlers({ renderer, mailer }), logger });\n  return { queue, worker, sent, logs, renders };\n}\n\ntest(\"a successful job is acked, mailed and reported as processed\", async () => {\n  const { queue, worker, sent } = setup();\n  const id = queue.enqueue(\"invoice.send\", { invoiceId: \"inv-1\", email: \"a@x.io\" });\n  const processed = [];\n  worker.on(\"processed\", (jobId) => processed.push(jobId));\n  await worker.drain();\n  assert.equal(queue.get(id).status, \"done\");\n  assert.deepEqual(sent, [{ to: \"a@x.io\", subject: \"Invoice inv-1\" }]);\n  assert.deepEqual(processed, [id]);\n});\n\ntest(\"a failed job is not acked: it goes back to pending for a retry\", async () => {\n  const { queue, worker } = setup({ renderFailures: new Set([\"inv-2\"]) });\n  const id = queue.enqueue(\"invoice.send\", { invoiceId: \"inv-2\", email: \"b@x.io\" });\n  await worker.processNext();\n  console.log(\"job after first failed attempt:\", queue.get(id));\n  assert.equal(queue.get(id).status, \"pending\", \"failed job must be nacked, not acked\");\n  assert.equal(queue.get(id).lastError, \"renderer timeout for inv-2\");\n});\n\ntest(\"a failed job emits 'failed' with the reason and does not emit 'processed'\", async () => {\n  const { queue, worker } = setup({ renderFailures: new Set([\"inv-3\"]) });\n  queue.enqueue(\"invoice.send\", { invoiceId: \"inv-3\", email: \"c@x.io\" });\n  const failed = [];\n  const processed = [];\n  worker.on(\"failed\", (e) => failed.push(e));\n  worker.on(\"processed\", (e) => processed.push(e));\n  await worker.processNext();\n  assert.deepEqual(processed, []);\n  assert.equal(failed.length, 1);\n  assert.equal(failed[0].error, \"renderer timeout for inv-3\");\n});\n\ntest(\"a job that keeps failing is retried then dead-lettered after maxAttempts\", async () => {\n  const { queue, worker, renders } = setup({ renderFailures: new Set([\"inv-4\"]) });\n  const id = queue.enqueue(\"invoice.send\", { invoiceId: \"inv-4\", email: \"d@x.io\" });\n  await worker.drain();\n  assert.equal(renders.length, 3, \"the renderer should have been tried 3 times\");\n  assert.equal(queue.get(id).status, \"dead\");\n  assert.equal(queue.stats().dead, 1);\n});\n\ntest(\"a failing job does not stop later jobs\", async () => {\n  const { queue, worker, sent } = setup({ renderFailures: new Set([\"bad\"]) });\n  queue.enqueue(\"invoice.send\", { invoiceId: \"bad\", email: \"x@x.io\" });\n  const good = queue.enqueue(\"invoice.send\", { invoiceId: \"good\", email: \"y@x.io\" });\n  await worker.drain();\n  assert.equal(queue.get(good).status, \"done\");\n  assert.deepEqual(sent.map((s) => s.to), [\"y@x.io\"]);\n});\n\ntest(\"an unknown job type ends up dead, not done\", async () => {\n  const { queue, worker } = setup();\n  const id = queue.enqueue(\"invoice.archive\", { invoiceId: \"inv-5\" });\n  await worker.drain();\n  assert.equal(queue.get(id).status, \"dead\");\n});\n\ntest(\"failures are logged with the job id\", async () => {\n  const { queue, worker, logs } = setup({ renderFailures: new Set([\"inv-6\"]) });\n  const id = queue.enqueue(\"invoice.send\", { invoiceId: \"inv-6\", email: \"e@x.io\" });\n  await worker.processNext();\n  assert.ok(logs.some((l) => l.includes(id) && l.includes(\"renderer timeout\")), `log lines: ${logs}`);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.swallowed_errors",
+    "backend.messaging.queues_and_consumers",
+    "backend.messaging.dead_letter_queues"
+  ]
+}

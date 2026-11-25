@@ -1,0 +1,29 @@
+{
+  "id": "a70558ba-a968-4250-a6ee-9e047a264314",
+  "title": "Payroll portal: who is allowed to read a payslip",
+  "name": "Payslip access policy",
+  "createdAt": "2026-11-25T05:38:18.239Z",
+  "durationMinutes": 18,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "An employee reported that she could open a coworker's payslip by changing the employee id in the URL. Managers and HR are supposed to see payslips for their reports and everyone respectively, and everyone else only their own. Fix payroll/policy.py so the tests pass.",
+      "editable": [
+        "payroll/policy.py"
+      ],
+      "tests": [
+        {
+          "path": "test_payslips.py",
+          "content": "import unittest\r\n\r\nfrom payroll.directory import Directory, Employee\r\nfrom payroll.payslips import NotFound, PayslipService, PermissionDenied\r\nfrom payroll.principal import Principal\r\n\r\nSTAFF = [\r\n    Employee(\"e1\", \"Dana\", \"eng\", None),\r\n    Employee(\"e2\", \"Lee\", \"eng\", \"e1\"),\r\n    Employee(\"e3\", \"Sam\", \"eng\", \"e2\"),\r\n    Employee(\"e4\", \"Kim\", \"eng\", \"e2\"),\r\n    Employee(\"e5\", \"Ola\", \"sales\", \"e1\"),\r\n    Employee(\"e6\", \"Rae\", \"people\", \"e1\"),\r\n]\r\nPAYSLIPS = {e.employee_id: {\"net\": 1000 + i} for i, e in enumerate(STAFF)}\r\n\r\n\r\ndef setup(who, roles=()):\r\n    directory = Directory(STAFF)\r\n    service = PayslipService(directory, dict(PAYSLIPS))\r\n    return service, Principal(who, frozenset(roles), directory)\r\n\r\n\r\nclass PayslipAccessTest(unittest.TestCase):\r\n    def test_employee_sees_own_payslip(self):\r\n        service, sam = setup(\"e3\")\r\n        self.assertEqual(service.get(sam, \"e3\"), PAYSLIPS[\"e3\"])\r\n\r\n    def test_manager_sees_direct_and_indirect_reports(self):\r\n        service, lee = setup(\"e2\")\r\n        self.assertEqual(service.get(lee, \"e3\"), PAYSLIPS[\"e3\"])\r\n        service, dana = setup(\"e1\")\r\n        self.assertEqual(service.get(dana, \"e3\"), PAYSLIPS[\"e3\"])\r\n\r\n    def test_peer_cannot_see_a_colleagues_payslip(self):\r\n        service, sam = setup(\"e3\")\r\n        with self.assertRaises(PermissionDenied):\r\n            service.get(sam, \"e4\")\r\n        self.assertEqual([r.target for r in service.audit.denials()], [\"e4\"])\r\n\r\n    def test_manager_of_another_branch_is_denied(self):\r\n        service, ola = setup(\"e5\")\r\n        with self.assertRaises(PermissionDenied):\r\n            service.get(ola, \"e3\")\r\n\r\n    def test_hr_can_see_everyone(self):\r\n        service, rae = setup(\"e6\", {\"hr\"})\r\n        self.assertEqual(len(service.visible_to(rae)), 6)\r\n\r\n    def test_visible_to_lists_only_what_the_caller_may_read(self):\r\n        service, lee = setup(\"e2\")\r\n        print(\"visible to Lee:\", service.visible_to(lee))\r\n        self.assertEqual(service.visible_to(lee), [\"e2\", \"e3\", \"e4\"])\r\n\r\n    def test_missing_payslip_is_not_found(self):\r\n        service, sam = setup(\"e3\")\r\n        with self.assertRaises(NotFound):\r\n            service.get(sam, \"e99\")\r\n\r\n    def test_only_hr_publishes(self):\r\n        service, lee = setup(\"e2\")\r\n        with self.assertRaises(PermissionDenied):\r\n            service.publish(lee, \"e3\", {\"net\": 1})\r\n        service, rae = setup(\"e6\", {\"hr\"})\r\n        service.publish(rae, \"e3\", {\"net\": 1})\r\n        self.assertEqual(service.get(rae, \"e3\"), {\"net\": 1})\r\n\r\n\r\nif __name__ == \"__main__\":\r\n    unittest.main()\r\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.authorization_checks",
+    "backend.security.multi_tenant_isolation",
+    "backend.api.status_codes_and_error_responses"
+  ]
+}

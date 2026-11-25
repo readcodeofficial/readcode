@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "jobs/worker.js",
+          "content": "import { EventEmitter } from \"node:events\";\n\nexport class Worker extends EventEmitter {\n  constructor({ queue, handlers, logger }) {\n    super();\n    this.queue = queue;\n    this.handlers = handlers;\n    this.logger = logger;\n  }\n\n  async processNext() {\n    const job = await this.queue.take();\n    if (!job) return false;\n\n    try {\n      const handler = this.handlers[job.type];\n      if (!handler) throw new Error(`no handler for job type ${job.type}`);\n      await handler(job.payload);\n      await this.queue.ack(job.id);\n      this.emit(\"processed\", job.id);\n    } catch (err) {\n      this.logger.error(`job ${job.id} failed: ${err.message}`);\n      await this.queue.nack(job.id, err.message);\n      this.emit(\"failed\", { id: job.id, error: err.message });\n    }\n    return true;\n  }\n\n  async drain() {\n    let handled = 0;\n    while (await this.processNext()) handled += 1;\n    return handled;\n  }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "processNext wraps the handler in try/catch, logs the error, and then falls through to queue.ack(job.id), so a failed job is acknowledged exactly like a successful one and is never retried or dead-lettered. Nobody downstream of the worker can see the failure either, since no 'failed' event is emitted. The fix acks and emits 'processed' only inside the try after the handler succeeds, and in the catch it logs, nacks the job so the queue retries it or dead-letters it after its attempts, and emits 'failed'."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "warehouse/health/HealthRegistry.java",
+          "content": "package warehouse.health;\n\nimport java.util.ArrayList;\nimport java.util.LinkedHashMap;\nimport java.util.List;\nimport java.util.Map;\n\npublic final class HealthRegistry {\n\n    @FunctionalInterface\n    public interface Check {\n        Status run() throws Exception;\n    }\n\n    public record Registration(String name, boolean critical, Check check) {}\n\n    private final List<Registration> registrations = new ArrayList<>();\n\n    public HealthRegistry register(String name, boolean critical, Check check) {\n        registrations.add(new Registration(name, critical, check));\n        return this;\n    }\n\n    public HealthReport run() {\n        Map<String, Status> components = new LinkedHashMap<>();\n        Status overall = Status.UP;\n        for (Registration registration : registrations) {\n            Status status = evaluate(registration);\n            components.put(registration.name(), status);\n            if (status == Status.DOWN) {\n                if (registration.critical()) {\n                    overall = Status.DOWN;\n                } else if (overall == Status.UP) {\n                    overall = Status.DEGRADED;\n                }\n            } else if (status == Status.DEGRADED && overall == Status.UP) {\n                overall = Status.DEGRADED;\n            }\n        }\n        return new HealthReport(overall, components);\n    }\n\n    private Status evaluate(Registration registration) {\n        try {\n            Status status = registration.check().run();\n            return status == null ? Status.DOWN : status;\n        } catch (Exception e) {\n            return Status.DOWN;\n        }\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The aggregate status is overwritten each time a component is DOWN: a critical failure sets DOWN, but a later failing optional component overwrites it with DEGRADED. The result therefore depends on registration order, and the endpoint answered 200 with a dead database. The fix makes DOWN sticky: a critical failure sets DOWN, and an optional failure only downgrades UP to DEGRADED, never a worse status."
+  ]
+}

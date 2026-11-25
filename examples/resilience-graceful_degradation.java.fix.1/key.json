@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "shop/Degrade.java",
+          "content": "package shop;\n\nimport java.time.Duration;\nimport java.util.concurrent.CompletableFuture;\nimport java.util.concurrent.TimeUnit;\n\npublic final class Degrade {\n    private Degrade() {}\n\n    /**\n     * Wraps a non-essential dependency call: whatever goes wrong (an error or no answer\n     * within the timeout) the caller gets the fallback value instead of a failure.\n     */\n    public static <T> CompletableFuture<T> optional(\n            CompletableFuture<T> future, Duration timeout, T fallback, Runnable onFallback) {\n        return future\n                .orTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS)\n                .exceptionally(error -> {\n                    onFallback.run();\n                    return fallback;\n                });\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The fallback is attached with exceptionally() first and the deadline with orTimeout() afterwards. orTimeout() completes the future it is called on, which here is the already-protected downstream stage, so the TimeoutException is raised after the fallback handler and nothing catches it: join() throws and the page fails. Failures that arrive as exceptions still work, which is why only the hanging case broke. Putting orTimeout() before exceptionally() lets the timeout flow into the same handler and produce the fallback."
+  ]
+}

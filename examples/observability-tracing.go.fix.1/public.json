@@ -1,0 +1,27 @@
+{
+  "id": "56a8c165-6945-4152-aeb8-c21fc9fc29fb",
+  "title": "Food delivery dispatch: traces that fall apart under fan-out",
+  "name": "Dispatch tracing",
+  "createdAt": "2026-11-25T05:37:43.837Z",
+  "durationMinutes": 20,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "In the tracing UI, an order now shows up as one trace for the HTTP handler and then two more unrelated one-span traces for courier assignment and fare quoting, so we cannot see where the time goes for slow orders. The handler's own trace and the headers sent to the restaurant look right. Fix dispatch/tracer.go so the tests pass.",
+      "editable": [
+        "dispatch/tracer.go"
+      ],
+      "tests": [
+        {
+          "path": "dispatch_test.go",
+          "content": "package tests\n\nimport (\n\t\"context\"\n\t\"net/http\"\n\t\"sort\"\n\t\"testing\"\n\n\t\"exercise/src/dispatch\"\n)\n\nfunc byName(spans []dispatch.SpanRecord) map[string]dispatch.SpanRecord {\n\tm := map[string]dispatch.SpanRecord{}\n\tfor _, s := range spans {\n\t\tm[s.Name] = s\n\t}\n\treturn m\n}\n\nfunc setup() (*dispatch.Service, *dispatch.Tracer, *http.Header) {\n\ttr := dispatch.NewTracer()\n\tvar got http.Header\n\tsvc := &dispatch.Service{Tracer: tr, Restaurant: func(h http.Header) error { got = h; return nil }}\n\treturn svc, tr, &got\n}\n\nfunc TestIncomingTraceIsContinued(t *testing.T) {\n\tsvc, tr, _ := setup()\n\tin := http.Header{}\n\tin.Set(dispatch.HeaderTraceID, \"abc\")\n\tin.Set(dispatch.HeaderParentSpan, \"remote-1\")\n\tif err := svc.HandleOrder(context.Background(), in, \"o-1\"); err != nil {\n\t\tt.Fatal(err)\n\t}\n\troot := byName(tr.Finished())[\"handle_order\"]\n\tif root.TraceID != \"abc\" || root.ParentID != \"remote-1\" {\n\t\tt.Fatalf(\"handle_order should continue the caller's trace: trace=%q parent=%q\", root.TraceID, root.ParentID)\n\t}\n}\n\nfunc TestNewTraceWhenNoHeaders(t *testing.T) {\n\tsvc, tr, _ := setup()\n\t_ = svc.HandleOrder(context.Background(), http.Header{}, \"o-2\")\n\troot := byName(tr.Finished())[\"handle_order\"]\n\tif root.TraceID == \"\" || root.ParentID != \"\" {\n\t\tt.Fatalf(\"expected a fresh root span, got trace=%q parent=%q\", root.TraceID, root.ParentID)\n\t}\n}\n\nfunc TestNestedSpansLinkToParent(t *testing.T) {\n\ttr := dispatch.NewTracer()\n\tctx, a := tr.StartSpan(context.Background(), \"a\")\n\t_, b := tr.StartSpan(ctx, \"b\")\n\tb.End()\n\ta.End()\n\tm := byName(tr.Finished())\n\tif m[\"b\"].ParentID != m[\"a\"].SpanID || m[\"b\"].TraceID != m[\"a\"].TraceID {\n\t\tt.Fatalf(\"b should be a child of a in the same trace: %+v / %+v\", m[\"b\"], m[\"a\"])\n\t}\n}\n\nfunc TestParallelTasksAreChildrenOfCaller(t *testing.T) {\n\tsvc, tr, _ := setup()\n\t_ = svc.HandleOrder(context.Background(), http.Header{}, \"o-3\")\n\tm := byName(tr.Finished())\n\troot := m[\"handle_order\"]\n\tfor _, name := range []string{\"prepare[0]\", \"prepare[1]\"} {\n\t\tif m[name].ParentID != root.SpanID {\n\t\t\tt.Errorf(\"%s has parent %q, want handle_order span %q\", name, m[name].ParentID, root.SpanID)\n\t\t}\n\t}\n}\n\nfunc TestEverySpanSharesOneTrace(t *testing.T) {\n\tsvc, tr, _ := setup()\n\t_ = svc.HandleOrder(context.Background(), http.Header{}, \"o-4\")\n\tspans := tr.Finished()\n\tsort.Slice(spans, func(i, j int) bool { return spans[i].SpanID < spans[j].SpanID })\n\ttraces := map[string]bool{}\n\tfor _, s := range spans {\n\t\tt.Logf(\"%-14s trace=%-8s span=%-8s parent=%s\", s.Name, s.TraceID, s.SpanID, s.ParentID)\n\t\ttraces[s.TraceID] = true\n\t}\n\tif len(spans) != 5 {\n\t\tt.Fatalf(\"expected 5 spans, got %d\", len(spans))\n\t}\n\tif len(traces) != 1 {\n\t\tt.Fatalf(\"one order should produce one trace, got %d distinct trace IDs\", len(traces))\n\t}\n}\n\nfunc TestLeafSpansHangUnderTheirTask(t *testing.T) {\n\tsvc, tr, _ := setup()\n\t_ = svc.HandleOrder(context.Background(), http.Header{}, \"o-5\")\n\tm := byName(tr.Finished())\n\tif m[\"assign_courier\"].ParentID != m[\"prepare[0]\"].SpanID {\n\t\tt.Fatalf(\"assign_courier parent = %q, want %q\", m[\"assign_courier\"].ParentID, m[\"prepare[0]\"].SpanID)\n\t}\n\tif m[\"quote_fare\"].ParentID != m[\"prepare[1]\"].SpanID {\n\t\tt.Fatalf(\"quote_fare parent = %q, want %q\", m[\"quote_fare\"].ParentID, m[\"prepare[1]\"].SpanID)\n\t}\n}\n\nfunc TestRestaurantCallCarriesTraceHeaders(t *testing.T) {\n\tsvc, tr, got := setup()\n\t_ = svc.HandleOrder(context.Background(), http.Header{}, \"o-6\")\n\troot := byName(tr.Finished())[\"handle_order\"]\n\tif (*got).Get(dispatch.HeaderTraceID) != root.TraceID || (*got).Get(dispatch.HeaderParentSpan) != root.SpanID {\n\t\tt.Fatalf(\"outgoing headers %v do not point at handle_order %+v\", *got, root)\n\t}\n}\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.tracing"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "1fa43250-e25a-4436-b862-8873eec4a936",
+  "title": "SMS one-time-code sender: retrying calls to a flaky gateway with backoff",
+  "name": "SMS retry policy",
+  "createdAt": "2026-11-25T05:37:46.437Z",
+  "durationMinutes": 20,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The SMS provider's bill spiked and they rate-limited us: for numbers that were mistyped at sign-up (the provider answers 'invalid number' immediately), each login attempt now costs four submissions and several seconds of sleeping before the user sees an error. Timeouts and rate limits are being retried as intended. Fix call_with_retry so the tests pass.",
+      "editable": [
+        "sms/retry.py"
+      ],
+      "tests": [
+        {
+          "path": "test_retry.py",
+          "content": "import unittest\n\nfrom sms.errors import GatewayTimeout, InvalidNumber, RateLimited\nfrom sms.gateway import SmsGateway\nfrom sms.otp import send_otp\nfrom sms.retry import call_with_retry\n\n\nclass TopOfRange:\n    \"\"\"Deterministic 'random': always picks the upper bound, so delays equal the backoff ceiling.\"\"\"\n\n    def uniform(self, low, high):\n        return high\n\n\nclass Script:\n    \"\"\"Callable that raises or returns the scripted outcomes in turn.\"\"\"\n\n    def __init__(self, *steps):\n        self.steps = list(steps)\n        self.calls = 0\n\n    def __call__(self, *args):\n        step = self.steps[min(self.calls, len(self.steps) - 1)]\n        self.calls += 1\n        if isinstance(step, Exception):\n            raise step\n        return step\n\n\nclass FakeProvider:\n    def __init__(self, *steps):\n        self.submit_script = Script(*steps)\n\n    def submit(self, number, text):\n        return self.submit_script(number, text)\n\n\nclass RetryTests(unittest.TestCase):\n    def setUp(self):\n        self.sleeps = []\n\n    def run_retry(self, fn, **kw):\n        return call_with_retry(fn, sleep=self.sleeps.append, rng=TopOfRange(), **kw)\n\n    def test_success_needs_no_sleep(self):\n        self.assertEqual(self.run_retry(Script(\"ok\")), \"ok\")\n        self.assertEqual(self.sleeps, [])\n\n    def test_transient_errors_back_off_exponentially(self):\n        fn = Script(GatewayTimeout(\"t\"), GatewayTimeout(\"t\"), GatewayTimeout(\"t\"), \"ok\")\n        self.assertEqual(self.run_retry(fn), \"ok\")\n        self.assertEqual(self.sleeps, [0.5, 1.0, 2.0])\n\n    def test_delay_is_capped(self):\n        fn = Script(*[GatewayTimeout(\"t\")] * 6, \"ok\")\n        self.run_retry(fn, attempts=7, max_delay=3.0)\n        self.assertEqual(self.sleeps, [0.5, 1.0, 2.0, 3.0, 3.0, 3.0])\n\n    def test_gives_up_after_the_last_attempt_with_the_last_error(self):\n        fn = Script(GatewayTimeout(\"first\"), GatewayTimeout(\"second\"))\n        with self.assertRaises(GatewayTimeout) as ctx:\n            self.run_retry(fn, attempts=2)\n        self.assertEqual(str(ctx.exception), \"second\")\n        self.assertEqual(fn.calls, 2)\n        self.assertEqual(len(self.sleeps), 1)\n\n    def test_rate_limit_waits_at_least_retry_after(self):\n        fn = Script(RateLimited(5.0), \"ok\")\n        self.run_retry(fn)\n        self.assertEqual(self.sleeps, [5.0])\n\n    def test_permanent_errors_are_not_retried(self):\n        fn = Script(InvalidNumber(\"+1555\"))\n        with self.assertRaises(InvalidNumber):\n            self.run_retry(fn)\n        print(\"calls for a permanent error:\", fn.calls, \"sleeps:\", self.sleeps)\n        self.assertEqual(fn.calls, 1, \"an invalid number can never succeed, so it must not be resubmitted\")\n        self.assertEqual(self.sleeps, [])\n\n    def test_otp_to_an_invalid_number_costs_one_submission(self):\n        provider = FakeProvider(InvalidNumber(\"+1555\"))\n        result = send_otp(SmsGateway(provider), \"+1 (555) 000\", \"123456\", sleep=self.sleeps.append, rng=TopOfRange())\n        self.assertEqual((result.delivered, result.reason), (False, \"invalid_number\"))\n        self.assertEqual(provider.submit_script.calls, 1)\n\n    def test_otp_survives_a_timeout_and_cleans_the_number(self):\n        provider = FakeProvider(GatewayTimeout(\"slow\"), \"msg-1\")\n        result = send_otp(SmsGateway(provider), \"+1 (555) 010-2030\", \"123456\", sleep=self.sleeps.append, rng=TopOfRange())\n        self.assertEqual((result.delivered, result.attempts), (True, 2))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.retries_and_backoff",
+    "backend.integrations.third_party_adapters",
+    "backend.resilience.timeouts"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "pay/CircuitBreaker.java",
+          "content": "package pay;\n\nimport java.time.Clock;\nimport java.time.Duration;\nimport java.time.Instant;\n\npublic final class CircuitBreaker {\n    public enum State { CLOSED, OPEN, HALF_OPEN }\n\n    private final int failureThreshold;\n    private final Duration openFor;\n    private final Clock clock;\n\n    private State state = State.CLOSED;\n    private int consecutiveFailures;\n    private boolean probeInFlight;\n    private Instant openedAt;\n\n    public CircuitBreaker(int failureThreshold, Duration openFor, Clock clock) {\n        this.failureThreshold = failureThreshold;\n        this.openFor = openFor;\n        this.clock = clock;\n    }\n\n    public synchronized State state() {\n        return state;\n    }\n\n    /** True if the caller may go ahead and call the protected dependency. */\n    public synchronized boolean tryAcquire() {\n        switch (state) {\n            case CLOSED:\n                return true;\n            case OPEN:\n                if (clock.instant().isBefore(openedAt.plus(openFor))) {\n                    return false;\n                }\n                state = State.HALF_OPEN;\n                probeInFlight = true;\n                return true;\n            default:\n                if (probeInFlight) {\n                    return false;\n                }\n                probeInFlight = true;\n                return true;\n        }\n    }\n\n    public synchronized void recordSuccess() {\n        state = State.CLOSED;\n        probeInFlight = false;\n        consecutiveFailures = 0;\n    }\n\n    public synchronized void recordFailure() {\n        probeInFlight = false;\n        consecutiveFailures++;\n        if (state == State.HALF_OPEN || consecutiveFailures >= failureThreshold) {\n            state = State.OPEN;\n            openedAt = clock.instant();\n        }\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The breaker trips when consecutiveFailures reaches the threshold, but recordSuccess() only switches the state back to CLOSED and never resets the counter. Failures therefore accumulate over the life of the process: three isolated errors spread across a day open the circuit, and after a successful half-open probe the counter is still at or above the threshold, so the next single failure re-opens it. Resetting the counter on success makes the failures genuinely consecutive again."
+  ]
+}

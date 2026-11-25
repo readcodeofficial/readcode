@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "shipping/LabelWorker.java",
+          "content": "package shipping;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic final class LabelWorker {\n    private final InMemoryQueue queue;\n    private final LabelPrinter printer;\n    private final List<String> failures = new ArrayList<>();\n\n    public LabelWorker(InMemoryQueue queue, LabelPrinter printer) {\n        this.queue = queue;\n        this.printer = printer;\n    }\n\n    /** Handles at most one message. Returns false when the queue had nothing ready. */\n    public boolean pollOnce() {\n        Delivery d = queue.receive();\n        if (d == null) return false;\n        try {\n            printer.print(d.body());\n            queue.ack(d.id());\n        } catch (Exception e) {\n            failures.add(\"order \" + d.body() + \" attempt \" + d.attempt() + \": \" + e.getMessage());\n            queue.nack(d.id());\n        }\n        return true;\n    }\n\n    /** Polls until the queue is empty or the safety limit is hit; returns how many messages were handled. */\n    public int drain(int limit) {\n        int handled = 0;\n        while (handled < limit && pollOnce()) handled++;\n        return handled;\n    }\n\n    public List<String> failures() {\n        return List.copyOf(failures);\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "pollOnce() acknowledges the delivery in a finally block, so it is acked whether the handler succeeded or threw. The broker treats an ack as done and drops the message, so every order that failed while the printer was down was removed from the queue and lost. At-least-once delivery requires acking only after the handler returns normally and nacking (so the broker redelivers) when it throws. The fix moves the ack into the success path and nacks in the catch block."
+  ]
+}
