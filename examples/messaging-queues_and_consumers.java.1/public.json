@@ -1,0 +1,53 @@
+{
+  "id": "025ef6f3-bc0a-4be4-9ce0-27cb01ecf6be",
+  "title": "Kafka consumer projecting support ticket events",
+  "name": "Ticket event projector",
+  "createdAt": "2026-11-25T04:52:20.168Z",
+  "durationMinutes": 15,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this consumer handles failures and offset commits? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A record arrives whose JSON cannot be deserialized into TicketEvent. What happens given the configuration?",
+      "choices": [
+        "The container thread dies and the whole consumer group rebalances until the record expires from the topic",
+        "The poison record is skipped silently because ErrorHandlingDeserializer returns null and the listener ignores nulls",
+        "The null value triggers an IllegalArgumentException in the listener, which the error handler is told not to retry, so the record goes straight to the dead-letter topic",
+        "The record is retried three times at one-second intervals and then dropped"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "TicketProjector.apply skips events whose version is not greater than the stored version. What does that give this consumer?",
+      "choices": [
+        "Strict per-ticket ordering even if partitions are reassigned",
+        "Exactly-once consumption from Kafka without needing transactions on the producer",
+        "Protection against the DefaultErrorHandler publishing duplicate dead-letter messages",
+        "Safety under redelivery and out-of-order arrival: reprocessing an already applied event, or an older one arriving late, does not change the read model"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The factory sets concurrency to 3 and MAX_POLL_RECORDS to 100. Which statement is correct?",
+      "choices": [
+        "Three listener threads each consume their own assigned partitions; events for the same ticket stay ordered only if they share a partition key",
+        "Each thread processes records from any partition, so events for the same ticket may be applied in parallel",
+        "With three threads, offsets are committed by whichever thread finishes first",
+        "Setting concurrency above the number of consumer groups has no effect"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.queues_and_consumers",
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.dead_letter_queues",
+    "backend.errors.swallowed_errors",
+    "backend.messaging.message_ordering",
+    "backend.resilience.retries_and_backoff"
+  ]
+}

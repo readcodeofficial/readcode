@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    0,
+    2,
+    1
+  ],
+  "explanations": [
+    "There is no defect. Apply looks repetitive, but the common mechanics (bounded parallelism, error collection, labelling) live in one generic runBatch while the parts that genuinely differ (upload streams a file, download verifies a checksum and renames atomically, delete is a single call) stay in their own functions. runBatch writes to distinct slice indexes, so there is no data race, it copies the loop variables, it always drains the group before returning, and the temp file in download is removed on every path (after a successful rename the removal is a harmless no-op that fails with not-exist).",
+    "The shared helper owns the errgroup limit, the loop-variable capture, the context check and the errors.Join logic, so those cannot drift between the three operations. Apply still runs the three batches one after another, nothing is transactional (some uploads can succeed while others fail) and Plan is what produces the items.",
+    "The goroutine function always returns nil to the group, so the group never cancels anything; the error is stored in errs[i] with the item's label and combined by errors.Join at the end. Other items keep running, and there is no retry logic.",
+    "Writing to dest directly would expose partial content and leave a bad file if the checksum failed. Creating the temp file in filepath.Dir(dest) keeps it on the same filesystem so Rename is an atomic replace, and the deferred os.Remove cleans up the temp file on failure paths. Rename has no such temp-dir restriction, nothing resumes partial downloads and the body is still closed."
+  ]
+}

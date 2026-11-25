@@ -1,0 +1,51 @@
+{
+  "id": "38f09c05-0d18-45c5-b2c7-2ab4814611b5",
+  "title": "Appointment booking with structured logs",
+  "name": "Appointment booking service",
+  "createdAt": "2026-11-25T04:52:20.324Z",
+  "durationMinutes": 14,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code manages the logging context (MDC) across requests and threads? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Booking logs use `log.info(\"appointment booked\", kv(\"appointmentId\", id), ...)` instead of `log.info(\"appointment \" + id + \" booked\")`. With the LogstashEncoder configured, what is the practical difference?",
+      "choices": [
+        "There is no difference; both produce the same JSON line",
+        "The message text stays constant and each value becomes its own JSON field, so lines can be grouped by message and filtered by appointmentId",
+        "The key-value form is faster because SLF4J skips formatting entirely",
+        "The key-value form is written to a separate file for structured data"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "At 17:00 `DayBeforeReminderJob.run` calls `reminders.sendDayBefore` for each appointment. On a `reminder-` pool thread, what MDC entries do the \"reminder sent\" log lines carry?",
+      "choices": [
+        "None, because worker threads never inherit MDC from other threads",
+        "The requestId of whichever HTTP request last used that pool thread",
+        "The jobRunId set by the job, because the TaskDecorator copies the submitting thread's MDC when the task is submitted",
+        "Only the clinicId of the first appointment in the batch"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A developer adds `MDC.put(\"patientName\", name)` in the booking flow to help debugging. Given the logback configuration, what appears in the JSON logs?",
+      "choices": [
+        "patientName is added to every line written while it is set",
+        "The application fails to start because unknown MDC keys are rejected",
+        "patientName appears only on lines logged at ERROR level",
+        "patientName is omitted, because only the whitelisted MDC keys requestId, clinicId and jobRunId are included"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.structured_logging",
+    "backend.concurrency.thread_and_worker_pools",
+    "backend.observability.logging_sensitive_data",
+    "backend.concurrency.shared_state_in_request_handlers"
+  ]
+}

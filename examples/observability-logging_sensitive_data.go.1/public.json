@@ -1,0 +1,51 @@
+{
+  "id": "7eea141a-bbe2-4798-9949-afef2d5dfa15",
+  "title": "Login and password reset handlers with a slog redactor",
+  "name": "Auth handler logging",
+  "createdAt": "2026-11-25T04:52:20.397Z",
+  "durationMinutes": 12,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps sensitive data out of its logs? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A request arrives with the header 'Authorization: Bearer abc123'. What does the request log entry contain for headers.Authorization?",
+      "choices": [
+        "[REDACTED], because redactAttr lowercases each key before looking it up and is also called for attributes inside the headers group.",
+        "Bearer abc123, because redaction only applies to top-level attributes, not to grouped ones.",
+        "Bearer [REDACTED], because the redactor masks only the credential part of string values.",
+        "Nothing: attributes inside a slog.Group are never written by the JSON handler."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "With the debug level enabled, a client posts a login with email 'Ana@corp.example'. What appears in the 'login attempt' log line's request field?",
+      "choices": [
+        "The full JSON object including the password field, because slog.Any marshals structs.",
+        "The string [REDACTED], because the key 'request' is treated as sensitive.",
+        "Only the email, masked by redactAttr, because LoginRequest.LogValue returns a group with just the email and the attribute is resolved before ReplaceAttr runs.",
+        "An empty group, because LogValue returns only the keys listed in sensitiveKeys."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A developer later adds slog.String(\"refresh_token\", tok) to the 'login succeeded' log call. What is written for that attribute?",
+      "choices": [
+        "[REDACTED], because the key contains the substring 'token'.",
+        "[REDACTED], because the value looks like a JWT.",
+        "A masked value, because string values longer than 8 characters are truncated.",
+        "The raw token value, because redactAttr matches only exact lower-cased keys and 'refresh_token' is not in the list."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.logging_sensitive_data",
+    "backend.observability.structured_logging",
+    "backend.security.authentication",
+    "backend.security.secrets_handling"
+  ]
+}

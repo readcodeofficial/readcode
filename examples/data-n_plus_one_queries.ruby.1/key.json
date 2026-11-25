@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    1
+  ],
+  "explanations": [
+    "There is no defect. Each batch of sites costs a fixed number of queries: the sites page, one preload of devices, one preload of their firmware (`includes(devices: :firmware)` becomes preloads because nothing filters on those tables), one DISTINCT ON query for latest readings and one grouped count for open alerts. `site.devices.reject`, `.map` and `.size` all work on the already-loaded association, and `device.firmware` is preloaded, so nothing queries per device. The `active` scope is deliberately not used on `site.devices` inside `summarize`, since it would issue a new query per site.",
+    "`find_in_batches` pages sites 100 at a time and `includes(devices: :firmware)` preloads devices and firmware for the page with one query each. `latest_per_device` and `open_counts_by_device` take every device id of the batch in one query each. So each batch costs about five queries whatever the device count. A and B describe the N+1 pattern this code avoids; D is wrong because includes without a referenced table uses separate preload queries and the other two lookups are separate anyway.",
+    "On a loaded association `size` and Ruby enumerable methods use the in-memory records. `count` always issues SELECT COUNT(*), and a scope such as `active` builds a new relation and queries the database again, once per site. B is invented; C is wrong because `reject` returns a plain Array; D is wrong because both exclude decommissioned devices, only the mechanism differs.",
+    "Telemetry tables grow without bound, so preloading `readings` would fetch all history for up to thousands of devices per batch and discard nearly all of it. The DISTINCT ON query, ordered by device_id then recorded_at descending, returns exactly one row per device. A is wrong because the report already combines find_in_batches with includes; C is wrong because nested preloading works (the code does it for firmware); D is wrong because the rows are ordered by device_id first, not globally by time."
+  ]
+}

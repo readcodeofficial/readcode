@@ -1,0 +1,53 @@
+{
+  "id": "38c28f1b-3f3b-4d9f-af09-3155bb64a5a8",
+  "title": "Playback event consumer with manual acks",
+  "name": "Playback event consumer",
+  "createdAt": "2026-11-25T04:52:20.196Z",
+  "durationMinutes": 12,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this consumer guarantees that every playback event is eventually applied? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The container crashes after watchHistory.apply(event) succeeds but before ack.acknowledge() commits the offset. What happens when the partition is reassigned?",
+      "choices": [
+        "The event is lost, because its offset was never committed.",
+        "The event is redelivered, markIfNew returns false, and the listener acks without applying it a second time.",
+        "The event is redelivered and applied again, incrementing completions twice.",
+        "The record is sent straight to the dead-letter topic because the previous attempt did not finish."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In WatchHistoryRepository.apply, why is position_seconds written with GREATEST(...)?",
+      "choices": [
+        "To make the SQL portable between databases.",
+        "To make completions idempotent, so a replayed COMPLETED event cannot double count.",
+        "To keep the stored position from moving backwards when events are redelivered or reordered, so replays of older progress events are harmless for that column.",
+        "To resolve write conflicts between the three consumer threads by serialising them."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A malformed event makes watchHistory.apply throw an exception on every attempt. With the configured error handler, what is the outcome for that record?",
+      "choices": [
+        "The listener thread retries it forever, blocking the partition.",
+        "The record is dropped after the first failure and the offset is committed.",
+        "The partition is paused until an operator fixes the data.",
+        "It is retried with exponential backoff for up to about 15 seconds, then published to the dead-letter topic and the consumer moves past it."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.deduplication",
+    "backend.messaging.dead_letter_queues",
+    "backend.messaging.queues_and_consumers",
+    "backend.resilience.retries_and_backoff",
+    "backend.data.transactions_and_isolation_levels"
+  ]
+}

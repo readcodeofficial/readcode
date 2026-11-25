@@ -1,0 +1,50 @@
+{
+  "id": "077a40e7-04e0-4c6a-a936-5369066dee69",
+  "title": "Account login with Spring Security",
+  "name": "Account login service",
+  "createdAt": "2026-11-25T04:52:20.231Z",
+  "durationMinutes": 14,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code decides which accounts are allowed to authenticate? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A caller posts /auth/login for an e-mail address that has no account, and another caller posts a wrong password for an existing active account. What can each caller observe?",
+      "choices": [
+        "The first gets 404 invalid_user, the second gets 401 invalid_credentials",
+        "Both get 401 with the same body, because DaoAuthenticationProvider converts the missing-user case into a bad-credentials failure",
+        "Both get 500, because UsernameNotFoundException is not handled by the controller",
+        "The first gets 401, the second gets 403 because the account exists"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "An old account was stored with a hash whose prefix is not the delegating encoder's default, for example `{pbkdf2@SpringSecurity_v5_8}...`. The user logs in with the right password. What happens beyond the successful login?",
+      "choices": [
+        "Nothing; the stored hash is never changed by a login",
+        "The login fails because only the default encoding is accepted",
+        "The hash is verified with the matching legacy encoder, then re-encoded with the current default and saved through `updatePassword`",
+        "The controller's register path is invoked to create a new account with the new encoding"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A developer adds `GET /internal/reports` in a new controller and changes nothing in SecurityConfig. Who can call it?",
+      "choices": [
+        "Anyone, since only the listed paths have explicit rules",
+        "Only requests with a valid session cookie, because sessions are the default",
+        "Only requests carrying a CSRF token, since CSRF protection protects new endpoints",
+        "Only requests that present a valid bearer JWT, because the chain ends with `anyRequest().authenticated()`"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.authentication",
+    "backend.security.session_and_token_handling",
+    "backend.security.secrets_handling"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "543df09d-ecce-4da6-8704-cbe3536f3ccd",
+  "title": "Dispatch console actions with audit trail",
+  "name": "Dispatch audit trail",
+  "createdAt": "2026-11-25T04:52:20.684Z",
+  "durationMinutes": 13,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code makes sure privileged dispatch actions are recorded in the audit log? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A user with the dispatcher role calls suspend_driver. What is left behind in the database?",
+      "choices": [
+        "Nothing, because the exception is raised before any state is written.",
+        "An access.denied audit entry naming the caller and the attempted action; the driver is unchanged.",
+        "A driver.suspended audit entry with a failed outcome flag.",
+        "The driver is suspended, and an access.denied entry is written afterwards."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does suspend_driver load the driver with with_for_update=True before reading previous = driver.status?",
+      "choices": [
+        "It makes the session flush the status change immediately instead of at commit.",
+        "It lets the ORM skip the SELECT when the driver is already in the session.",
+        "It guarantees the audit entry is written even if the commit later fails.",
+        "It locks the row so the previous status stored in the audit detail cannot be changed by a concurrent transaction before this one commits."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In suspend_driver, the database connection drops while session.commit() is executing and the transaction is rolled back. What does the audit table contain for this request?",
+      "choices": [
+        "No driver.suspended entry, because the entry was added to the same session and transaction as the status change.",
+        "A driver.suspended entry, because audit rows are flushed as soon as add() is called.",
+        "A driver.suspended entry marked as pending, which a background job later reconciles.",
+        "Both the entry and the new status, because commit is retried by SQLAlchemy."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.audit_logging",
+    "backend.security.authorization_checks",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.errors.cleanup_on_error_paths"
+  ]
+}

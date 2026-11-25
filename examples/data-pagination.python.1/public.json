@@ -1,0 +1,51 @@
+{
+  "id": "73b72923-2abc-4c94-be6a-95f64a30b5cf",
+  "title": "Notification inbox keyset pagination",
+  "name": "Notification inbox endpoint",
+  "createdAt": "2026-11-25T04:52:20.151Z",
+  "durationMinutes": 12,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code pages through a user's notifications? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does page_for_user query limit + 1 rows and then slice to limit?",
+      "choices": [
+        "To make sure the first page is never empty when the user has any notifications.",
+        "To learn whether another page exists without a separate COUNT query, and to build the cursor from the last row actually returned.",
+        "To compensate for the cursor row itself being included in the next page's results.",
+        "To keep a spare row available in case one of the rows is filtered out after loading."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "While a client is paging through its inbox, new notifications are inserted with a later created_at than anything the client has seen. How does this affect the pages the client still has to fetch?",
+      "choices": [
+        "Every later page shifts by the number of new rows, so the client sees some notifications twice.",
+        "The client's next request fails with an invalid cursor because the data changed.",
+        "The remaining pages skip a few rows, because the new rows push older ones past the limit.",
+        "The remaining pages are unaffected; the new rows sort before the cursor position and only appear on a fresh first-page request."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client calls the endpoint with limit=1000 and a valid cursor. What does it receive?",
+      "choices": [
+        "At most 100 items, and a next_cursor if more rows remain after those.",
+        "A 422 validation error, because 1000 exceeds the maximum page size.",
+        "Up to 1000 items, because MAX_PAGE_SIZE is only used when no limit is supplied.",
+        "At most 100 items, and next_cursor is always null because the requested limit was not honoured."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.pagination",
+    "backend.api.rest_design",
+    "backend.api.request_validation",
+    "backend.data.orm_pitfalls"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "streaming/segment_handler.go",
+        "startLine": 18,
+        "endLine": 18
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "SegmentHandler repeats the verification block from ManifestHandler but dropped the expiry check: exp is read as an opaque string that is only mixed into the signature, never parsed or compared with the current time. The 10-minute TTL that Signer.Sign encodes is therefore enforced for playlists but not for segments, and a segment URL that has leaked (logs, a shared playlist, a CDN log) keeps working indefinitely. A single shared Verify method on Signer, used by both handlers, would have made the divergence impossible.",
+    "For each line that is non-empty and does not start with #, the handler calls signer.Sign with /segments/<id>/<line> and the 10-minute TTL, and writes the signed URL. Tag lines and blank lines pass through. The first choice would leave segments unsigned. The third misreads the HasPrefix check. The fourth does not match the code: it streams a rewritten playlist with status 200.",
+    "ManifestHandler recomputes the HMAC over r.URL.Path + \"|\" + exp. The path contains the stream id, so a signature produced for /streams/abc/index.m3u8 does not match for /streams/xyz/index.m3u8. The first two choices assume the path is not part of the message. The third invents a cookie; Sign takes only the path and TTL.",
+    "The handlers do not call a Verify on Signer. Each constructs its own HMAC over the message, so the format is known in three places and all three must change together; if one is missed, its links fail verification. The second choice assumes shared verification code that does not exist. The third ignores that Sign produces the links. The fourth is wrong because HMAC verification depends on the exact bytes signed."
+  ]
+}

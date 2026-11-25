@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "handlers.go",
+        "startLine": 97,
+        "endLine": 97
+      }
+    },
+    0,
+    2,
+    3
+  ],
+  "explanations": [
+    "The defect is the debug log in confirmReset. ReplaceAttr only sees attributes by key, and slog.Any(\"request\", req) is logged under the key \"request\". Unlike LoginRequest, ResetConfirmRequest has no LogValue method, so the JSON handler marshals the whole struct using its json tags and the nested reset_token and new_password fields never pass through redactAttr. At debug level (often enabled in staging or during incidents) the plaintext reset token and the user's new password are written to the logs. The fix is a LogValue method on ResetConfirmRequest that omits those fields, or logging only non-sensitive attributes.",
+    "slog calls ReplaceAttr for each leaf attribute, including those inside a group (the groups argument carries the path, which redactAttr ignores). The key \"Authorization\" lower-cases to \"authorization\", which is in sensitiveKeys, so the whole value is replaced by [REDACTED]. Grouped attributes are not exempt (second choice), the redactor replaces the entire value and never inspects its content (third), and groups are written as nested JSON objects (fourth).",
+    "slog resolves LogValuer values before calling ReplaceAttr. LoginRequest.LogValue returns a group containing only the email, so the password is never part of the logged value, and the nested email attribute then passes through redactAttr, which masks it to something like A***@corp.example. Without a LogValue method the struct would be marshalled whole (first choice), 'request' is not in sensitiveKeys (second), and LogValue does not consult sensitiveKeys at all (fourth).",
+    "redactAttr does a map lookup on the exact lower-cased key. 'refresh_token' is not in sensitiveKeys ('token' and 'reset_token' are separate entries), and the function never inspects values or does substring matching, so the raw token would be logged. The other choices assume substring, value-pattern or length-based redaction, none of which exist in the code."
+  ]
+}

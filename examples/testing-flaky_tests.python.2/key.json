@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "tests/test_auth.py",
+        "startLine": 28,
+        "endLine": 28
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The auth_env fixture is module-scoped, so one Authenticator, one LoginThrottle and one FakeClock are shared by every test in the file. The tests pass in the order written, but test_account_locks_after_five_failures leaves alice locked for 30 minutes of fake time, so any test that runs after it (and logs alice in) fails with AccountLocked. With pytest-randomly installed, as requirements-dev.txt specifies, the order changes on every run, so the suite fails intermittently and passes when a failing test is rerun alone. Making the fixture function-scoped gives each test its own throttle and clock.",
+    "record_failure rebuilds the list with only the timestamps where now - t < window. After the clock advances 16 minutes, the four earlier timestamps fail that test and are discarded, leaving only the new failure. The first choice ignores the window filter. The third misreads record_failure, which appends and evaluates immediately. The fourth is wrong because the clock only affects the comparison; nothing is reset until a success or a lock expiry.",
+    "Failures are keyed by the username supplied in the request, with no source information, and the lock check happens before the password is verified. Five bad attempts therefore deny the real owner access for the lockout period. The first choice is false: unknown usernames are recorded too, using a dummy salt so hashing time matches. The second is false because is_locked short-circuits before hashing. The third is false because no IP address is involved.",
+    "login calls is_locked before looking up the user or hashing, so a locked account raises AccountLocked regardless of the password. record_failure set locked_until to the fifth failure time plus the 30-minute lockout, and is_locked only clears it when the clock reaches that instant. The second choice reverses the order of checks. The third confuses the 15-minute failure window with the 30-minute lockout. The fourth is wrong because record_success is never reached for a locked account."
+  ]
+}

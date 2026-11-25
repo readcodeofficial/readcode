@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "dispatch_service.py",
+        "startLine": 54,
+        "endLine": 55
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "In reassign_ride the ride change is committed first and the audit entry is added and committed afterwards in a second transaction. If the process dies, the connection drops or the second commit fails between the two commits, the driver has been reassigned with no audit record at all, and the caller may even see an error for an operation that took effect. suspend_driver and set_surge_cap add the entry to the same session before a single commit, so the change and its audit row succeed or fail together. The audit.record call should come before the commit in reassign_ride.",
+    "_require runs first. Because dispatcher is not in the allowed roles, it records an access.denied entry with the principal's id and role, commits it, and then raises PermissionDenied, so the driver is never loaded or modified. The first choice ignores the audit write in _require. The third invents an outcome flag; AuditEntry has none. The fourth reverses the order: the permission check precedes any change.",
+    "SELECT ... FOR UPDATE holds the row lock until the transaction ends, so the status read as previous is the value being replaced, and the audit entry's from/to pair is accurate. Without the lock two concurrent actions could both record the same previous status. The first choice confuses locking with flushing. The second is the opposite of what a locking read does. The third is wrong because the audit entry shares the transaction and is committed or discarded with the status change.",
+    "AuditLog.record only calls session.add; the row is written in the same transaction as the driver update, so a rollback discards both. The second choice confuses add() with an independent commit. The third describes a mechanism the code does not have. The fourth is wrong because SQLAlchemy does not retry a failed commit."
+  ]
+}

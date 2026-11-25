@@ -1,0 +1,52 @@
+{
+  "id": "70e6b34b-6f11-4c6f-8561-84c54d08ccd7",
+  "title": "SMS gateway client with Polly retries",
+  "name": "SMS gateway sender",
+  "createdAt": "2026-11-25T04:52:20.054Z",
+  "durationMinutes": 12,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code makes retried sends to the SMS gateway safe? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The gateway answers a send with HTTP 400 because the phone number is malformed. What happens to that message in DispatchPendingAsync?",
+      "choices": [
+        "It is retried up to four more times with exponential backoff, then released for a later batch.",
+        "It is retried once, because 4xx responses get a single immediate retry.",
+        "It is sent once, SendAsync returns Rejected, and the store marks it rejected with status 400.",
+        "SendAsync throws HttpRequestException, which the dispatcher catches and releases for later."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The gateway accepts connections but never responds. Roughly how long can one SendAsync call for a single message take before it returns a result or throws?",
+      "choices": [
+        "About 3 seconds, since the timeout strategy bounds the whole call.",
+        "Around 15 seconds of attempt timeouts plus several seconds of backoff delays, because the timeout applies to each attempt.",
+        "Indefinitely, because the HttpClient has no timeout configured and the pipeline cannot override it.",
+        "About 0.4 seconds, because the first failure aborts and the delays only apply to HTTP status failures."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The gateway returns 429 with a Retry-After header of 120 seconds on the first attempt. How long does the pipeline wait before the second attempt?",
+      "choices": [
+        "120 seconds, honouring the header exactly.",
+        "About 400 ms plus jitter, since the header is ignored for 429 responses.",
+        "Up to 10 seconds, because MaxDelay caps every computed delay and the header is just one input to the backoff.",
+        "10 seconds, because the header value is clamped to MaxRetryAfter and replaces the backoff calculation."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.retries_and_backoff",
+    "backend.resilience.timeouts",
+    "backend.api.idempotency",
+    "backend.integrations.third_party_adapters",
+    "backend.errors.error_propagation"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "com/acme/sync/ChunkPlannerTest.java",
+        "startLine": 47,
+        "endLine": 47
+      }
+    },
+    1,
+    2,
+    0
+  ],
+  "explanations": [
+    "The final assertion compares `planner.totalLength(chunks)` with `expectedOffset`, but both are just the sum of the chunk lengths, so it is true for any list of chunks, whatever the planner produced. `size` is never compared with anything. A planner that dropped the last partial chunk or stopped early would still pass this test, because the offsets stay contiguous and the sums stay equal to each other. The expected value should be the input `size`: `assertEquals(size, expectedOffset)`.",
+    "With `size / 4 + 1` the rows 1, 3, 5 and 9 still give the expected counts 1, 1, 2 and 3; only exact multiples go wrong (4 gives 2 instead of 1, 8 gives 3 instead of 2). Plain `size / 4` fails every row that is not a multiple (1, 3, 5, 9), so those rows catch it. The ceiling formula in C is correct and fails nothing. Returning 1 chunk (D) is caught by 5 and 8 as well.",
+    "The second test derives its expectation from the first test's expected value with `mirror`, so it is a property (swapping sides mirrors the result) checked on whatever scenarios the table lists. A is wrong because parallelism is unrelated; B is wrong because the objects are cheap and rebuilt per invocation anyway; D is wrong because `mirror` handles KEEP_BOTH and IDENTICAL through its default branch and nothing is skipped.",
+    "Because `clock.instant()` always returns NOW, the offsets built from NOW relate exactly to the limit NOW + 5 minutes. With `Instant.now()` the limit would move between building the fixture and calling `resolve`, which matters for any boundary-sized offset. B concerns a side detail: Instants carry no zone. C is wrong because a fixed clock is not a cache and the resolver stores no time. D is wrong because the tolerance is still passed in the constructor."
+  ]
+}

@@ -2,254 +2,154 @@
   "taxonomyVersion": "0.1.0",
   "targets": [
     {
-      "label": "backend.concurrency.shared_state_in_request_handlers",
+      "label": "backend.resilience.timeouts",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.resilience.retries_and_backoff",
       "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.concurrency.shared_state_in_request_handlers",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.circuit_breakers",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.circuit_breakers",
-      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.resilience.rate_limiting",
-      "language": "Java",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.resilience.graceful_degradation",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.graceful_shutdown",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.resilience.graceful_shutdown",
       "language": "Kotlin",
       "count": 1
     },
     {
-      "label": "backend.data.orm_pitfalls",
+      "label": "backend.data.transactions_and_isolation_levels",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.data.n_plus_one_queries",
       "language": "Ruby",
       "count": 1
     },
     {
-      "label": "backend.data.optimistic_vs_pessimistic_locking",
+      "label": "backend.data.pagination",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.messaging.queues_and_consumers",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.messaging.at_least_once_delivery",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.errors.error_propagation",
+      "language": "Go",
+      "count": 1
+    },
+    {
+      "label": "backend.security.authentication",
+      "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.security.authorization_checks",
       "language": "Ruby",
-      "count": 1
-    },
-    {
-      "label": "backend.data.optimistic_vs_pessimistic_locking",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_stampedes",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_stampedes",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.caching.cache_aside_vs_write_through",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.deduplication",
-      "language": "Java",
-      "count": 2
-    },
-    {
-      "label": "backend.messaging.message_ordering",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.dead_letter_queues",
-      "language": "C#",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.dead_letter_queues",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.messaging.backpressure",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.errors.error_wrapping_and_context",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.errors.swallowed_errors",
-      "language": "JavaScript",
-      "count": 1
-    },
-    {
-      "label": "backend.errors.swallowed_errors",
-      "language": "C",
-      "count": 1
-    },
-    {
-      "label": "backend.errors.cleanup_on_error_paths",
-      "language": "Python",
-      "count": 2
-    },
-    {
-      "label": "backend.errors.panics_and_exceptions_at_boundaries",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.errors.panics_and_exceptions_at_boundaries",
-      "language": "C++",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.memory_leaks",
-      "language": "C++",
-      "count": 2
-    },
-    {
-      "label": "backend.resources.file_and_socket_handle_leaks",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.streaming_large_payloads",
-      "language": "Go",
-      "count": 2
-    },
-    {
-      "label": "backend.resources.unbounded_buffers",
-      "language": "Rust",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.unbounded_buffers",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.resources.context_cancellation",
-      "language": "Go",
-      "count": 2
-    },
-    {
-      "label": "backend.security.sql_injection",
-      "language": "PHP",
-      "count": 1
-    },
-    {
-      "label": "backend.security.sql_injection",
-      "language": "Python",
       "count": 1
     },
     {
       "label": "backend.security.input_sanitization",
       "language": "Python",
-      "count": 1
+      "count": 2
     },
     {
-      "label": "backend.security.secrets_handling",
-      "language": "Go",
-      "count": 1
-    },
-    {
-      "label": "backend.security.secrets_handling",
-      "language": "Python",
-      "count": 1
+      "label": "backend.security.session_and_token_handling",
+      "language": "Java",
+      "count": 2
     },
     {
       "label": "backend.observability.structured_logging",
-      "language": "Go",
+      "language": "Java",
       "count": 1
     },
     {
-      "label": "backend.observability.health_checks",
+      "label": "backend.observability.metrics",
       "language": "Java",
+      "count": 1
+    },
+    {
+      "label": "backend.observability.tracing",
+      "language": "Go",
       "count": 1
     },
     {
       "label": "backend.observability.logging_sensitive_data",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.mocking_and_fakes",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.flaky_tests",
-      "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.testing.integration_tests",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.sharding_and_partitioning",
-      "language": "Java",
-      "count": 1
-    },
-    {
-      "label": "backend.distributed.replication_and_consensus",
       "language": "Go",
       "count": 1
     },
     {
-      "label": "backend.distributed.cross_service_consistency",
+      "label": "backend.testing.unit_test_design",
+      "language": "Java",
+      "count": 2
+    },
+    {
+      "label": "backend.testing.flaky_tests",
+      "language": "Python",
+      "count": 2
+    },
+    {
+      "label": "backend.testing.integration_tests",
+      "language": "Java",
+      "count": 2
+    },
+    {
+      "label": "backend.design.layering",
       "language": "Java",
       "count": 1
     },
     {
-      "label": "backend.integrations.webhooks_outbound",
-      "language": "Ruby",
+      "label": "backend.design.interface_design",
+      "language": "Java",
       "count": 1
     },
     {
-      "label": "backend.integrations.webhooks_outbound",
-      "language": "TypeScript",
+      "label": "backend.design.coupling_and_cohesion",
+      "language": "Python",
+      "count": 1
+    },
+    {
+      "label": "backend.design.code_duplication",
+      "language": "Go",
+      "count": 2
+    },
+    {
+      "label": "backend.performance.profiling_and_hot_paths",
+      "language": "C++",
+      "count": 2
+    },
+    {
+      "label": "backend.integrations.third_party_adapters",
+      "language": "Python",
+      "count": 2
+    },
+    {
+      "label": "backend.data.nosql_modeling",
+      "language": "Java",
       "count": 1
     },
     {
       "label": "backend.security.audit_logging",
       "language": "Python",
-      "count": 1
-    },
-    {
-      "label": "backend.security.encryption_at_rest_and_in_transit",
-      "language": "Java",
       "count": 2
     },
     {
-      "label": "backend.realtime.connection_fanout",
+      "label": "backend.security.multi_tenant_isolation",
       "language": "C#",
-      "count": 1
+      "count": 2
     }
   ]
 }

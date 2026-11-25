@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "ledger_client.py",
+        "startLine": 65,
+        "endLine": 66
+      }
+    },
+    1,
+    2,
+    1
+  ],
+  "explanations": [
+    "`remaining` is computed once, before the retry loop. Attempts 2 and 3 run after the earlier attempts' timeouts and `time.sleep` backoff have consumed part of the budget, but they still see the original `remaining`. The `remaining <= 0` check can never trip after the first iteration, and `min(read_timeout, remaining)` is not reduced, so a call can run well past the caller's deadline (up to roughly max_attempts * read_timeout plus backoff). The fix is to recompute `deadline - time.monotonic()` at the top of each iteration.",
+    "The key is derived from `transfer_id`, which is generated once per PendingTransfer and reused on every attempt, so the ledger can recognize a replay of an already-applied transfer. Choice A is wrong: a new connection says nothing about request identity. Choice C is wrong: a 5xx or a timeout can occur after the ledger committed. Choice D is wrong: `get_balance` is called once per transfer outside `post_transfer`, not per attempt.",
+    "In httpx a float per-request timeout applies to all four phases (connect, read, write, pool), replacing the client's configured Timeout for that request. So the 0.5s pool wait and 1s connect limit are relaxed to attempt_timeout. A is the common assumption but is wrong; B is wrong because no phase is disabled; D is wrong because httpx accepts floats.",
+    "`run` catches LedgerUnavailable per transfer and appends the id to `deferred`, then moves on. With fast failures each transfer costs about 0.25s + 0.5s of backoff; once the shared deadline passes, DeadlineExceeded defers the rest of the batch and breaks. A is wrong because the exception is caught inside the loop; C is wrong because `insufficient` is only filled from a successful balance response; D is wrong because every call and the loop itself are bounded by the deadline."
+  ]
+}

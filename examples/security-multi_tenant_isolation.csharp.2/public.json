@@ -1,0 +1,52 @@
+{
+  "id": "20842e87-ac68-42ce-86a8-9dd2d8c74557",
+  "title": "Driver availability and surge cache for a multi-tenant dispatch API",
+  "name": "Dispatch availability service",
+  "createdAt": "2026-11-25T04:52:20.891Z",
+  "durationMinutes": 14,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps one tenant's data from being visible to another tenant? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A request arrives with a valid token that has no tenant_id claim. What happens?",
+      "choices": [
+        "The request continues with an empty tenant and the repository returns no drivers.",
+        "TenantContext.Id throws when the endpoint reads it, producing a 500 after the endpoint has started.",
+        "The middleware short-circuits with 401 Unauthorized, so no endpoint code and no tenant-dependent service runs.",
+        "The middleware falls back to a default tenant configured for the application."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does SurgeRefreshService create a new scope per tenant and call TenantContext.Set inside it before resolving IDemandStats?",
+      "choices": [
+        "Scoped services such as IDemandStats depend on ITenantContext, and a background service has no HTTP request, so each iteration builds an isolated scope whose tenant is set explicitly.",
+        "Because IMemoryCache is registered as scoped and must be resolved fresh.",
+        "To run the tenants in parallel on separate threads.",
+        "Because TenantContext.Set can only be called once per process."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Tenant A's surge refresh has stored a 2.5x multiplier for zone 'z-12'. A tenant B request then asks for the surge multiplier for zone 'z-12', which B has no entry for. What does GetSurgeMultiplier return?",
+      "choices": [
+        "2.5, because the cache is shared and the zone id matches.",
+        "1.0, because the lookup key includes B's tenant id and no entry exists for that key.",
+        "It throws KeyNotFoundException.",
+        "0, because the default value of decimal is returned for a missing entry."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.multi_tenant_isolation",
+    "backend.caching.cache_aside_vs_write_through",
+    "backend.concurrency.shared_state_in_request_handlers",
+    "backend.security.authorization_checks",
+    "backend.caching.ttls_and_expiry"
+  ]
+}

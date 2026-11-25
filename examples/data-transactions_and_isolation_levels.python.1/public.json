@@ -1,0 +1,52 @@
+{
+  "id": "f75528d3-0f18-41a1-8e28-416ae5eaa258",
+  "title": "Stock allocation service",
+  "name": "Stock allocation service",
+  "createdAt": "2026-11-25T04:52:20.116Z",
+  "durationMinutes": 14,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code handles transactions and concurrent stock allocation? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two workers call allocate_shipment with the same shipment_id at the same moment, and the first one commits successfully. What does the second worker end up returning?",
+      "choices": [
+        "It raises IntegrityError, and run_in_transaction retries the whole call from scratch.",
+        "It allocates a second, independent set of bins, because READ COMMITTED lets both transactions see free stock.",
+        "Its INSERT ... ON CONFLICT DO NOTHING waits for the first transaction, inserts nothing, and it returns the picks the first worker recorded without touching stock.",
+        "It returns an empty list immediately because the claim failed and nothing was allocated."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Both allocate_shipment and move_between_bins lock rows with order_by(StockBin.id) (or sorted ids) before FOR UPDATE. What does that ordering buy?",
+      "choices": [
+        "Every transaction acquires row locks in the same global order, so two overlapping transactions cannot each hold a lock the other is waiting for.",
+        "It lets PostgreSQL use the index on sku, which FOR UPDATE requires.",
+        "It guarantees the oldest stock is picked first, which is what the business rule requires for correctness of the reservation counts.",
+        "It prevents lost updates on the reserved column, which would otherwise happen even while the rows are locked."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "allocate_shipment has claimed the shipment, incremented reserved on two bins, and then raises InsufficientStock because the third bin was not enough. What state does the database end up in?",
+      "choices": [
+        "The reserved increments stay, so the partial stock is held for a later attempt.",
+        "Only the allocation_requests row stays, so a later call with the same shipment_id returns an empty list.",
+        "Only the Allocation rows stay, because they were added after the claim.",
+        "Nothing changes: the exception leaves the session.begin() block, which rolls back the claim row, the reservations and the allocations together, and the exception is not retried."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.transactions_and_isolation_levels",
+    "backend.concurrency.locking_and_lock_ordering",
+    "backend.api.idempotency",
+    "backend.data.optimistic_vs_pessimistic_locking",
+    "backend.resilience.retries_and_backoff"
+  ]
+}

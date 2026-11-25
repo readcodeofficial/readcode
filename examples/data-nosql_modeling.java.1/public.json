@@ -1,0 +1,52 @@
+{
+  "id": "cf15ef8d-2c56-42c4-8283-e8537e98dc6e",
+  "title": "Player profiles and leaderboard on DynamoDB",
+  "name": "Player rating store",
+  "createdAt": "2026-11-25T04:52:20.667Z",
+  "durationMinutes": 15,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code models the data for its leaderboard query? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The leaderboard partition key is `LB#<season>#<0..7>` derived from the player id, and `topPlayers` queries all eight shards with `limit(n)` before merging. Why is querying every shard necessary?",
+      "choices": [
+        "DynamoDB cannot run a Query against a global secondary index with a single partition key",
+        "Each shard holds an arbitrary subset of players, so the global top n may lie entirely in any one shard, and the best n of each shard must be merged",
+        "The shards hold different seasons, so all eight are needed to cover the current one",
+        "Eventually consistent index reads can miss a shard, so eight reads average out the errors"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The game server delivers the same MatchResult (same matchId and playedAtMillis) twice for one player. What does the second `recordMatch` call do?",
+      "choices": [
+        "It adds a second match item and applies the rating change again",
+        "It overwrites the first match item and applies the rating change again",
+        "The match Put fails its attribute_not_exists condition, the whole transaction is cancelled including the rating update, and the method returns DUPLICATE",
+        "It retries up to three times and then throws ConcurrentUpdateException"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two different matches of the same player finish at the same moment, and both calls read rating 1000 from the profile. What is the outcome?",
+      "choices": [
+        "Both transactions commit; the last writer's rating wins and one rating change is lost",
+        "The first commits; the second is cancelled on the `rating = :old` condition, its match item is not written, and the retry reloads the new rating and applies its change on top",
+        "Both fail and ConcurrentUpdateException is thrown at once",
+        "The consistent read makes the second call wait until the first has finished"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.nosql_modeling",
+    "backend.data.optimistic_vs_pessimistic_locking",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.distributed.sharding_and_partitioning",
+    "backend.api.idempotency"
+  ]
+}

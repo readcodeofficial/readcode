@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "DriverAvailabilityService.cs",
+        "startLine": 32,
+        "endLine": 32
+      }
+    },
+    2,
+    0,
+    1
+  ],
+  "explanations": [
+    "The defect is the cache key in GetAvailableAsync: $\"drivers:{zoneId}\" does not include the tenant. IMemoryCache is a process-wide singleton shared by all requests, so whichever tenant first requests a zone populates the entry (even though the repository call is tenant-scoped), and for the next five seconds every other tenant asking for the same zone id receives that tenant's drivers. Zone ids such as \"downtown\" are very likely to collide across tenants. The key should embed the tenant, as SurgeKeys.For does for the surge multipliers.",
+    "TenantResolutionMiddleware checks IsAuthenticated and that the claim is non-blank; if either fails it sets 401 and returns without calling _next. No empty or default tenant exists in this code (first and fourth choices), and the unresolved-tenant exception in TenantContext.Id is only a backstop that is never reached here (second).",
+    "Outside a request there is no middleware to resolve the tenant, so the job creates a scope, sets that scope's TenantContext, and resolves the scoped service from it; the next iteration gets a fresh scope, which avoids the 'already set' guard and cross-tenant reuse. The IMemoryCache is a singleton injected into the job (second choice), the loop is sequential (third), and the once-only rule is per scope, not per process (fourth).",
+    "Both the job and the reader build keys with SurgeKeys.For(tenant, zoneId), so B looks up 'surge:B:z-12', which is absent; TryGetValue returns false and the method returns the 1.0m default. The shared cache does not leak A's value here (first choice), TryGetValue does not throw (third), and the ternary supplies 1.0m rather than default(decimal) (fourth)."
+  ]
+}

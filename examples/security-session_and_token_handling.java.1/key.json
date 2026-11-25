@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    1,
+    0
+  ],
+  "explanations": [
+    "There is no defect. Access tokens are short-lived JWTs verified with a pinned HMAC key, issuer and audience (parseSignedClaims rejects unsigned tokens). Refresh tokens are 256 bits from SecureRandom, stored only as SHA-256 hashes, and rotated: markUsed is an atomic compare-and-set, so a second presentation of the same token is detected as reuse and the whole family is revoked. The risky-looking part is throwing InvalidTokenException after revokeFamily: InvalidTokenException is a RuntimeException, which would normally roll back the transaction and undo the revocation, but noRollbackFor excludes it so the revocation is committed. The cookie is HttpOnly, Secure and SameSite=Strict and is cleared on failure.",
+    "markUsed returns false for a token that was already marked used, which triggers store.revokeFamily(record.familyId()) before the InvalidTokenException. Revoking the family also invalidates the newer token the real client holds, which is the intended trade-off of reuse detection. It is not accepted just because expiresAt is in the future (first choice), the newer token is revoked rather than left valid (second), and nothing deletes records (fourth).",
+    "InvalidTokenException extends RuntimeException, and Spring rolls back on unchecked exceptions by default; without noRollbackFor the revokeFamily write made just before the throw would be undone and a replayed token would leave the family usable. Reading is not the reason (first choice), issueInFamily runs only on the success path (third), and Spring transactions do not retry (fourth).",
+    "The parser is configured with clockSkewSeconds(30) and uses the injected Clock, so an expiry up to 30 seconds in the past is still accepted. The signature is verified against the configured key with verifyWith (second choice is wrong), skew applies to expiry as well as not-before (third), and parseSignedClaims only accepts signed JWTs, so an unsecured 'none' token is rejected (fourth)."
+  ]
+}

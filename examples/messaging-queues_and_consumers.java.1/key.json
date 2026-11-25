@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/main/java/com/helpdesk/projector/TicketEventListener.java",
+        "startLine": 31,
+        "endLine": 33
+      }
+    },
+    2,
+    3,
+    0
+  ],
+  "explanations": [
+    "When projection throws TransientProjectionException, the listener logs and returns without throwing and without acknowledging. In MANUAL ack mode that does not cause redelivery: the container simply moves on to the next record, and when that record is acknowledged the committed offset jumps past the skipped one (Kafka offsets are a position, not per-message acks). The skipped ticket event is silently lost from the read model. The exception should be rethrown so the DefaultErrorHandler retries and eventually dead-letters it (or the code should use nack/seek).",
+    "ErrorHandlingDeserializer turns a deserialization failure into a null value instead of throwing inside poll(). The listener throws IllegalArgumentException for a null value, and the error handler registers IllegalArgumentException as not retryable, so the DeadLetterPublishingRecoverer publishes the record to the dead-letter topic right away. The listener does not ignore nulls, the thread does not die, and retries apply only to retryable exceptions.",
+    "The version check makes apply idempotent and monotonic, which matters because retries, rebalances and restarts before a commit cause redelivery under at-least-once semantics. It does not enforce ordering, does not make consumption itself exactly-once and has no effect on dead-letter publishing.",
+    "Concurrency 3 creates three KafkaMessageListenerContainer consumers in the same group, each owning a disjoint set of partitions and processing its records sequentially. Ordering for a ticket therefore depends on records for it being keyed to the same partition. Offsets are committed per consumer for its own partitions, and concurrency relates to partitions, not to consumer groups."
+  ]
+}

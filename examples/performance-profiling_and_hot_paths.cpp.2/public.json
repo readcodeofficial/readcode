@@ -1,0 +1,50 @@
+{
+  "id": "bbb685ab-80e9-44f5-8ba9-73af2f58814b",
+  "title": "Chunk hashing for file sync with a benchmark",
+  "name": "Chunk indexer benchmark",
+  "createdAt": "2026-11-25T04:52:20.636Z",
+  "durationMinutes": 12,
+  "language": "C++",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code hashes and plans chunk uploads on its hot path (allocation, copying, or correctness of the chunking)? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "index_file is called for a 10 GiB file with a 64 KiB chunk size and a single 8 MiB scratch block. Roughly how much memory does the call need on top of the scratch block?",
+      "choices": [
+        "10 GiB, because the whole file is read before it is split into chunks.",
+        "About 8 MiB per chunk, because every ChunkRef holds a copy of its block.",
+        "About 4 MiB, one 24-byte ChunkRef per 64 KiB chunk, so it grows with the number of chunks and not with the bytes read.",
+        "Nothing, because the refs vector is not reserved and shrinks as chunks are consumed."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In BM_Split the output vector is reserved once and out.clear() is called at the start of every iteration. What does this accomplish?",
+      "choices": [
+        "It makes the benchmark thread-safe.",
+        "It keeps the vector's capacity, so the timed loop measures hashing and pushing refs rather than reallocation and page faults on a fresh buffer.",
+        "It forces the compiler to evaluate indexer.split instead of optimising it away.",
+        "It frees the memory between iterations so peak usage stays low."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A caller uploads a file containing the same 4 KiB block 1,000 times, and the remote store has none of its chunks. What does chunks_to_upload return?",
+      "choices": [
+        "Indexes of all 1,000 chunks, because already_remote contains none of them.",
+        "An empty list, because identical chunks are treated as already uploaded.",
+        "Only the index of the first occurrence, because the local queued set filters the repeats.",
+        "The indexes of every second chunk, because of the queued.reserve call."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.performance.profiling_and_hot_paths",
+    "backend.resources.streaming_large_payloads",
+    "backend.resources.memory_leaks"
+  ]
+}

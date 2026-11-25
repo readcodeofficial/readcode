@@ -1,0 +1,16 @@
+<configuration>
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <includeMdcKeyName>requestId</includeMdcKeyName>
+      <includeMdcKeyName>clinicId</includeMdcKeyName>
+      <includeMdcKeyName>jobRunId</includeMdcKeyName>
+      <fieldNames>
+        <timestamp>ts</timestamp>
+        <message>msg</message>
+      </fieldNames>
+    </encoder>
+  </appender>
+  <root level="INFO">
+    <appender-ref ref="JSON"/>
+  </root>
+</configuration>

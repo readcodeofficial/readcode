@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "repository.py",
+        "startLine": 59,
+        "endLine": 62
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "Results are ordered by created_at DESC, id DESC, so the rows that come after the cursor in this ordering have a smaller created_at, or the same created_at and a smaller id. The tie-break condition uses Notification.id > after.id, which selects rows that were already returned earlier in the ordering and skips the ones with smaller ids. When several notifications share a created_at value (batch sends inserted in one transaction share the database timestamp), a page boundary inside that group makes the client either re-read rows or lose the remaining ones, and the cursor can fail to advance. The comparison must be Notification.id < after.id.",
+    "If more than limit rows come back, at least one further row exists, so next_cursor is built from items[-1] (the last row the client receives) and the extra row is discarded. No COUNT query is needed. The first choice has nothing to do with emptiness. The third is wrong because keeping the cursor row out of the next page is the job of the cursor condition in the WHERE clause, not of the extra row. The fourth is wrong because nothing filters rows after loading.",
+    "The query is anchored on the (created_at, id) of the last row seen rather than on an offset. New rows have a later created_at, sort ahead of the anchor in a DESC ordering and are therefore excluded by the cursor condition. They show up when the client requests the first page again. The first and third choices describe the behaviour of OFFSET pagination. The second is wrong because the cursor is only parsed, never checked against current data.",
+    "Query(ge=1) only enforces a lower bound, so 1000 passes validation. The handler then clamps it with min(limit, MAX_PAGE_SIZE) and queries 101 rows, so the response has up to 100 items and a next_cursor whenever a 101st row exists. The second choice would need an upper bound (le=) in Query. The third misreads the clamp, which applies to every request. The fourth is wrong because next_cursor depends on whether the extra row exists, not on whether the limit was changed."
+  ]
+}

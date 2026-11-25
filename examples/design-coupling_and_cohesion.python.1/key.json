@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "ranking.py",
+        "startLine": 35,
+        "endLine": 35
+      }
+    },
+    0,
+    1,
+    3
+  ],
+  "explanations": [
+    "`AffinityRanker.rank` sorts its `titles` argument in place. `RecommendedRow` passes it the list object returned by `TitleCatalog.titles_for_region`, which is the cached list itself, not a copy. The sort therefore reorders the shared cache by this viewer's affinity score. `NewReleasesRow` relies on the catalog's newest-first order and takes `[:10]`, so once any viewer's Recommended row has been built, New this week shows the wrong titles (and other viewers' feeds change) until the cache entry expires. The line adds nothing to the result, which comes from `candidates`; deleting it, or sorting a copy with `sorted`, fixes it.",
+    "Rows depend on the narrow `Ranker` protocol and on the catalog's public method, and the service just loops over whatever rows it is given, so a new strategy or row plugs in without changes elsewhere. B is wrong because every row that needs titles goes through the cached method; C is wrong because shared mutable state would still need care; D is wrong because source requests depend on the catalog's TTL cache, not on how rows are wired.",
+    "`candidates` filters out watched ids and is sorted with the same score function before it is returned, so the result is the 497 remaining titles in descending score. A ignores the filter; C is wrong because genre matches only add to the score and nothing excludes other genres; D is wrong because the `candidates.sort` call happens before the return.",
+    "The first call fetches, sorts newest-first and stores `(now, titles)`. The second call within the TTL finds the entry and returns the same list object. A and C assume no caching; B is wrong because `invalidate` only drops cache entries and the source is read in `titles_for_region`."
+  ]
+}

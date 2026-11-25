@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "PlaybackEventListener.java",
+        "startLine": 36,
+        "endLine": 39
+      }
+    },
+    1,
+    2,
+    3
+  ],
+  "explanations": [
+    "The defect is the ordering in onPlaybackEvent: markIfNew records the event id in processed_events (its own auto-committed statement) before watchHistory.apply runs, and nothing ties the two together. If apply throws a transient DataAccessException, the DefaultErrorHandler redelivers the record, but markIfNew now returns false, so the listener treats it as a duplicate, acks, and the event is never applied. At-least-once delivery degrades to at-most-once for any event whose first attempt fails. The dedup mark and the apply must happen in one transaction (or the mark must be written after a successful apply).",
+    "With AckMode.MANUAL the offset is committed only on acknowledge(), so the record is delivered again. The processed_events row already exists, so markIfNew returns 0 inserted rows and the early-return branch acks and skips apply(). It is not lost (first choice), the dedup row prevents the double increment of completions (third), and the dead-letter recoverer only runs after the error handler's backoff is exhausted by exceptions, not after a crash (fourth).",
+    "GREATEST keeps the larger of the stored and incoming position, so an older PROGRESS event arriving after a newer one cannot rewind the position. It does nothing for completions, which is a plain addition and therefore not idempotent on its own (second choice). GREATEST is not portable SQL in every database (first), and row-level conflict handling is done by ON CONFLICT, not by GREATEST (fourth).",
+    "DefaultErrorHandler is built with ExponentialBackOff (500 ms initial, multiplier 2.0, max elapsed time 15 s) and a DeadLetterPublishingRecoverer. When the backoff is exhausted the recoverer publishes the record to the dead-letter topic and the container advances past it. It does not retry forever (first choice) because the backoff has a maximum elapsed time, it does not drop on the first failure (second), and nothing pauses the partition (third)."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "com/acme/arena/store/GameTable.java",
+        "startLine": 54,
+        "endLine": 54
+      }
+    },
+    1,
+    2,
+    1
+  ],
+  "explanations": [
+    "The leaderboard index's sort key `gsi1sk` is declared as a string (S), and `recordMatch` writes the rating as `s(Long.toString(newRating))`. DynamoDB orders string sort keys lexicographically, so rating \"999\" sorts above \"1200\". Each shard's `limit(n)` query with `scanIndexForward(false)` therefore returns the wrong n players, and the numeric sort in `topPlayers` can only reorder what was already selected. The attribute (and the written values) should be a number (N) so the index orders by value.",
+    "Sharding by player-id hash spreads write load across partitions, but it means no single shard knows the overall order. Taking the top n of each shard and merging guarantees the true top n is among the candidates. A is false; C is wrong because the season is part of every shard key, so all eight belong to one season; D invents an averaging behavior.",
+    "The sort key is built from playedAtMillis and matchId, so a redelivery produces the same key. The condition on the Put fails, and because transactWriteItems is all-or-nothing the profile update is not applied. Reason 0 reports ConditionalCheckFailed, which the code maps to DUPLICATE. A and B ignore the condition; D would only happen if the cancellation came from the profile's rating condition.",
+    "The profile update carries `rating = :old` (an optimistic-concurrency check), so only one of the two transactions can succeed from rating 1000. The loser is cancelled with a non-duplicate reason (the profile item, not the match Put), and the next loop iteration reads the committed rating and recomputes. A would happen without the condition; C ignores the retry loop; D is wrong because consistentRead only affects freshness, it does not take a lock."
+  ]
+}

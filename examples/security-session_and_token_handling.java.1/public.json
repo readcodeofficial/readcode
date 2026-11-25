@@ -1,0 +1,52 @@
+{
+  "id": "18ff42d2-927c-4f56-b283-23a20c7b38bc",
+  "title": "Access token and rotating refresh token service",
+  "name": "Agent session tokens",
+  "createdAt": "2026-11-25T04:52:20.292Z",
+  "durationMinutes": 14,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code issues, rotates and revokes session tokens? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "An attacker replays a refresh token that the legitimate client already rotated. What does the code do?",
+      "choices": [
+        "Issues a second token pair, since the token is still before its expiry time.",
+        "Rejects the request and leaves the legitimate client's newer token valid, so only the replay fails.",
+        "Rejects the request and revokes every token in that session family, forcing the legitimate client to sign in again.",
+        "Rejects the request and deletes only the replayed record from the store."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why is rotate annotated with @Transactional(noRollbackFor = InvalidTokenException.class) while the other methods use plain @Transactional?",
+      "choices": [
+        "Because rotate is the only method that reads from the store.",
+        "So that the work done before the exception is thrown, namely revoking the family on reuse, is committed instead of rolled back.",
+        "So that the new refresh record inserted by issueInFamily survives when the access token cannot be signed.",
+        "So that Spring retries the method when an InvalidTokenException occurs."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "An agent's access token has a 15-minute lifetime. Which statement about its verification is true?",
+      "choices": [
+        "A token whose expiry passed 20 seconds ago is still accepted because of the configured clock skew.",
+        "A token signed with a different secret but carrying the correct issuer and audience claims is accepted.",
+        "A token whose expiry passed 20 seconds ago is rejected because the skew only applies to the not-before claim.",
+        "A token with the signature removed and the algorithm set to none is accepted when the claims are valid."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.session_and_token_handling",
+    "backend.security.authentication",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.concurrency.race_conditions",
+    "backend.security.secrets_handling"
+  ]
+}

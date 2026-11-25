@@ -1,0 +1,51 @@
+{
+  "id": "2bd949d0-aa16-4fad-8873-26a3bd036487",
+  "title": "Device cloud adapter",
+  "name": "Device cloud adapter",
+  "createdAt": "2026-11-25T04:52:20.651Z",
+  "durationMinutes": 13,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this adapter handles failures when talking to the device cloud? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A caller iterates client.readings(...) and the third page fails with 503 on all four attempts. What does the caller observe?",
+      "choices": [
+        "All readings from every page, with the third page silently missing.",
+        "The readings from the first two pages, followed by a TransientProviderError raised from the iteration.",
+        "Nothing: the generator fetches every page before yielding the first reading.",
+        "An empty result, because the failure discards the earlier pages."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A temperature reading arrives with unit \"R\". What happens?",
+      "choices": [
+        "It is converted as if it were Celsius.",
+        "It is skipped and logged, and iteration continues.",
+        "The page request is retried up to four times.",
+        "UnsupportedUnit propagates out of the generator at that reading."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The device cloud answers 404 to a command for a decommissioned device. What does send_command do?",
+      "choices": [
+        "Raises DeviceNotFound at once, because the retry policy only covers timeouts, network errors and TransientProviderError.",
+        "Retries four times with backoff, because every 4xx is retried.",
+        "Returns None after logging the status.",
+        "Raises TransientProviderError, because 404 is treated like 503."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.integrations.third_party_adapters",
+    "backend.resilience.retries_and_backoff",
+    "backend.api.idempotency",
+    "backend.resilience.timeouts"
+  ]
+}

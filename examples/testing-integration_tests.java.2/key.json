@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "src/test/java/com/arena/results/MatchResultServiceIT.java",
+        "startLine": 30,
+        "endLine": 31
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The test overrides the production schema management: Flyway is disabled and Hibernate generates the schema with create-drop. The tests therefore run against a schema built from the entity annotations, not the V1 migration that production applies. The entity declares uq_match_player but the migration never creates that constraint, so the duplicate-result test passes in CI while production would accept duplicate rows (and ddl-auto validate does not check constraints, so it would not complain). The test should let Flyway run against the container so that the migrations are what is under test.",
+    "The native leaderboard SQL uses window functions and aggregate ordering that behave per the real engine, so running it on Postgres gives confidence that the query works where it will be deployed. Testcontainers does not add transactions, in-memory databases can enforce unique constraints, and Spring Boot can configure H2 without trouble.",
+    "With IDENTITY ids Hibernate usually inserts immediately, but in general save only queues the insert in the persistence context, and a violation may be raised when the transaction flushes or commits. saveAndFlush forces the SQL to run within the try block so the translation to DuplicateResultException is reliable. The validation and the index are unrelated to flushing.",
+    "A static @Container field is started once before the first test in the class and stopped after the last, which avoids the cost of booting Postgres per method. Since the data persists between methods, deleteAll in @BeforeEach restores a known state. Instance fields would create one container per method, sharing across classes requires a different pattern, and no transaction wraps these tests so there is no automatic rollback."
+  ]
+}

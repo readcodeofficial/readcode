@@ -1,0 +1,50 @@
+{
+  "id": "30cf1279-eebc-4d30-8e89-92ea482dcbb6",
+  "title": "Integration tests for match result recording and leaderboard",
+  "name": "Match result integration tests",
+  "createdAt": "2026-11-25T04:52:20.516Z",
+  "durationMinutes": 14,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this integration test is set up to verify the service against its database? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does the test class use a PostgreSQL Testcontainer instead of an in-memory database for these tests?",
+      "choices": [
+        "Testcontainers makes each test method run in its own transaction that is rolled back automatically",
+        "The leaderboard is a native query that relies on PostgreSQL features such as RANK() over a window and LIMIT with a named parameter, which an in-memory database may handle differently or reject",
+        "An in-memory database cannot enforce unique constraints",
+        "Spring Boot cannot create a DataSource for H2 under @SpringBootTest"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "MatchResultService.record calls saveAndFlush inside the try block. What would change if it called save instead?",
+      "choices": [
+        "Nothing, because save always flushes immediately for entities with a generated id",
+        "The score validation would be skipped",
+        "The unique index would no longer apply to the row",
+        "Constraint violations could surface later, at flush or commit time, outside the try/catch, so callers might see a raw DataIntegrityViolationException rather than the domain exception"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The container field is static and annotated with @Container, and the test cleans data in @BeforeEach. What does this give the test class?",
+      "choices": [
+        "One Postgres container shared by all test methods in the class, with rows removed before each test so tests do not depend on one another",
+        "A fresh container for every test method, so cleanup in @BeforeEach is redundant",
+        "A container shared across all test classes in the module, started once for the whole build",
+        "Automatic rollback of every test's data without any explicit cleanup"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.integration_tests",
+    "backend.data.migrations",
+    "backend.data.orm_pitfalls"
+  ]
+}

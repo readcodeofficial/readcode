@@ -1,0 +1,48 @@
+{
+  "id": "d65e12e2-4f81-4703-a8d9-2d6ca6b24394",
+  "title": "Sync planner and conflict resolver tests",
+  "name": "Sync engine test suite",
+  "createdAt": "2026-11-25T04:52:20.424Z",
+  "durationMinutes": 14,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how these tests check that the chunk plan covers the whole file? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The table in `splitsAroundChunkBoundaries` (chunk size 4) includes sizes 4 and 8 as well as 3, 5 and 9. Which faulty implementation of the chunk count would be caught by the sizes 4 and 8 and by no other row?",
+      "choices": [
+        "`size / chunkSize` using integer division",
+        "`size / chunkSize + 1`",
+        "`(size + chunkSize - 1) / chunkSize`",
+        "Always returning 1 chunk for sizes up to 8"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "`resolvesEachScenario` and `swappingSidesMirrorsTheOutcome` both use `@MethodSource(\"cases\")`. What does sharing the provider buy?",
+      "choices": [
+        "It makes the two tests run in parallel on the same data",
+        "It avoids creating FileVersion objects twice, which would be slow",
+        "Every new row added to the table is automatically checked in both orientations, and the second test needs no expected values of its own",
+        "It lets the second test skip the cases whose outcome is KEEP_BOTH"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "`SyncConflictResolver` takes a `Clock` and the test builds it with `Clock.fixed(NOW, ...)`. What does this make possible in `clockSkewWithinToleranceIsAccepted` and `timestampBeyondToleranceIsRejected`?",
+      "choices": [
+        "The 4-minute and 6-minute timestamps sit at known distances from the resolver's notion of now, so the tolerance boundary is tested deterministically",
+        "The tests can run on any time zone without conversion because ZoneOffset.UTC is used",
+        "The resolver caches the current time, which speeds up repeated calls",
+        "The tests no longer need the 5 minute tolerance to be configurable"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.unit_test_design"
+  ]
+}

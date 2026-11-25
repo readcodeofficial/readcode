@@ -1,0 +1,50 @@
+{
+  "id": "9febf68b-6d47-4372-9675-e169c668692c",
+  "title": "Sanitizing delivery notes, search terms and menu uploads",
+  "name": "Delivery input handling",
+  "createdAt": "2026-11-25T04:52:20.273Z",
+  "durationMinutes": 14,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code sanitizes and handles user-supplied input? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Searching for restaurants with q=\"100%\" is bound as a query parameter. Why does like_contains also escape the term and why does the SQL add ESCAPE?",
+      "choices": [
+        "Binding already stops injection, and without escaping the percent sign would additionally act as a wildcard, so the escaping makes the term match literally",
+        "The escaping prevents SQL injection, because bound parameters are only quoted, not validated",
+        "ESCAPE makes SQLite compare case-insensitively for non-ASCII text",
+        "The backslashes are required so that sqlite3 can convert the Python str into bytes"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "search_restaurants builds the ORDER BY clause with an f-string. Why is that acceptable here?",
+      "choices": [
+        "SQLite ignores quotes and semicolons inside an ORDER BY clause",
+        "The sort value is truncated to 20 characters by clean_text before use",
+        "The string is placed after the LIMIT placeholder, so it cannot change the query",
+        "Only strings from the ORDER_BY dict can be interpolated, and the dict key is restricted to three literal values by the model, so user text never reaches the SQL"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Delivery notes are stored after clean_text but are HTML-escaped only when the slip is rendered, and are prefixed only when exported to CSV. What is the reasoning?",
+      "choices": [
+        "Escaping on write would be safer, and the render-time escaping is redundant",
+        "Stored text keeps its meaning, and each output sink applies the encoding that fits its own context (HTML or spreadsheet formulas)",
+        "clean_text already removes angle brackets, so html.escape only matters for ampersands",
+        "The slip endpoint is authenticated, so it can trust stored text"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.input_sanitization",
+    "backend.security.sql_injection",
+    "backend.api.request_validation"
+  ]
+}

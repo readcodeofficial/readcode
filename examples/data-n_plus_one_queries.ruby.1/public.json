@@ -1,0 +1,50 @@
+{
+  "id": "21e3a42f-c82a-474e-a7c1-10b318e1b969",
+  "title": "Fleet report for IoT sites",
+  "name": "Fleet health report",
+  "createdAt": "2026-11-25T04:52:20.131Z",
+  "durationMinutes": 12,
+  "language": "Ruby",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code loads the data for each site summary? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A tenant has 250 sites with about 40 devices each. Roughly how does the number of SQL queries issued by one full iteration of `each_site_summary` scale?",
+      "choices": [
+        "One query per device, about 10,000",
+        "One query per site, about 250, because each site loads its devices",
+        "A fixed handful of queries per batch of 100 sites, independent of the number of devices",
+        "Exactly one query, because includes performs a single JOIN for everything"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Inside `summarize`, the code uses `site.devices.size` and `site.devices.reject(&:decommissioned_at)` rather than `site.devices.count` and `site.devices.active`. Why does that matter?",
+      "choices": [
+        "`count` and `active` would run an extra SQL query for every site even though the devices are already loaded",
+        "`size` is thread-safe while `count` is not",
+        "`reject` returns an ActiveRecord relation that can still be chained lazily",
+        "`active` would exclude decommissioned devices, but `reject` includes them"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why does `Reading.latest_per_device` use a separate DISTINCT ON query keyed by device ids instead of something like `has_many :readings` preloaded onto each device and then taking `device.readings.max_by(&:recorded_at)`?",
+      "choices": [
+        "Preloading cannot be combined with find_in_batches",
+        "Preloading would load every reading of every device in the batch into memory just to keep one per device, which for telemetry tables is by far the largest relation",
+        "ActiveRecord does not allow a has_many association to be preloaded more than one level deep",
+        "DISTINCT ON returns the rows already sorted by recorded_at across all devices"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.n_plus_one_queries",
+    "backend.data.orm_pitfalls",
+    "backend.performance.profiling_and_hot_paths"
+  ]
+}

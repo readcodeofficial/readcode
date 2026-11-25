@@ -1,0 +1,50 @@
+{
+  "id": "0349d52f-c06c-4e13-bd99-bba8279b5d4d",
+  "title": "Multi-tenant order and inventory API with EF Core",
+  "name": "Tenant order reservations",
+  "createdAt": "2026-11-25T04:52:20.718Z",
+  "durationMinutes": 15,
+  "language": "C#",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code keeps tenants' data separate? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A user from tenant A calls GET /api/orders/{number} with the number of an order that belongs to tenant B. What does the endpoint return?",
+      "choices": [
+        "403 Forbidden, because the tenant check fails after the row is loaded",
+        "The order, because Number is unique and the query matches it",
+        "404 Not Found, because the global filter removes the other tenant's order from the query, so it looks as if it does not exist",
+        "500, because SingleOrDefaultAsync throws when two tenants have the same order number"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does the SaveChangesAsync override guarantee for entities that implement ITenantOwned?",
+      "choices": [
+        "New rows are always written with the current tenant's id and existing rows cannot be moved to another tenant, regardless of what handler code sets",
+        "Reads of tenant-owned entities are filtered by the current tenant even when the query is a no-tracking query",
+        "Each SaveChanges call runs in a separate database transaction per tenant",
+        "It prevents two tenants from using the same SKU"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The Product filter reads _tenant.TenantId through the DbContext instance instead of capturing the tenant id as a local value in OnModelCreating. Why does that matter?",
+      "choices": [
+        "It makes the filter run in memory instead of in SQL",
+        "It allows the filter to apply to AsNoTracking queries",
+        "It avoids a circular reference between Product and Order",
+        "EF Core builds and caches the model once per context type, so a captured value would freeze the first tenant's id; referencing the context member makes the id evaluated for each context instance when the query runs"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.multi_tenant_isolation",
+    "backend.security.authorization_checks",
+    "backend.data.orm_pitfalls"
+  ]
+}

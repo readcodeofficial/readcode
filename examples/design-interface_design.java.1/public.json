@@ -1,0 +1,50 @@
+{
+  "id": "b25f3ea8-d069-42af-a240-87ade1a581f3",
+  "title": "Search backend facade",
+  "name": "Search backend facade",
+  "createdAt": "2026-11-25T04:52:20.566Z",
+  "durationMinutes": 14,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how the types in this code expose their data to callers? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "SearchRequest's compact constructor strips and lowercases the text, copies the filters with Set.copyOf and clamps page and pageSize. Besides validation, what does this matter for CachingSearchBackend?",
+      "choices": [
+        "Records cannot be used as cache keys without a compact constructor.",
+        "It makes the cache thread-safe.",
+        "Requests that mean the same thing become equal values, so they share one cache entry.",
+        "It lets the cache expire entries by page."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A new type ExistsFilter is added to the Filter hierarchy (and to the permits clause). What happens to InMemoryBackend.matches, which switches over Filter without a default branch?",
+      "choices": [
+        "It does not compile until a case for ExistsFilter is added.",
+        "It compiles and throws MatchException at runtime only for ExistsFilter.",
+        "It silently treats ExistsFilter as a TermFilter.",
+        "It compiles, and ExistsFilter matches every hit."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Two identical requests reach CachingSearchBackend at the same moment on a cold cache. How many times is the delegate called?",
+      "choices": [
+        "Twice, because both threads see a miss.",
+        "Once per page of the request.",
+        "Zero times for the second request, which receives null.",
+        "Once: Cache.get(key, loader) computes atomically per key and the second caller waits for the same value."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.interface_design",
+    "backend.caching.cache_aside_vs_write_through",
+    "backend.concurrency.shared_state_in_request_handlers"
+  ]
+}

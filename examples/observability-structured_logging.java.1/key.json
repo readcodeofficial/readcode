@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "com/acme/scheduling/web/RequestContextFilter.java",
+        "startLine": 34,
+        "endLine": 35
+      }
+    },
+    1,
+    2,
+    3
+  ],
+  "explanations": [
+    "`MDC.clear()` runs only if `chain.doFilter` returns normally. When a downstream handler throws (a ServletException or an IOException, or an unchecked exception that propagates through the filter), the clear is skipped and the servlet container returns the worker thread to its pool with the old requestId and clinicId still set. The next request served by that thread starts with another request's identifiers (until the `put` calls overwrite them), and requests without a valid X-Clinic-Id header keep the previous clinicId permanently, so log lines are attributed to the wrong clinic. The clear belongs in a finally block.",
+    "`kv(...)` creates a structured argument that the encoder writes as a top-level JSON property (here appointmentId, slotId, durationMs), leaving `msg` as a fixed string. Concatenation bakes the id into the text, giving a different message for every appointment. A is wrong for that reason; C is wrong because the choice has nothing to do with skipping formatting; D is wrong because there is a single JSON console appender.",
+    "The decorator runs on the submitting (scheduler) thread, where `MDC.putCloseable(\"jobRunId\", ...)` is active, so `getCopyOfContextMap` captures it and the worker applies it for the task, restoring its own context afterwards. The proxy call works because the job calls `ReminderService` from another bean. A describes the behavior without the decorator; B is wrong because the decorator replaces the worker's context for the task's duration; D has no basis in the code, nothing sets clinicId in the job.",
+    "LogstashEncoder with `includeMdcKeyName` entries emits only the listed keys; any other MDC key is dropped from the output. That protects against accidentally logging personal data through the MDC. A would be the default if no include list existed; B is wrong because logback never validates MDC keys; C invents a level-based rule."
+  ]
+}

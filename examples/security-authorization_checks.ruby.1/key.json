@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "There is no defect. Every action either calls authorize or policy_scope, and the after_action verifications fail loudly if a future action forgets to. Visibility is consistent between OrderPolicy::Scope and show? (warehouse users see only fulfillable orders in both). refund re-reads the order under a row lock before authorizing, so the policy sees the current refundable balance, and the amount is bounded by that balance, so a support agent cannot exceed the policy limit. update only accepts attributes from permitted_attributes, which exclude status and money fields. The 404-for-show mapping avoids confirming that an inaccessible order exists.",
+    "show? only lets a warehouse user through when record.fulfillable? is true, and pending is not in FULFILLABLE_STATUSES. authorize raises NotAuthorizedError and deny_access turns denials on the show action into 404. The first choice ignores the fulfillable check. The second ignores the show special case in deny_access. The fourth is wrong because show does not use policy_scope; it calls Order.find and authorize, so the 404 comes from deny_access.",
+    "refund? for support requires record.refundable_cents <= REFUND_LIMIT_CENTS (50,000). The check uses the order's balance, and 80,000 exceeds it, so authorize raises and the transaction is aborted before the amount is considered. The second choice assumes the requested amount is checked. The third misreads the between?(1, refundable_cents) check, which accepts any amount in the range. The fourth: ownership plays no part in refund?.",
+    "update? passes (owner and pending). permitted_attributes(order) returns the customer list, which has no internal_notes, so strong parameters drop it and the update applies gift_note only. The first choice treats unpermitted parameters as an authorization failure, which they are not. The second would be true only if the admin attribute list were used. The third is wrong because the filtered attribute never reaches the model."
+  ]
+}

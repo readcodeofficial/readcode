@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "There is no defect. Tags come from small enums, so cardinality is bounded and no customer or ticket id is used as a tag. The open-ticket gauges are backed by AtomicIntegers that the EnumMap keeps strongly reachable, so the registry's weak reference never loses them, and the values are seeded from the repository at startup. The save timer is stopped in finally with an outcome tag that is chosen after the work completes. Metrics for first response and closure are recorded only when the repository's conditional update reports that this call changed the row, which prevents double counting under retries or concurrent calls.",
+    "registry.gauge(name, tags, number) returns the same number object and the registry references it weakly. If nothing else held the AtomicInteger it could be garbage collected and the gauge would start reporting NaN. The EnumMap keeps it strongly reachable and gives ticketCreated and ticketClosed a handle to update. The first choice is false because gauges accept any Number or a function. The second is wrong because scrapes do read the value from another thread; AtomicInteger is what makes that safe, but it is not the reason for storing it in the map. The fourth is wrong because the repository is only queried once per priority in the constructor.",
+    "The counter is tagged with priority (4 values: LOW, NORMAL, HIGH, URGENT) and channel (3 values: EMAIL, CHAT, PHONE), and registry.counter returns the same counter for an identical name and tag set. That gives at most 4 x 3 = 12 series. The second and third choices count only one tag. The fourth would be true only if a per-ticket value such as the id or customerId were used as a tag, which this code does not do.",
+    "Duration.between returns a negative duration. Timer.record ignores negative amounts, so the timer gets no sample, and a negative duration compares as shorter than any SLA, so the breach counter is not incremented. The first choice assumes clamping to zero, the second assumes negative values are stored, and the third assumes Micrometer throws; none of these happens."
+  ]
+}

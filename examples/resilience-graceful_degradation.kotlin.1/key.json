@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "TicketViewService.kt",
+        "startLine": 67,
+        "endLine": 67
+      }
+    },
+    1,
+    2,
+    3
+  ],
+  "explanations": [
+    "The defect is in customerProfile: the profile is written to profileCache unconditionally, so the anonymous fallback (STANDARD tier, 'Unknown customer') is cached with the full 10-minute TTL whenever the CRM times out or fails. Every later view of that customer's tickets hits the cache and reports degraded = false, so agents see a wrong profile with no degraded marker for up to ten minutes after the CRM has recovered, and a premium customer is silently treated as standard. The cache write should happen only when fresh is non-null (or the fallback should get no TTL or a very short one).",
+    "suggestedArticles catches CallNotPermittedException and returns Fetched(emptyList(), degraded = true); the other two fetches are independent coroutines and complete normally, so the view is built with 'articles' flagged. It does not throw (first choice), the field is a non-null List (third), and an open breaker rejects immediately rather than waiting for the timeout (fourth).",
+    "Each fetch is launched with async, so they run concurrently; await() on each returns when that fetch's own withTimeoutOrNull gives up, and the slowest bound is the CRM's 400 ms. Timeouts do not sum (first choice), one fetch timing out returns null for that fetch only and does not cancel its siblings (second), and withTimeoutOrNull cancels the suspended block at the deadline (fourth).",
+    "findById is called before coroutineScope and has no try/catch, so any failure surfaces to the caller; degradation here applies only to the optional sections. The catch blocks in customerProfile, suggestedArticles and slaDeadline wrap only their own downstream calls, nothing retries, and no placeholder ticket is built."
+  ]
+}

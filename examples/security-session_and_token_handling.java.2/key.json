@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "payroll/auth/TokenService.java",
+        "startLine": 55,
+        "endLine": 56
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "When a used token is presented again, revokeFamily runs and then TokenReuseException (a RuntimeException) is thrown from a method annotated with a plain @Transactional. Spring rolls the transaction back on a RuntimeException, so the family revocation is discarded together with everything else. The attacker or the legitimate client holding the newest token in the family keeps a working session, and the replay is only rejected, never punished. The revocation has to be committed (noRollbackFor = TokenReuseException.class, a separate REQUIRES_NEW transaction, or returning a result instead of throwing).",
+    "C is right: the raw token is only returned to the client, and the lookup hashes the presented value, so a database leak does not yield usable tokens. Because the tokens are high-entropy random values, an unsalted fast hash is sufficient. A is wrong: the hash of one token is constant. B is wrong: signing uses the separate HMAC key. D is wrong: the hash covers only the token value.",
+    "A is right: the row lock serializes the two transactions, and the loser re-reads the row with usedAt set. B would happen without the lock. C and D are unrelated: the lock is on one token row only.",
+    "D is right: refresh() checks directory.isActive and throws InvalidTokenException, but the JWT is self-contained and carries its own expiry. A is wrong because the check runs on every refresh. B is wrong because only the reuse branch revokes the family. C is wrong because there is no revocation list for access tokens."
+  ]
+}

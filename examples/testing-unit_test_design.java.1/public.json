@@ -1,0 +1,50 @@
+{
+  "id": "78d97726-29c7-4b43-addd-77212c85dedb",
+  "title": "Stream session limits",
+  "name": "Stream session limits",
+  "createdAt": "2026-11-25T04:52:20.411Z",
+  "durationMinutes": 14,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how these tests verify the service's behavior? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "StreamSessionService takes a Clock and a Supplier<String> for ids instead of calling Instant.now() and UUID.randomUUID() directly. What does that make possible in the tests?",
+      "choices": [
+        "Running the tests in parallel without any shared state.",
+        "Asserting exact timestamps and ids, and placing sessions precisely inside or outside the heartbeat window.",
+        "Avoiding Mockito, because the clock replaces the stores.",
+        "Making the heartbeat timeout configurable per test."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Suppose start() were changed to count all of the user's sessions against the plan limit before filtering out stale heartbeats. Which existing test would fail?",
+      "choices": [
+        "startsSessionWhenUnderLimit",
+        "heartbeatStoresCurrentTime",
+        "sameDeviceAndTitleResumesWithoutUsingASlot",
+        "staleSessionsDoNotCountTowardsLimit"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which regression would sameDeviceAndTitleResumesWithoutUsingASlot NOT detect?",
+      "choices": [
+        "start() no longer refreshes the heartbeat of the session it resumes.",
+        "start() moves the resume check after the plan limit check.",
+        "start() inserts a duplicate row while also returning the existing session.",
+        "start() returns a new session with the same field values instead of the existing object."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.unit_test_design",
+    "backend.testing.mocking_and_fakes",
+    "backend.design.dependency_injection"
+  ]
+}

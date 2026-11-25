@@ -14,8 +14,11 @@ Writes one job file per missing example to `examples/.work/jobs/<name>.json`. To
 (including topics the master plan leaves out), build a floor plan first and use it as `--plan`:
 
 ```
-node pipeline/src/floorPlan.ts --taxonomy pipeline/taxonomy/v0.1.0.json --fit pipeline/taxonomy/language_fit.json \n  --plan postings/plans/master.json --examples examples --min 2 --out postings/plans/floor.json
+node pipeline/src/floorPlan.ts --taxonomy pipeline/taxonomy/v0.1.0.json --fit pipeline/taxonomy/language_fit.json \n  --plan postings/plans/master.json --examples examples --min 2 --ignore '^[0-9]{3}-' --out postings/plans/floor.json
 ```
+
+`--ignore '^[0-9]{3}-'` leaves the original single-language (TypeScript) bank out of the per-topic count, so every topic
+gets its minimum from language examples alone.
 
 Run assemble with the same `--plan` you prepared with. Give each drafting subagent its own scratch folder: parallel
 agents sharing one folder have overwritten each other's helper scripts.

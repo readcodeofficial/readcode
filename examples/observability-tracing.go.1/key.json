@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "matchmaker/clients.go",
+        "startLine": 54,
+        "endLine": 58
+      }
+    },
+    0,
+    1,
+    2
+  ],
+  "explanations": [
+    "RatingClient builds its http.Client with a bare *http.Transport tuned for connection pooling and does not wrap it with otelhttp.NewTransport, unlike ProfileClient. The ratings call is made with a context that carries the active span, but nothing injects the traceparent header or creates a client span, so the rating service starts a new, disconnected trace and the matchmaker trace shows no ratings latency. The transport should be otelhttp.NewTransport(&http.Transport{...}).",
+    "ParentBased wraps TraceIDRatioBased(0.1): root spans are sampled by hashing the trace ID against the ratio, while spans with a remote or local parent inherit the parent's sampled flag, so traces are kept or dropped whole. It is not per-span sampling, error status does not override the decision, and the batcher exports whatever the sampler recorded.",
+    "errgroup.WithContext derives gctx from ctx, so span context values flow through and the client spans parent to matchmaker.loadCandidate; gctx is also cancelled when any goroutine returns an error or Wait returns, aborting the other call. It does not create spans, recover panics or affect connection sharing.",
+    "RecordError adds an exception event to the span it is called on and SetStatus sets that span's own status; the two spans are separate objects, so both end up flagged and the trace backend can show the failure at loadCandidate and at enqueue. RecordError alone does not change the status, and neither call ends or merges spans."
+  ]
+}

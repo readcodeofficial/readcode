@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "FileController.java",
+        "startLine": 68,
+        "endLine": 69
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "The defect is in FileController.rename: the controller injects FileNodeRepository and mutates and saves the entity itself, bypassing FileService. Every other mutation goes through the service, which is where revision bumping and the FileChanged event happen. A rename therefore never increments the revision and never publishes FileChanged, so sync clients never learn about renamed files, and the controller also lacks the service's transaction boundary and any future rules (such as duplicate-name handling). The rename should be a FileService method that renames, bumps the revision and publishes the event.",
+    "move calls assertNotDescendant, which follows parent links upward from the candidate parent; reaching nodeId means a cycle, so InvalidMoveException is thrown inside the service and the advice maps it to HttpStatus.CONFLICT. The unique constraint only covers duplicate names within a parent (third choice), the check runs before any mutation (first), and the service never returns null (fourth).",
+    "QuotaExceededException carries only a message; FileErrorHandler (the web layer's @RestControllerAdvice) maps it to INSUFFICIENT_STORAGE. The service has no dependency on HTTP types, which keeps it callable from jobs or other entry points. The repository only computes a number (second choice), and create contains no try/catch (third).",
+    "ApplicationEventPublisher.publishEvent delivers synchronously to ordinary listeners at the moment of the call; only listeners registered with @TransactionalEventListener are tied to transaction phases. So a plain listener can observe an uncommitted change that later rolls back. Events are not deferred automatically (second and fourth choices), and they are delivered once (third)."
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "6cbac522-4643-4e41-809c-c3d09d112a23",
+  "title": "Orders API authorization with Pundit",
+  "name": "Orders API policies",
+  "createdAt": "2026-11-25T04:52:20.256Z",
+  "durationMinutes": 14,
+  "language": "Ruby",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code authorizes access to orders and inventory? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A warehouse user requests GET /orders/:id for an order whose status is pending. What response do they get?",
+      "choices": [
+        "200 with the order, because warehouse staff can read every order.",
+        "403 forbidden, because the policy denies the request.",
+        "404 not_found, because show? is false and deny_access reports show denials as not found.",
+        "404 not_found, because policy_scope hides the record before show? is evaluated."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A support agent asks to refund 1,000 cents of a paid order whose refundable balance is 80,000 cents. What happens?",
+      "choices": [
+        "403 forbidden: the policy compares the order's whole refundable balance with the support limit, not the requested amount.",
+        "The refund succeeds, because 1,000 is below REFUND_LIMIT_CENTS.",
+        "422 invalid_amount, because the amount must equal the full refundable balance.",
+        "The refund succeeds only if the agent is also the order's owner."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A customer sends PATCH /orders/:id for their own pending order with order[gift_note]=hello and order[internal_notes]=x (default Rails unpermitted-parameter handling). What is the outcome?",
+      "choices": [
+        "403 forbidden, because the request contains an attribute the customer may not set.",
+        "The order is updated including internal_notes, since update? is true for the owner of a pending order.",
+        "422, because internal_notes fails model validation.",
+        "The order is updated with gift_note only; internal_notes is filtered out by permitted_attributes."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.authorization_checks",
+    "backend.api.status_codes_and_error_responses",
+    "backend.data.transactions_and_isolation_levels",
+    "backend.api.request_validation"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    0,
+    3,
+    1
+  ],
+  "explanations": [
+    "There is no defect. Each risky-looking spot is handled for its own context: the one f-string in the SQL interpolates only a value looked up in the fixed ORDER_BY dict, keyed by a Literal-validated field; the LIKE term is both bound as a parameter and escaped for wildcards with a matching ESCAPE clause; notes are escaped with html.escape at output time; uploaded names are discarded in favour of a random name plus an allow-listed suffix, with a resolve-and-contain check as a second layer; and CSV cells that start with formula characters are neutralized. Cuisine is checked with fullmatch, so no trailing-character loophole exists.",
+    "Parameter binding keeps the value out of the SQL text, which is what prevents injection. It does not change how LIKE interprets % and _ inside the value, so a user could match everything or enumerate names. like_contains prefixes those characters (and the backslash itself) with a backslash, and ESCAPE '\\' tells SQLite that backslash is the escape character. It has nothing to do with case folding or encoding.",
+    "Identifiers and sort directions cannot be bound as parameters, so a lookup table is the standard approach. RestaurantQuery.sort is a Literal of three names, requests with other values are rejected by validation, and even then ORDER_BY[query.sort] yields a developer-written fragment. The other statements are false: the sort field is not passed through clean_text, ordering of the clauses is irrelevant, and SQLite would execute injected text in ORDER BY.",
+    "Encoding depends on where data is going: HTML needs entity escaping, CSV opened in a spreadsheet needs a formula guard, and a JSON API needs neither. Doing it at each output keeps stored data faithful and avoids double-escaping. clean_text normalizes Unicode and drops control and format characters but does not remove angle brackets, and authentication says nothing about the content of a note."
+  ]
+}

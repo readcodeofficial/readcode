@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    1,
+    2
+  ],
+  "explanations": [
+    "There is no defect. The hot loop in split does no allocation and no copying: it hashes slices of a string_view and push_backs 24-byte ChunkRef values into a vector the caller reserved. index_file streams the file through one caller-owned block (a multiple of the chunk size, so chunk boundaries line up across reads and a short chunk can only occur at end of file), reserves the output from file_size, and keeps 64-bit offsets so files over 4 GiB work while the per-chunk length fits in 32 bits thanks to the constructor check. The benchmark clears and reuses its output vector so it measures hashing, not allocation, and DoNotOptimize/ClobberMemory stop the compiler from deleting the work.",
+    "The file is streamed through scratch.block, and each chunk produces only a ChunkRef (hash, offset, length, 24 bytes with padding). 10 GiB / 64 KiB is 163,840 chunks, about 3.75 MiB, reserved up front from file_size. The file is never held whole (first choice), ChunkRef contains no data copy (second), and the vector is reserved and only grows (fourth).",
+    "clear() destroys the elements but keeps the allocation, so after the reserve no iteration allocates; the measurement reflects the hot loop. Preventing the optimiser from eliminating the call is the job of DoNotOptimize and ClobberMemory (third choice). Nothing here concerns threads (first), and clear() does not release memory (fourth).",
+    "Every chunk hashes to the same value. The first one passes the already_remote check and is inserted into queued (insert(...).second is true), so its index is kept; the other 999 find the hash in queued and are skipped. The caller must upload that chunk once and reference it for the other offsets. It is not empty (second choice) because already_remote lacks the hash, and reserve affects capacity only (fourth)."
+  ]
+}

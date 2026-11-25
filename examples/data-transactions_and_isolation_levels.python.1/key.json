@@ -1,0 +1,16 @@
+{
+  "answers": [
+    {
+      "defect": null
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "There is no defect. Duplicate shipment ids are serialized by the primary-key insert in allocate_shipment, which blocks a concurrent duplicate until the first transaction ends. Bins are locked with FOR UPDATE in a fixed id order, so overlapping allocations and transfers cannot deadlock on each other; the rare deadlock or serialization failure that still occurs is retried by run_in_transaction with a fresh Session each time. InsufficientStock is not an OperationalError, so it rolls back the whole unit of work (including the claim row) and propagates. The reporting read in warehouse_snapshot runs at REPEATABLE READ so its three queries see one consistent snapshot.",
+    "C is right: a conflicting insert on the primary key waits for the other transaction to finish. After the first commit, the insert does nothing, claimed is None, and _existing_picks reads the committed Allocation rows. A is wrong because ON CONFLICT DO NOTHING never raises IntegrityError. B is wrong because the claim row is taken before any stock is read. D is wrong because _existing_picks returns the stored picks, not an empty list.",
+    "A is right: with a consistent lock order a wait cycle between two transactions is impossible. B is wrong because FOR UPDATE has no index requirement. C is wrong because picking order affects which bin is used, not whether reserved counts stay correct. D is wrong because the row lock alone already prevents lost updates.",
+    "D is right: InsufficientStock is raised inside the transaction, so the context manager rolls everything back, and it is not an OperationalError, so run_in_transaction re-raises it. A, B and C each assume part of the work is committed, which would require a commit before the exception."
+  ]
+}

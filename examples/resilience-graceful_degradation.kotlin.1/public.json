@@ -1,0 +1,52 @@
+{
+  "id": "b14e3cbd-821b-4abc-bb99-687252ddd5ca",
+  "title": "Ticket detail view with degraded dependencies",
+  "name": "Ticket detail view",
+  "createdAt": "2026-11-25T04:52:20.098Z",
+  "durationMinutes": 12,
+  "language": "Kotlin",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code degrades when a downstream dependency is slow or failing? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "The knowledge base circuit breaker is OPEN while the ticket repository, CRM and SLA service are healthy. What does view() return?",
+      "choices": [
+        "It throws CallNotPermittedException, because nothing converts the breaker rejection into a result for the whole view.",
+        "A TicketView with the real customer and SLA data, an empty suggestedArticles list, and \"articles\" in degradedSections.",
+        "A TicketView with suggestedArticles = null so the caller can tell the section is missing.",
+        "A TicketView, but only after kbTimeoutMs elapses, because the breaker only rejects once the timeout has expired."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The CRM, knowledge base and SLA service all hang. Roughly how long does view() take to produce its result after the ticket is loaded?",
+      "choices": [
+        "About 950 ms, because the timeouts add up one after another.",
+        "About 250 ms, because the shortest timeout cancels the other two calls.",
+        "About 400 ms, the longest single timeout, because the calls run concurrently inside coroutineScope.",
+        "It never completes, because withTimeoutOrNull does not cancel a hung suspend call."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The ticket repository throws an IOException while loading the ticket. What happens?",
+      "choices": [
+        "view() returns a TicketView with a placeholder ticket and all sections marked degraded.",
+        "The exception is caught in customerProfile and replaced by CustomerProfile.anonymous.",
+        "view() retries findById until the CRM timeout expires.",
+        "The exception propagates out of view(): the ticket is the core data, and only the three enrichment calls have fallbacks."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.graceful_degradation",
+    "backend.resilience.timeouts",
+    "backend.resilience.circuit_breakers",
+    "backend.caching.ttls_and_expiry",
+    "backend.caching.stale_reads"
+  ]
+}

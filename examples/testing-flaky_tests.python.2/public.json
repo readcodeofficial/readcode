@@ -1,0 +1,52 @@
+{
+  "id": "f2adefd1-34b8-49a5-8709-ed26d6940ba9",
+  "title": "Login throttle test suite",
+  "name": "Login throttle tests",
+  "createdAt": "2026-11-25T04:52:20.493Z",
+  "durationMinutes": 12,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how these tests set up the authenticator and its shared state? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "In test_old_failures_age_out_of_the_window, how many failures does the throttle count toward the lockout threshold when the fifth bad password is submitted?",
+      "choices": [
+        "Five, because all failures since the last successful login are counted.",
+        "One, because the four earlier failures are older than the 15-minute window and are dropped.",
+        "Four, because the fifth failure is only counted after the next request.",
+        "Zero, because advancing the clock resets the throttle entirely."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which statement about the real-world behaviour of Authenticator.login and LoginThrottle is correct?",
+      "choices": [
+        "Unknown usernames are never counted, so attackers cannot probe for valid accounts through the lockout behaviour.",
+        "Locked accounts still have their password hashed, so lockout state cannot be detected by response time.",
+        "A lockout applies to the source IP address, so one attacker cannot lock out other users.",
+        "Anyone who knows a username can lock that account for 30 minutes by sending five wrong passwords for it."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "After five failures, alice submits the correct password immediately. What happens, and when will a correct password be accepted again?",
+      "choices": [
+        "AccountLocked is raised without checking the password; logins are accepted again once the clock reaches 30 minutes after the fifth failure.",
+        "InvalidCredentials is raised because the password hash is compared first; logins are accepted again after the next successful hash comparison.",
+        "AccountLocked is raised, and the lock is lifted after 15 minutes when the failure window expires.",
+        "The login succeeds, because record_success resets the failure list before the lock is evaluated."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.flaky_tests",
+    "backend.testing.unit_test_design",
+    "backend.security.authentication",
+    "backend.resilience.rate_limiting",
+    "backend.concurrency.shared_state_in_request_handlers"
+  ]
+}

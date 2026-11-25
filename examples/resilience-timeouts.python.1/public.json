@@ -1,0 +1,50 @@
+{
+  "id": "ec2cacba-a571-4c46-8ada-63d5f7f723d5",
+  "title": "Settlement run against a ledger service",
+  "name": "Ledger settlement client",
+  "createdAt": "2026-11-25T04:52:20.000Z",
+  "durationMinutes": 14,
+  "language": "Python",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code enforces its time limits on calls to the ledger service? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "`post_transfer` retries a POST after a read timeout, and a read timeout does not tell the client whether the ledger applied the transfer. What makes that retry safe here?",
+      "choices": [
+        "The client closes and reopens the connection before each retry, so the ledger sees a new request",
+        "Every attempt sends the same Idempotency-Key, which is the transfer_id fixed when the PendingTransfer was created",
+        "Only status codes of 500 and above are retried, and those never apply the transfer",
+        "The balance check runs again before each attempt and prevents a double debit"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "`_request` passes `timeout=attempt_timeout` (a plain float) to `self._client.request`, while the client was built with a four-part `httpx.Timeout`. For that call, what is the effect on the connect and pool phases?",
+      "choices": [
+        "They keep the 1.0s and 0.5s values from the client settings, because only the read phase is overridden",
+        "They are disabled, so only the overall read time is limited",
+        "They also use attempt_timeout, replacing the stricter 1.0s connect and 0.5s pool limits with up to 4s",
+        "The call raises a TypeError because a float cannot override a Timeout object"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A batch of 200 transfers is started with a 20 second budget and the ledger becomes completely unreachable (every connection attempt fails fast). What does `SettlementRun.run` return?",
+      "choices": [
+        "It raises LedgerUnavailable for the first transfer and the run aborts with nothing recorded",
+        "Each transfer is recorded as deferred after its own retries, and the run continues through the batch until it finishes or the budget runs out",
+        "All 200 transfers are marked insufficient because no balance could be read",
+        "The run hangs until the ledger recovers, since no overall timeout wraps the loop"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.timeouts",
+    "backend.resilience.retries_and_backoff",
+    "backend.api.idempotency"
+  ]
+}

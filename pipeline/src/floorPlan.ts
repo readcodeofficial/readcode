@@ -9,8 +9,11 @@
 // Targets are absolute counts per (topic, language), like any plan, so generateBank.ts --plan <floor.json>
 // prepares and assembles only the missing examples.
 //
+// --ignore <regex>: example folders whose name matches don't count toward a topic's minimum (e.g. '^\d{3}-' for the
+// original single-language bank). They still count per (topic, language), so job numbering stays consistent.
+//
 // Usage: node pipeline/src/floorPlan.ts --taxonomy <taxonomy.json> --fit <language_fit.json> --plan <master.json>
-//          --examples <dir> --min <n> --out <floor.json>
+//          --examples <dir> --min <n> [--ignore <regex>] --out <floor.json>
 //   e.g. node pipeline/src/floorPlan.ts --taxonomy pipeline/taxonomy/v0.1.0.json --fit pipeline/taxonomy/language_fit.json \
 //          --plan postings/plans/master.json --examples examples --min 2 --out postings/plans/floor.json
 
@@ -22,7 +25,7 @@ import { LanguageFit, Plan, Taxonomy } from "../../shared/types.ts";
 
 const MIN_FIT = 0.7; // same bar as planning (pipeline.ts MIN_LANGUAGE_FIT)
 const USAGE =
-    "Usage: node pipeline/src/floorPlan.ts --taxonomy <taxonomy.json> --fit <language_fit.json> --plan <master.json> --examples <dir> --min <n> --out <floor.json>";
+    "Usage: node pipeline/src/floorPlan.ts --taxonomy <taxonomy.json> --fit <language_fit.json> --plan <master.json> --examples <dir> --min <n> [--ignore <regex>] --out <floor.json>";
 
 const { values } = parseArgs({
     options: {
@@ -31,9 +34,11 @@ const { values } = parseArgs({
         plan: { type: "string" },
         examples: { type: "string" },
         min: { type: "string" },
+        ignore: { type: "string" },
         out: { type: "string" },
     },
 });
+const ignore = values.ignore ? new RegExp(values.ignore) : null;
 if (!values.taxonomy || !values.fit || !values.plan || !values.examples || !values.min || !values.out) {
     console.error(USAGE);
     process.exit(1);
@@ -53,6 +58,7 @@ for (const entry of readdirSync(values.examples, { withFileTypes: true })) {
     if (!entry.isDirectory() || !existsSync(pub)) continue;
     const { concepts, language } = JSON.parse(readFileSync(pub, "utf8")) as { concepts: string[]; language: string };
     havePair.set(key(concepts[0], language), (havePair.get(key(concepts[0], language)) ?? 0) + 1);
+    if (ignore?.test(entry.name)) continue; // counted for job numbering, not toward the topic minimum
     haveTopic.set(concepts[0], (haveTopic.get(concepts[0]) ?? 0) + 1);
     haveLanguage.set(language, (haveLanguage.get(language) ?? 0) + 1);
 }

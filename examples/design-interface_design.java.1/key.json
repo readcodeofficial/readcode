@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "search/SearchBackend.java",
+        "startLine": 38,
+        "endLine": 38
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "SearchResult stores the hits list as given and hands out the same mutable ArrayList from hits(), unlike Hit and SearchRequest, which copy their collections. CachingSearchBackend caches the SearchResult instance, and RecencyReranker sorts result.hits() in place, so it reorders the cached list. Every later caller gets results ordered by the first request's time, concurrent requests sort the same ArrayList at once, and the reranker would throw if the list were ever immutable. The record should copy with List.copyOf in a compact constructor, and the reranker should sort a copy.",
+    "C is right: the record's equals and hashCode are computed from the normalized components, so \" Camera \" and \"camera\" hit the same entry. A is wrong because records are valid keys anyway. B is wrong because thread safety comes from Caffeine. D is wrong because expiry is time-based.",
+    "A is right: a switch expression over a sealed type must be exhaustive, and without a default the compiler rejects the missing case. B would only happen if the class was compiled separately. C and D are not how pattern switches work.",
+    "D is right: Caffeine's get with a mapping function runs it at most once per absent key. A describes a check-then-put race, which this code avoids. B and C do not match the API."
+  ]
+}

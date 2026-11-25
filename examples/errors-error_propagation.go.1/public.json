@@ -1,0 +1,51 @@
+{
+  "id": "286ff150-07dd-413e-abb4-25dfae5a7e34",
+  "title": "Notification dispatcher",
+  "name": "Notification dispatcher",
+  "createdAt": "2026-11-25T04:52:20.213Z",
+  "durationMinutes": 14,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code propagates errors from the delivery channels to the dispatcher? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A Dispatcher is built with only the email channel. The email gateway answers 400 for a malformed address. What does Process return?",
+      "choices": [
+        "Retry, because any failed delivery is assumed to be transient.",
+        "Drop, because the error chain contains a *ProviderError with a 4xx status that is not ErrRateLimited.",
+        "Ack, because Dispatch only logs channel failures.",
+        "Retry, because errors.Is(err, ErrRateLimited) matches every 4xx status."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Email fails with a 503 and the push channel then succeeds. What does Dispatch return, and what happens to the email failure?",
+      "choices": [
+        "It returns a joined error containing the 503, so the message is retried and may be pushed twice.",
+        "It returns the 503 error, because errors are returned as soon as any channel fails.",
+        "It returns ErrNoChannels because the first channel did not deliver.",
+        "It returns nil: the email failure was only logged and appended to a slice that is discarded, so the message is acknowledged."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "The context is cancelled after the email channel fails but before the push channel is tried. What does Process return?",
+      "choices": [
+        "Drop, because a cancelled context means the caller gave up on the message.",
+        "Ack, because the email failure is logged and ignored.",
+        "Retry, because Dispatch returns the context error wrapped with %w and errors.Is(err, context.Canceled) matches.",
+        "Retry, but only because push is attempted anyway and fails."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.errors.error_propagation",
+    "backend.errors.error_wrapping_and_context",
+    "backend.messaging.queues_and_consumers",
+    "backend.messaging.dead_letter_queues"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "id": "f07cba9a-fc5c-414b-b706-39900159105a",
+  "title": "File tree service and REST controller",
+  "name": "File tree API",
+  "createdAt": "2026-11-25T04:52:20.551Z",
+  "durationMinutes": 13,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code separates the web, service and persistence layers? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "A client asks to move folder A into a folder B that is a descendant of A. What happens?",
+      "choices": [
+        "The move succeeds and the subtree becomes unreachable from the root.",
+        "assertNotDescendant walks up from B, finds A, and throws InvalidMoveException, which FileErrorHandler turns into a 409 response.",
+        "The database unique constraint on (owner_id, parent_id, name) rejects the update.",
+        "The service returns null and the controller responds with 404."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Which layer decides that a quota failure becomes an HTTP 507 response, and why does that matter?",
+      "choices": [
+        "FileService, because it throws QuotaExceededException with the status code embedded.",
+        "FileNodeRepository, because totalBytesOwnedBy computes the quota.",
+        "FileController.create, which catches the exception and builds the response.",
+        "FileErrorHandler: the service throws a domain exception with no HTTP knowledge, so it can be reused outside a web request."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "createFile publishes FileChanged inside a @Transactional method. If the transaction later fails to commit, what do you know about the listeners of that event?",
+      "choices": [
+        "Nothing is guaranteed: a plain @EventListener runs synchronously when publishEvent is called, before the commit, so it may already have acted on data that is rolled back.",
+        "Listeners never run, because Spring defers every event to after commit.",
+        "Listeners run twice, once before and once after the commit.",
+        "Listeners run only if the commit succeeds, because publishEvent is bound to the transaction."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.layering",
+    "backend.design.coupling_and_cohesion",
+    "backend.design.dependency_injection",
+    "backend.api.status_codes_and_error_responses",
+    "backend.data.transactions_and_isolation_levels"
+  ]
+}

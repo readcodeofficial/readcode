@@ -1,0 +1,51 @@
+{
+  "id": "7f2227c4-b626-45f3-90c2-4f0f603e66d0",
+  "title": "Per-player chat rate limiting in a game gateway",
+  "name": "Game chat rate limiter",
+  "createdAt": "2026-11-25T04:52:20.081Z",
+  "durationMinutes": 14,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code rate limits players? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "In RateLimit, why does the per-player check run before the shared server budget check?",
+      "choices": [
+        "A rejected player request does not consume a token from the shared server budget, so one noisy player cannot drain capacity for everyone else",
+        "It makes the Retry-After header more accurate because the player bucket refills faster than the server bucket",
+        "The server limiter is not safe for concurrent use, so it must only be reached by one request at a time",
+        "Authenticate would otherwise overwrite the limiter state for the player"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "What is the purpose of RunSweeper, and what is the cost of sweeping a bucket for a player who then returns?",
+      "choices": [
+        "It flushes pending reservations to the server limiter; a returning player loses their queued requests",
+        "It bounds the size of the buckets map by deleting idle players; a returning player gets a fresh full bucket, which is harmless once the idle time exceeds the refill time",
+        "It resets all buckets each minute so that limits are aligned to wall-clock windows",
+        "It keeps the Authenticate session cache warm so that returning players avoid re-verification"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Under heavy concurrent traffic from many players, which statement about the limiter map and its lock is accurate?",
+      "choices": [
+        "Because Go maps are safe for concurrent reads, the lock is only needed in Sweep",
+        "A second request for the same new player can create a duplicate bucket because the lookup and the insert are not atomic",
+        "The mutex serializes every token-bucket decision, so throughput is limited to a single request at a time per player",
+        "The mutex is only held while looking up or creating the bucket; the token accounting itself is done by rate.Limiter, which has its own synchronization"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.rate_limiting",
+    "backend.concurrency.race_conditions",
+    "backend.api.status_codes_and_error_responses",
+    "backend.resources.memory_leaks"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "6168ed10-3fa6-49c2-98a8-d945fbca5a65",
+  "title": "Matchmaker with OpenTelemetry tracing across services",
+  "name": "Matchmaker tracing setup",
+  "createdAt": "2026-11-25T04:52:20.380Z",
+  "durationMinutes": 14,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code propagates and records traces? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "What does the sampler configured in InitTracing do for this service?",
+      "choices": [
+        "Samples 10 percent of root traces by trace ID, and follows the sampling decision of the incoming parent when there is one",
+        "Samples 10 percent of all spans independently, so a trace can have gaps",
+        "Always samples spans that record an error, regardless of the ratio",
+        "Samples every trace but exports only 10 percent in the batcher"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "In loadCandidate, why do the two goroutines use gctx rather than ctx?",
+      "choices": [
+        "gctx carries a new span for each goroutine automatically",
+        "It cancels the sibling request as soon as one call fails, while still carrying the parent span from ctx so the downstream calls are children of loadCandidate",
+        "The errgroup requires its own context to be able to recover panics",
+        "Without gctx the two goroutines would share a single HTTP connection"
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Both loadCandidate and Enqueue call RecordError and SetStatus when an error occurs. What is the effect on the trace?",
+      "choices": [
+        "SetStatus stops the span from ending, so duplicates are merged on export",
+        "The second call overwrites the first and the trace shows only one error",
+        "The error is recorded as an event on each span and each span is marked as failed, so the failure is visible at both levels of the trace",
+        "RecordError automatically marks the span as failed, so SetStatus is redundant"
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.tracing",
+    "backend.resilience.timeouts",
+    "backend.resources.context_cancellation"
+  ]
+}

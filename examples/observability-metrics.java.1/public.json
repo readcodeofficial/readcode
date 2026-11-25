@@ -1,0 +1,50 @@
+{
+  "id": "9de67926-9f75-4dc2-811d-86c3cc386090",
+  "title": "Support ticket metrics with Micrometer",
+  "name": "Ticket metrics service",
+  "createdAt": "2026-11-25T04:52:20.347Z",
+  "durationMinutes": 12,
+  "language": "Java",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how this code records metrics for tickets? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "Why are the open-ticket gauges backed by AtomicInteger instances stored in the openByPriority map rather than created inline and only handed to the registry?",
+      "choices": [
+        "Because AtomicInteger is the only Number type that Micrometer gauges accept.",
+        "Because the map makes the gauge values thread-safe; the registry itself never reads them concurrently.",
+        "Because the registry holds only a weak reference to a gauged object, so the map keeps each counter alive and lets the service update it.",
+        "Because Micrometer would otherwise re-query the repository on every scrape, and the map caches the result."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Given the enums in this code, what is the maximum number of distinct time series the support.tickets.created counter can produce?",
+      "choices": [
+        "12, one per priority and channel combination.",
+        "4, one per priority.",
+        "3, one per channel.",
+        "Unbounded, because every ticket creates a new series."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Because of clock skew between nodes, firstResponse is called with a respondedAt that is slightly earlier than ticket.createdAt(). What does the code record?",
+      "choices": [
+        "A zero-length sample in the timer and one SLA breach.",
+        "A negative sample in the timer, which lowers the reported mean latency.",
+        "An IllegalArgumentException from the timer, which the service lets propagate to the caller.",
+        "Nothing in the timer, because Micrometer ignores negative durations, and no breach is counted."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.metrics",
+    "backend.concurrency.atomic_operations",
+    "backend.concurrency.shared_state_in_request_handlers"
+  ]
+}

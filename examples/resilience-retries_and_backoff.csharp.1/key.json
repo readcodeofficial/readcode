@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "SmsGatewayClient.cs",
+        "startLine": 31,
+        "endLine": 31
+      }
+    },
+    2,
+    1,
+    3
+  ],
+  "explanations": [
+    "The Idempotency-Key header is generated inside the callback passed to ExecuteAsync, so every retry attempt sends a fresh random key. When an attempt times out client-side, or the gateway returns a 5xx after already accepting the message, the retry carries a different key and the gateway cannot recognise it as the same send, so the customer can receive the SMS several times. The key must be derived once outside the callback (for example from message.Id) so all attempts share it.",
+    "ShouldHandle only matches HttpRequestException, TimeoutRejectedException and results where IsTransient is true (5xx, 408, 429). A 400 is none of those, so the pipeline returns it after one attempt. SendAsync then sees a non-success, non-transient status and returns Rejected, which the dispatcher maps to MarkRejectedAsync. The first and second choices assume 4xx is retried, which the predicate does not do. The last choice is wrong because the code never calls EnsureSuccessStatusCode, so no exception is thrown for HTTP error statuses.",
+    "AddTimeout is registered after AddRetry, so it sits inside the retry strategy and limits each attempt to 3 seconds. A timeout raises TimeoutRejectedException, which ShouldHandle retries. With 1 initial attempt plus 4 retries that is five timeouts (about 15 s) plus the exponential delays between them. The first choice would be true only if the timeout were the outer strategy. The third ignores that the timeout strategy cancels the token passed to SendAsync. The fourth is wrong because exceptions are handled by the same retry predicate as status codes.",
+    "DelayGenerator returns a non-null value whenever Retry-After carries a delta, and Polly then uses that value instead of the exponential delay. The code clamps it with Math.Min against MaxRetryAfter (10 s), so the wait is 10 seconds. The first choice ignores the clamp. The second ignores that DelayGenerator reads the header. The third describes the wrong mechanism: the header replaces the backoff rather than feeding into it, and the cap comes from the explicit Math.Min."
+  ]
+}

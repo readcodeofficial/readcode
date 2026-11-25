@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "com/acme/identity/security/AccountUserDetailsService.java",
+        "startLine": 33,
+        "endLine": 33
+      }
+    },
+    1,
+    2,
+    3
+  ],
+  "explanations": [
+    "Only SUSPENDED (locked) and CLOSED (disabled) are mapped to Spring Security's account-state flags. A freshly registered account has status PENDING_VERIFICATION and its password hash is already stored, so `DaoAuthenticationProvider` accepts its credentials and the login endpoint issues an access token before the e-mail address was ever verified; the `/auth/verify` step becomes optional. The enabled flag should be derived from the status being ACTIVE (for example `.disabled(account.getStatus() != AccountStatus.ACTIVE)` together with the suspended check).",
+    "The controller catches the AuthenticationException base class and always answers 401 invalid_credentials. By default DaoAuthenticationProvider hides UsernameNotFoundException behind BadCredentialsException (and still runs a dummy password match so timing is similar), so the two cases are indistinguishable. A and D assume the status code differs; C is wrong because UsernameNotFoundException is an AuthenticationException and is caught.",
+    "`createDelegatingPasswordEncoder` dispatches on the prefix, so legacy hashes still verify. For a non-default prefix `upgradeEncoding` returns true, and because the same bean implements `UserDetailsPasswordService`, the provider calls `updatePassword`, which persists a fresh hash. A is wrong because of that hook; B is wrong because the delegating encoder knows several formats; D is unrelated to login.",
+    "Unlisted paths fall through to `anyRequest().authenticated()`, and the resource-server JWT filter is the way to authenticate. A is the opposite of a deny-by-default rule; B is wrong because the policy is STATELESS and no session is created or consulted; C is wrong because CSRF is disabled and would not authenticate anyone anyway."
+  ]
+}

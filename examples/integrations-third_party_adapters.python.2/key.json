@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "iotcloud/client.py",
+        "startLine": 82,
+        "endLine": 83
+      }
+    },
+    1,
+    3,
+    0
+  ],
+  "explanations": [
+    "send_command is a POST that queues an action on a device, and it shares the retry policy with the read-only page fetch. When the request times out or the connection drops after the provider has already accepted the command, the retry sends it again and the device receives it twice (a reboot or firmware update runs twice). There is no stable idempotency key: X-Request-Id is regenerated on every attempt and is only for tracing. Reads can be retried safely; the command needs a key generated once outside the retried call, or no automatic retry.",
+    "B is right: readings() is a generator that yields each page's readings as it goes, and _get_page re-raises (reraise=True) after the last attempt. A and D assume errors are swallowed. C is wrong because pages are fetched lazily.",
+    "D is right: CELSIUS_CONVERTERS has no entry, so normalise_reading raises, and nothing in readings() catches it. A would only apply for a missing unit, which defaults to C. B has no code path. C is wrong because normalisation runs outside the retried _get_page.",
+    "A is right: _raise_for_status maps 404 to DeviceNotFound, which is not in the retry predicate. B and D misread the status mapping, which only treats 429, 502, 503 and 504 as transient. C has no code path."
+  ]
+}

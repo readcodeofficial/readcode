@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "defect": {
+        "path": "Infrastructure/InventoryService.cs",
+        "startLine": 22,
+        "endLine": 22
+      }
+    },
+    2,
+    0,
+    3
+  ],
+  "explanations": [
+    "InventoryService.ReserveAsync calls IgnoreQueryFilters() to include archived products, but the Product filter combines the archive condition with the tenant condition in a single HasQueryFilter. IgnoreQueryFilters removes the whole filter, so the lookup by SKU runs across every tenant, and FirstOrDefault picks whichever tenant's matching row comes first. A tenant reserving a SKU can therefore decrement another tenant's stock (and succeed even when its own has none). The query should keep the tenant predicate explicitly, for example by filtering on TenantId after IgnoreQueryFilters or by splitting the tenant and archive filters.",
+    "The Order query filter adds TenantId = current tenant to every query on db.Orders, so the other tenant's row is never selected and the controller's null check returns NotFound. This also avoids revealing that the order exists. Nothing is loaded and then rejected (so no 403), uniqueness is per (TenantId, Number) and the filter ensures at most one match.",
+    "For Added entries it overwrites TenantId with the tenant from the claim, so a handler cannot create data under another tenant or forget to set it, and for Modified entries whose TenantId changed it throws. It only affects writes: filtering reads is the query filters' job, transaction scope is unchanged, and SKU uniqueness comes from the composite unique index.",
+    "The model is built once and shared across context instances. EF Core treats an access to a member of the context in a filter expression as a parameter that is resolved for the current instance, so each request's context uses its own tenant. Capturing a local would bake in whichever tenant triggered model creation. Neither the SQL translation nor no-tracking behaviour is affected."
+  ]
+}

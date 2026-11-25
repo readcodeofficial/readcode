@@ -1,0 +1,51 @@
+{
+  "id": "dc28b8e5-1d95-403a-acf7-14083aa593fc",
+  "title": "HLS playlist and segment handlers with signed links",
+  "name": "Signed HLS delivery",
+  "createdAt": "2026-11-25T04:52:20.598Z",
+  "durationMinutes": 12,
+  "language": "Go",
+  "questions": [
+    {
+      "kind": "locate",
+      "prompt": "Is there a defect in how the signed link checks are implemented across the two handlers? If so, mark the line(s) where it is; otherwise answer that there is none."
+    },
+    {
+      "kind": "choice",
+      "prompt": "For a playlist line such as \"seg0.ts\" in the stored index.m3u8, what does ManifestHandler write to the response?",
+      "choices": [
+        "The line unchanged, since the player resolves it relative to the playlist URL.",
+        "A rewritten URL under /segments/<id>/ with exp and sig query parameters; lines starting with # and blank lines are copied as they are.",
+        "Every line, including #EXTINF tag lines, replaced by a signed URL.",
+        "A redirect to the segment URL, with the playlist body omitted."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "A viewer holds a valid, unexpired signed link for the manifest of stream abc. Can they use the same exp and sig values on the manifest URL of stream xyz?",
+      "choices": [
+        "Yes, because the signature covers only the expiry time and the shared key.",
+        "Yes, because ManifestHandler only validates the signature and the expiry, not the stream id.",
+        "No, because Sign hashes the viewer's session cookie together with the path.",
+        "No, because the signed message includes the request path, so the signature will not match for a different stream id."
+      ]
+    },
+    {
+      "kind": "choice",
+      "prompt": "Suppose Signer.Sign is changed so the signed message also includes a version string, for example path + \"|\" + exp + \"|v2\". What must change for all newly issued links to keep working?",
+      "choices": [
+        "Signer.Sign and the verification code in both ManifestHandler and SegmentHandler, because each handler builds the HMAC message itself.",
+        "Only Signer.Sign, since the handlers call into Signer to verify.",
+        "Only the two handlers, because Sign output is not used by them.",
+        "Nothing; the HMAC key is shared, so any message format verifies."
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.code_duplication",
+    "backend.security.authorization_checks",
+    "backend.design.coupling_and_cohesion",
+    "backend.security.session_and_token_handling"
+  ]
+}
