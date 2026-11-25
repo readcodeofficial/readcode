@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "delivery/quote.ts",
+          "content": "import { feesFor, type FeeSchedule } from \"./feeSchedule.ts\";\n\nexport interface OrderLine {\n    sku: string;\n    unitCents: number;\n    qty: number;\n}\n\nexport interface Order {\n    id: string;\n    zone: string;\n    lines: OrderLine[];\n}\n\nexport interface Quote {\n    subtotalCents: number;\n    deliveryCents: number;\n    serviceCents: number;\n    smallOrderCents: number;\n    totalCents: number;\n}\n\n// Applies the conditions of this particular order (busy-period surge, basket size) to the zone's fees.\nfunction adjustForOrder(fees: FeeSchedule, subtotalCents: number, surge: number): FeeSchedule {\n    if (surge > 1) fees.deliveryCents = Math.round(fees.deliveryCents * surge);\n    if (fees.freeDeliveryOverCents !== null && subtotalCents >= fees.freeDeliveryOverCents) fees.deliveryCents = 0;\n    if (subtotalCents >= fees.smallOrderUnderCents) fees.smallOrderFeeCents = 0;\n    return fees;\n}\n\n// What the customer pays. `surge` is the busy-period multiplier from dispatch (1 = normal).\nexport function quoteOrder(order: Order, surge = 1): Quote {\n    if (order.lines.length === 0) throw new Error(`Order ${order.id} is empty`);\n    if (!(surge >= 1 && surge <= 3)) throw new Error(`Surge multiplier ${surge} out of range`);\n    const subtotalCents = order.lines.reduce((sum, l) => sum + l.unitCents * l.qty, 0);\n\n    const fees = adjustForOrder({ ...feesFor(order.zone) }, subtotalCents, surge);\n    const serviceCents = Math.max(fees.minServiceFeeCents, Math.round(subtotalCents * fees.serviceFeeRate));\n\n    return {\n        subtotalCents,\n        deliveryCents: fees.deliveryCents,\n        serviceCents,\n        smallOrderCents: fees.smallOrderFeeCents,\n        totalCents: subtotalCents + fees.deliveryCents + serviceCents + fees.smallOrderFeeCents,\n    };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "feesFor returns the zone's one shared FeeSchedule object, and adjustForOrder writes this order's surge, free-delivery and small-order adjustments into it. Every quote changes the schedule for every later quote and for courierPayout, which reads the same object, until the process restarts. So surge compounds, a big basket's free delivery carries over to the next customer, and courier pay drifts. The quote module is coupled to the fee module's internal state when it should only read it. The fix gives adjustForOrder a per-order copy ({ ...feesFor(order.zone) }), so the zone schedule stays the read-only source of truth that quotes and courier pay both rely on."
+  ]
+}

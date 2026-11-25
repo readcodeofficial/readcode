@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "metrics/histogram.ts",
+          "content": "export interface Bucket {\n    le: number; // upper bound, Infinity for the last bucket\n    count: number; // observations <= le (cumulative, as Prometheus expects)\n}\n\nexport interface HistogramSnapshot {\n    buckets: Bucket[];\n    sum: number;\n    count: number;\n}\n\n// Fixed-bucket histogram, e.g. for request latency in milliseconds.\nexport class Histogram {\n    readonly name: string;\n    readonly help: string;\n    private readonly bounds: number[];\n    private readonly perBucket: number[]; // observations that landed in each bucket; last slot is overflow\n    private sum = 0;\n    private count = 0;\n\n    constructor(name: string, help: string, bounds: number[]) {\n        if (bounds.length === 0) throw new Error(`${name}: needs at least one bucket`);\n        for (let i = 1; i < bounds.length; i++) {\n            if (!(bounds[i] > bounds[i - 1])) throw new Error(`${name}: bucket bounds must be strictly increasing`);\n        }\n        this.name = name;\n        this.help = help;\n        this.bounds = [...bounds];\n        this.perBucket = new Array(bounds.length + 1).fill(0);\n    }\n\n    observe(value: number): void {\n        if (!Number.isFinite(value) || value < 0) return;\n        let i = this.bounds.findIndex((b) => value <= b);\n        if (i === -1) i = this.bounds.length;\n        this.perBucket[i]++;\n        this.sum += value;\n        this.count++;\n    }\n\n    snapshot(): HistogramSnapshot {\n        let running = 0;\n        const buckets = this.perBucket.map((n, i) => ({\n            le: i < this.bounds.length ? this.bounds[i] : Infinity,\n            count: (running += n),\n        }));\n        return { buckets, sum: this.sum, count: this.count };\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "observe() records each value in exactly one slot, the first bucket whose bound it fits under. snapshot() then reports those per-slot counts as the bucket counts. The Bucket contract (and Prometheus) expects cumulative counts: le=100 must include everything at or below 100ms, not only values between 50 and 100. Because most bids land in the 10ms bucket, the le=100 bucket looks nearly empty, so fractionWithin reports the SLO as breached, and histogram_quantile gets non-monotonic buckets with +Inf != _count. Keeping a running total in snapshot() makes each bucket count every observation at or below its bound."
+  ]
+}

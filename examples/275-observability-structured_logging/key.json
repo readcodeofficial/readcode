@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "log/logger.ts",
+          "content": "export type Level = \"debug\" | \"info\" | \"warn\" | \"error\";\nexport type Fields = Record<string, unknown>;\n\nconst SEVERITY: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };\n\nexport interface LogSink {\n    write(line: string): void;\n}\n\nexport interface LoggerOptions {\n    level: Level;\n    clock: () => Date;\n    bindings?: Fields; // fields stamped on every line from this logger\n}\n\n// Errors don't JSON.stringify to anything useful ({}), so they get flattened first.\nfunction serialize(value: unknown): unknown {\n    if (value instanceof Error) return { type: value.name, message: value.message, stack: value.stack?.split(\"\\n\").slice(0, 5).join(\"\\n\") };\n    return value;\n}\n\n// One JSON object per line: { time, level, msg, ...bindings, ...fields }.\nexport class Logger {\n    private readonly sink: LogSink;\n    private readonly options: LoggerOptions;\n    private readonly bindings: Fields;\n\n    constructor(sink: LogSink, options: LoggerOptions) {\n        this.sink = sink;\n        this.options = options;\n        this.bindings = options.bindings ?? {};\n    }\n\n    // A logger for one unit of work (a request, a job) that adds its own context to every line.\n    child(fields: Fields): Logger {\n        const bindings = { ...this.bindings, ...fields };\n        return new Logger(this.sink, { ...this.options, bindings });\n    }\n\n    debug(msg: string, fields?: Fields): void {\n        this.write(\"debug\", msg, fields);\n    }\n    info(msg: string, fields?: Fields): void {\n        this.write(\"info\", msg, fields);\n    }\n    warn(msg: string, fields?: Fields): void {\n        this.write(\"warn\", msg, fields);\n    }\n    error(msg: string, fields?: Fields): void {\n        this.write(\"error\", msg, fields);\n    }\n\n    private write(level: Level, msg: string, fields: Fields = {}): void {\n        if (SEVERITY[level] < SEVERITY[this.options.level]) return;\n        const entry: Fields = { time: this.options.clock().toISOString(), level, msg };\n        for (const [k, v] of Object.entries({ ...this.bindings, ...fields })) {\n            if (v !== undefined && !(k in entry)) entry[k] = serialize(v);\n        }\n        this.sink.write(JSON.stringify(entry));\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "child() calls Object.assign(this.bindings, fields), which writes the new fields into the parent's own bindings object and returns it. Every child of the root logger therefore shares and mutates one object. Each new request overwrites requestId, rideId and riderId for the root and for every in-flight request, so lines are stamped with whichever request started last, and the service's own lines pick up request fields too. The fix builds a fresh object ({ ...this.bindings, ...fields }), so each child inherits the parent's context without changing it."
+  ]
+}

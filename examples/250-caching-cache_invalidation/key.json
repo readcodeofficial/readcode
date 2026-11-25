@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "menu/menus.ts",
+          "content": "import type { Cache } from \"./cache.ts\";\n\nexport interface MenuItem {\n    id: string;\n    name: string;\n    priceCents: number;\n    available: boolean;\n}\n\nexport interface Menu {\n    restaurantId: string;\n    items: MenuItem[];\n}\n\nexport type ItemChanges = Partial<Pick<MenuItem, \"priceCents\" | \"available\">>;\n\nexport interface MenuStore {\n    loadMenu(restaurantId: string): Promise<Menu | null>;\n    updateItem(restaurantId: string, itemId: string, changes: ItemChanges): Promise<boolean>; // false if no such item\n}\n\nexport const MENU_TTL_MS = 10 * 60_000;\nconst menuKey = (restaurantId: string) => `menu:${restaurantId}`;\n\n// Restaurant menus are read on every app open and changed a few times a day, so the whole\n// menu is cached per restaurant (read-through) and dropped from the cache whenever it changes.\nexport class MenuService {\n    private readonly store: MenuStore;\n    private readonly cache: Cache<Menu>;\n\n    constructor(store: MenuStore, cache: Cache<Menu>) {\n        this.store = store;\n        this.cache = cache;\n    }\n\n    async getMenu(restaurantId: string): Promise<Menu> {\n        const key = menuKey(restaurantId);\n        const cached = await this.cache.get(key);\n        if (cached) return cached;\n        const menu = await this.store.loadMenu(restaurantId);\n        if (!menu) throw new Error(`Unknown restaurant ${restaurantId}`);\n        await this.cache.set(key, menu, MENU_TTL_MS);\n        return menu;\n    }\n\n    async updatePrice(restaurantId: string, itemId: string, priceCents: number): Promise<void> {\n        if (!Number.isInteger(priceCents) || priceCents <= 0) throw new Error(\"Price must be a positive number of cents\");\n        await this.change(restaurantId, itemId, { priceCents });\n    }\n\n    async setAvailable(restaurantId: string, itemId: string, available: boolean): Promise<void> {\n        await this.change(restaurantId, itemId, { available });\n    }\n\n    private async change(restaurantId: string, itemId: string, changes: ItemChanges): Promise<void> {\n        const found = await this.store.updateItem(restaurantId, itemId, changes);\n        await this.cache.delete(menuKey(restaurantId));\n        if (!found) throw new Error(`Unknown item ${itemId} at ${restaurantId}`);\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "change() deletes the cached menu before the database write has committed. Any getMenu() that runs in that window misses the cache, reads the old row from the store, and puts it back into the cache, where it stays for the full ten-minute TTL after the write lands. That's why edits only stick when nobody is browsing. The fix invalidates after the write: readers during the write still get the old cached menu (correct, since the change isn't committed yet), and the first read after the delete loads the new data."
+  ]
+}

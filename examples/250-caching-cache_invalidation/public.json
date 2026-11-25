@@ -1,0 +1,29 @@
+{
+  "id": "02d48855-bfa2-4a74-ba7f-659a7b98873e",
+  "title": "Food delivery menus: a read-through cache that keeps serving old prices",
+  "name": "Menu cache invalidation",
+  "createdAt": "2026-11-19T23:52:46.405Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Restaurants complain that after changing a price or marking a dish sold out at dinner rush, the app keeps showing the old menu for up to ten minutes, and customers order dishes that are gone. Edits made late at night, when nobody is browsing, show up right away. Fix MenuService in menu/menus.ts so the tests pass.",
+      "editable": [
+        "menu/menus.ts"
+      ],
+      "tests": [
+        {
+          "path": "menus.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { setImmediate as tick } from \"node:timers/promises\";\nimport { MemoryCache } from \"../src/menu/cache.ts\";\nimport { MENU_TTL_MS, MenuService, type Menu, type MenuStore } from \"../src/menu/menus.ts\";\nimport { ItemUnavailableError, quoteOrder } from \"../src/menu/checkout.ts\";\n\n// Reads take one round trip; writes take a few (they go to the primary and wait for the commit).\nfunction memoryStore(menus: Menu[]): MenuStore & { loads: number } {\n    const rows = new Map(menus.map((m) => [m.restaurantId, structuredClone(m)]));\n    return {\n        loads: 0,\n        async loadMenu(id) {\n            this.loads++;\n            await tick();\n            const menu = rows.get(id);\n            return menu ? structuredClone(menu) : null;\n        },\n        async updateItem(id, itemId, changes) {\n            await tick();\n            await tick();\n            await tick();\n            const item = rows.get(id)?.items.find((i) => i.id === itemId);\n            if (!item) return false;\n            Object.assign(item, changes);\n            return true;\n        },\n    };\n}\n\nfunction setup() {\n    let now = Date.parse(\"2026-11-19T18:00:00Z\");\n    const store = memoryStore([{\n        restaurantId: \"taco-loco\",\n        items: [\n            { id: \"al-pastor\", name: \"Al pastor taco\", priceCents: 450, available: true },\n            { id: \"horchata\", name: \"Horchata\", priceCents: 300, available: true },\n        ],\n    }]);\n    const menus = new MenuService(store, new MemoryCache<Menu>(() => now));\n    return { store, menus, advance: (ms: number) => (now += ms) };\n}\n\nconst price = (menu: Menu, id: string) => menu.items.find((i) => i.id === id)?.priceCents;\n\ntest(\"menus are served from the cache after the first read\", async () => {\n    const { store, menus } = setup();\n    await menus.getMenu(\"taco-loco\");\n    await menus.getMenu(\"taco-loco\");\n    await quoteOrder(menus, \"taco-loco\", [{ itemId: \"horchata\", qty: 1 }]);\n    assert.equal(store.loads, 1);\n});\n\ntest(\"a price change shows up on the next read\", async () => {\n    const { menus } = setup();\n    await menus.getMenu(\"taco-loco\");\n    await menus.updatePrice(\"taco-loco\", \"al-pastor\", 500);\n    assert.equal(price(await menus.getMenu(\"taco-loco\"), \"al-pastor\"), 500);\n});\n\ntest(\"a menu read while a price change is being saved doesn't keep the old price\", async () => {\n    const { menus } = setup();\n    await menus.getMenu(\"taco-loco\");\n    const browsing = menus.getMenu(\"taco-loco\");\n    await Promise.all([menus.updatePrice(\"taco-loco\", \"al-pastor\", 500), browsing, menus.getMenu(\"taco-loco\")]);\n    const after = await menus.getMenu(\"taco-loco\");\n    console.log(\"al-pastor price after the update finished:\", price(after, \"al-pastor\"));\n    assert.equal(price(after, \"al-pastor\"), 500);\n});\n\ntest(\"an item marked sold out can't be ordered, even if customers were browsing during the change\", async () => {\n    const { menus } = setup();\n    await menus.getMenu(\"taco-loco\");\n    await Promise.all([menus.setAvailable(\"taco-loco\", \"horchata\", false), menus.getMenu(\"taco-loco\")]);\n    await assert.rejects(quoteOrder(menus, \"taco-loco\", [{ itemId: \"horchata\", qty: 2 }]), ItemUnavailableError);\n});\n\ntest(\"checkout charges the new price once the change is saved\", async () => {\n    const { menus } = setup();\n    const lines = [{ itemId: \"al-pastor\", qty: 3 }, { itemId: \"horchata\", qty: 1 }];\n    assert.equal((await quoteOrder(menus, \"taco-loco\", lines)).subtotalCents, 1650);\n    await Promise.all([menus.updatePrice(\"taco-loco\", \"al-pastor\", 400), quoteOrder(menus, \"taco-loco\", lines)]);\n    assert.equal((await quoteOrder(menus, \"taco-loco\", lines)).subtotalCents, 1500);\n});\n\ntest(\"cached menus expire after the TTL\", async () => {\n    const { store, menus, advance } = setup();\n    await menus.getMenu(\"taco-loco\");\n    advance(MENU_TTL_MS - 1);\n    await menus.getMenu(\"taco-loco\");\n    assert.equal(store.loads, 1);\n    advance(1);\n    await menus.getMenu(\"taco-loco\");\n    assert.equal(store.loads, 2);\n});\n\ntest(\"bad updates are rejected\", async () => {\n    const { menus } = setup();\n    await assert.rejects(menus.updatePrice(\"taco-loco\", \"al-pastor\", -5), /positive/);\n    await assert.rejects(menus.updatePrice(\"taco-loco\", \"burrito\", 900), /Unknown item/);\n    assert.equal(price(await menus.getMenu(\"taco-loco\"), \"al-pastor\"), 450);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.caching.cache_invalidation",
+    "backend.caching.stale_reads",
+    "backend.concurrency.race_conditions"
+  ]
+}

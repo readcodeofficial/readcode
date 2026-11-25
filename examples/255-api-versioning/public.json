@@ -1,0 +1,28 @@
+{
+  "id": "1a9d862c-f5f2-48f1-891d-fe7822d81f33",
+  "title": "Music catalog API: date-based versions downgraded in the wrong order",
+  "name": "Versioned track responses",
+  "createdAt": "2026-11-19T23:52:48.550Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Since the 2025-09-15 release (multiple artists per track), our oldest partners, the car-dashboard integrations still pinned to 2024-01-10, show \"Unknown artist\" on every song. Their logs show tracks arriving with artist missing and an artistName field they've never seen. Partners pinned to 2025-03-01 or later are fine. Fix versions.ts so the tests pass.",
+      "editable": [
+        "catalog/versions.ts"
+      ],
+      "tests": [
+        {
+          "path": "catalog.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { catalogHandlers, type ApiRequest, type Track } from \"../src/catalog/tracks.ts\";\nimport { upgradePinnedVersion, type Account } from \"../src/catalog/accounts.ts\";\nimport { LATEST_VERSION, renderTrack } from \"../src/catalog/versions.ts\";\n\nconst tracks: Track[] = [\n    { id: \"t1\", title: \"Night Drive\", artists: [{ id: \"a1\", name: \"Kaia\" }, { id: \"a2\", name: \"Mo Reyes\" }], contentRating: \"clean\", durationMs: 214_000 },\n    { id: \"t2\", title: \"Static\", artists: [{ id: \"a3\", name: \"Halden\" }], contentRating: \"explicit\", durationMs: 187_500 },\n];\n\nfunction setup() {\n    const api = catalogHandlers({\n        track: async (id) => structuredClone(tracks.find((t) => t.id === id) ?? null),\n        playlist: async (id) => (id === \"p1\" ? { id, name: \"Late commute\", trackIds: [\"t1\", \"gone\", \"t2\"] } : null),\n    });\n    const req = (params: Record<string, string>, pinnedVersion: string, header?: string): ApiRequest => ({\n        params,\n        headers: { \"tunes-version\": header },\n        account: { id: \"partner-1\", pinnedVersion },\n    });\n    return { api, req };\n}\n\ntest(\"clients on the latest version get the current shape\", async () => {\n    const { api, req } = setup();\n    const res = await api.getTrack(req({ id: \"t1\" }, LATEST_VERSION));\n    assert.equal(res.headers[\"Tunes-Version\"], \"2026-02-01\");\n    assert.deepEqual(res.body, tracks[0]);\n});\n\ntest(\"a client pinned to 2025-03-01 gets one artistName string and the explicit flag\", async () => {\n    const { api, req } = setup();\n    const res = await api.getTrack(req({ id: \"t2\" }, \"2025-03-01\"));\n    assert.deepEqual(res.body, { id: \"t2\", title: \"Static\", artistName: \"Halden\", explicit: true, durationMs: 187_500 });\n});\n\ntest(\"a client pinned to the original 2024 version still gets an artist field\", async () => {\n    const { api, req } = setup();\n    const res = await api.getTrack(req({ id: \"t1\" }, \"2024-01-10\"));\n    console.log(\"track as served to a 2024-01-10 client:\", res.body);\n    assert.deepEqual(res.body, { id: \"t1\", title: \"Night Drive\", artist: \"Kaia, Mo Reyes\", explicit: false, durationMs: 214_000 });\n});\n\ntest(\"playlists embed their tracks in the playlist's version\", async () => {\n    const { api, req } = setup();\n    const res = await api.getPlaylist(req({ id: \"p1\" }, \"2024-01-10\"));\n    const body = res.body as { totalDurationMs: number; tracks: Record<string, unknown>[] };\n    assert.equal(body.totalDurationMs, 401_500);\n    assert.deepEqual(body.tracks.map((t) => [t.artist, t.explicit]), [[\"Kaia, Mo Reyes\", false], [\"Halden\", true]]);\n});\n\ntest(\"the Tunes-Version header overrides the pinned version, and unknown versions get a 400\", async () => {\n    const { api, req } = setup();\n    const res = await api.getTrack(req({ id: \"t2\" }, \"2025-03-01\", \"2025-09-15\"));\n    assert.equal(res.headers[\"Tunes-Version\"], \"2025-09-15\");\n    assert.deepEqual(res.body, { id: \"t2\", title: \"Static\", artists: [{ id: \"a3\", name: \"Halden\" }], explicit: true, durationMs: 187_500 });\n    const bad = await api.getTrack(req({ id: \"t2\" }, LATEST_VERSION, \"2025-06-01\"));\n    assert.equal(bad.status, 400);\n    assert.match((bad.body as { error: string }).error, /supported: 2024-01-10, 2025-03-01, 2025-09-15, 2026-02-01/);\n});\n\ntest(\"rendering for an old version doesn't change the stored track\", () => {\n    const stored = structuredClone(tracks[1]);\n    renderTrack(stored as unknown as Record<string, unknown>, \"2024-01-10\");\n    assert.deepEqual(stored, tracks[1]);\n});\n\ntest(\"upgrading a pinned version lists the changes being accepted and never goes backwards\", async () => {\n    const accounts = new Map<string, Account>([[\"partner-1\", { id: \"partner-1\", pinnedVersion: \"2024-01-10\" }]]);\n    const store = { get: async (id: string) => accounts.get(id) ?? null, save: async (a: Account) => void accounts.set(a.id, a) };\n    const up = await upgradePinnedVersion(store, \"partner-1\", \"2025-09-15\");\n    assert.deepEqual(up.ok && up.changes, [\n        \"2025-03-01: artist renamed to artistName\",\n        \"2025-09-15: artistName replaced by artists: [{ id, name }] for collaborations\",\n    ]);\n    assert.equal(accounts.get(\"partner-1\")?.pinnedVersion, \"2025-09-15\");\n    assert.deepEqual(await upgradePinnedVersion(store, \"partner-1\", \"2025-03-01\"), { ok: false, error: \"Pinned versions can't be downgraded\" });\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.versioning",
+    "backend.api.serialization_and_deserialization"
+  ]
+}

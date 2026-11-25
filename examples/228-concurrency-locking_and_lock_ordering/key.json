@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "wallet/wallets.ts",
+          "content": "import { Mutex } from \"./mutex.ts\";\n\nexport interface WalletStore {\n    load(id: string): Promise<number | null>; // balance in cents\n    save(id: string, balanceCents: number): Promise<void>;\n}\n\nexport class InsufficientFundsError extends Error {\n    constructor(walletId: string) {\n        super(`Wallet ${walletId} has insufficient funds`);\n        this.name = \"InsufficientFundsError\";\n    }\n}\n\nexport class WalletService {\n    private readonly store: WalletStore;\n    private readonly locks = new Map<string, Mutex>();\n\n    constructor(store: WalletStore) {\n        this.store = store;\n    }\n\n    private lockFor(walletId: string): Mutex {\n        let lock = this.locks.get(walletId);\n        if (!lock) {\n            lock = new Mutex();\n            this.locks.set(walletId, lock);\n        }\n        return lock;\n    }\n\n    // Peer-to-peer transfer between two wallets.\n    async transfer(fromId: string, toId: string, amountCents: number): Promise<void> {\n        if (fromId === toId) throw new Error(\"Cannot transfer to the same wallet\");\n        if (!Number.isInteger(amountCents) || amountCents <= 0) throw new Error(\"Amount must be a positive number of cents\");\n\n        // Always lock in the same global order (by wallet id), whichever way the money moves.\n        const [firstId, secondId] = fromId < toId ? [fromId, toId] : [toId, fromId];\n        const releaseFirst = await this.lockFor(firstId).acquire();\n        try {\n            const releaseSecond = await this.lockFor(secondId).acquire();\n            try {\n                const fromBalance = await this.store.load(fromId);\n                if (fromBalance === null) throw new Error(`Unknown wallet ${fromId}`);\n                const toBalance = await this.store.load(toId);\n                if (toBalance === null) throw new Error(`Unknown wallet ${toId}`);\n                if (fromBalance < amountCents) throw new InsufficientFundsError(fromId);\n\n                await this.store.save(fromId, fromBalance - amountCents);\n                await this.store.save(toId, toBalance + amountCents);\n            } finally {\n                releaseSecond();\n            }\n        } finally {\n            releaseFirst();\n        }\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "transfer() locks the sender, then the receiver. When alice pays bob while bob pays alice, the first transfer holds alice's lock and waits for bob's, and the second holds bob's and waits for alice's. Neither ever releases (a lock-ordering deadlock). The fix acquires both locks in one global order, here sorted by wallet ID, no matter which way the money moves. Every transfer then waits for locks in the same sequence and a cycle can't form. Reading the balances after both locks are held also keeps the check-then-write atomic."
+  ]
+}

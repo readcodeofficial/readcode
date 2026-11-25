@@ -1,0 +1,28 @@
+{
+  "id": "77982b38-16eb-45cf-a809-5a59fdc973c8",
+  "title": "Ride dispatch logging: request context that bleeds between requests",
+  "name": "Dispatch request logger",
+  "createdAt": "2026-11-19T23:52:58.433Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "On-call tried to trace one rider's failed booking by filtering the logs on its requestId, and the results made no sense. The \"driver assigned\" line for that ride carried another rider's requestId and rideId, and the dispatcher's periodic heartbeat lines carried ride ids even though they aren't tied to any ride. It gets worse at peak hours. Fix logger.ts so the tests pass.",
+      "editable": [
+        "log/logger.ts"
+      ],
+      "tests": [
+        {
+          "path": "logging.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { setImmediate as tick } from \"node:timers/promises\";\nimport { Logger, type Level } from \"../src/log/logger.ts\";\nimport type { Driver, DriverPool } from \"../src/dispatch/drivers.ts\";\nimport { requestRide, type RideRequest } from \"../src/dispatch/requestRide.ts\";\n\nfunction capture(level: Level = \"debug\") {\n    const lines: Record<string, any>[] = [];\n    const root = new Logger(\n        { write: (line) => lines.push(JSON.parse(line)) },\n        { level, clock: () => new Date(\"2026-11-19T18:05:00Z\"), bindings: { service: \"dispatch\", region: \"lisbon\" } },\n    );\n    return { root, lines };\n}\n\n// Pool that answers like a remote service: every call yields before returning.\nfunction pool(drivers: Driver[], failWith?: Error): DriverPool {\n    const reserved = new Set<string>();\n    return {\n        async nearby() {\n            await tick();\n            if (failWith) throw failWith;\n            return drivers;\n        },\n        async reserve(driverId) {\n            await tick();\n            if (reserved.has(driverId)) return false;\n            reserved.add(driverId);\n            return true;\n        },\n    };\n}\n\nconst ride = (n: number): RideRequest => ({ requestId: `req-${n}`, riderId: `rider-${n}`, rideId: `ride-${n}`, pickup: { lat: 38.7223, lng: -9.1393 } });\nconst driver = (id: string, lat: number): Driver => ({ id, location: { lat, lng: -9.1393 }, available: true });\n\ntest(\"each line is one JSON object with time, level, message, bindings and fields\", () => {\n    const { root, lines } = capture();\n    root.info(\"shift started\", { driversOnline: 412 });\n    assert.deepEqual(lines, [{ time: \"2026-11-19T18:05:00.000Z\", level: \"info\", msg: \"shift started\", service: \"dispatch\", region: \"lisbon\", driversOnline: 412 }]);\n});\n\ntest(\"lines below the configured level are dropped\", async () => {\n    const { root, lines } = capture(\"info\");\n    await requestRide(root, pool([driver(\"d1\", 38.73)]), ride(1));\n    assert.deepEqual(lines.map((l) => l.msg), [\"ride requested\", \"driver assigned\"]);\n});\n\ntest(\"a failed dispatch logs the error's type and message\", async () => {\n    const { root, lines } = capture();\n    await assert.rejects(requestRide(root, pool([], new TypeError(\"geo index unavailable\")), ride(1)));\n    const line = lines.find((l) => l.level === \"error\");\n    assert.equal(line?.err.type, \"TypeError\");\n    assert.equal(line?.err.message, \"geo index unavailable\");\n    assert.equal(line?.rideId, \"ride-1\");\n});\n\ntest(\"context added for one request doesn't show up on the service's own lines\", async () => {\n    const { root, lines } = capture();\n    await requestRide(root, pool([driver(\"d1\", 38.73)]), ride(1));\n    root.info(\"heartbeat\");\n    const heartbeat = lines.at(-1)!;\n    console.log(\"heartbeat line after one ride:\", heartbeat);\n    assert.equal(heartbeat.rideId, undefined);\n    assert.equal(heartbeat.requestId, undefined);\n});\n\ntest(\"two rides dispatched at the same time each log under their own ids\", async () => {\n    const { root, lines } = capture();\n    const drivers = pool([driver(\"d1\", 38.73), driver(\"d2\", 38.74)]);\n    await Promise.all([requestRide(root, drivers, ride(1)), requestRide(root, drivers, ride(2))]);\n    const assigned = lines.filter((l) => l.msg === \"driver assigned\").map((l) => [l.requestId, l.rideId, l.riderId, l.driverId]);\n    assert.deepEqual(assigned.sort(), [[\"req-1\", \"ride-1\", \"rider-1\", \"d1\"], [\"req-2\", \"ride-2\", \"rider-2\", \"d2\"]]);\n    for (const l of lines) assert.equal(l.rideId?.slice(5), l.requestId?.slice(4), `mixed ids on \"${l.msg}\"`);\n});\n\ntest(\"when nobody is free the rider's request is logged as a warning\", async () => {\n    const { root, lines } = capture();\n    const result = await requestRide(root, pool([{ ...driver(\"d1\", 38.73), available: false }]), ride(7));\n    assert.deepEqual(result, { status: \"no_driver\" });\n    const warn = lines.find((l) => l.level === \"warn\");\n    assert.deepEqual([warn?.msg, warn?.requestId, warn?.radiusKm, warn?.candidates], [\"no driver available\", \"req-7\", 5, 0]);\n});\n\ntest(\"fields can't overwrite time, level or msg, and undefined fields are left out\", () => {\n    const { root, lines } = capture();\n    root.child({ level: \"fatal\" }).warn(\"surge pricing on\", { msg: \"spoofed\", time: \"yesterday\", zone: \"baixa\", note: undefined });\n    assert.deepEqual(lines[0], { time: \"2026-11-19T18:05:00.000Z\", level: \"warn\", msg: \"surge pricing on\", service: \"dispatch\", region: \"lisbon\", zone: \"baixa\" });\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.structured_logging",
+    "backend.observability.tracing"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "demo-fix-pagination",
+  "title": "Orders API: offset pagination with an off-by-one",
+  "name": "Orders pagination fix",
+  "createdAt": "2026-11-19T23:53:06.796Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Mobile clients report that every page of GET /orders is missing one order, and the app keeps requesting an empty page at the end of the list. Fix pagination.ts so the tests pass.",
+      "editable": [
+        "pagination.ts"
+      ],
+      "tests": [
+        {
+          "path": "pagination.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { paginate, parseLimit } from \"../src/pagination.ts\";\nimport { listOrders, type Order } from \"../src/routes/listOrders.ts\";\nimport { handleListOrders } from \"../src/routes/ordersHttp.ts\";\nimport { exportOrdersCsv } from \"../src/exportOrders.ts\";\n\nconst ids = Array.from({ length: 10 }, (_, i) => i + 1);\nconst orders: Order[] = Array.from({ length: 7 }, (_, i) => ({\n    id: `o${i + 1}`,\n    createdAt: `2026-11-0${i + 1}T10:00:00Z`,\n    totalCents: 1000 + i * 105,\n}));\n\ntest(\"a page has exactly limit items\", () => {\n    const page = paginate(ids, 0, 4);\n    console.log(\"page 1:\", page.items);\n    assert.deepEqual(page.items, [1, 2, 3, 4]);\n    assert.equal(page.nextCursor, 4);\n});\n\ntest(\"the last page has no next cursor\", () => {\n    const page = paginate(ids, 5, 5);\n    assert.deepEqual(page.items, [6, 7, 8, 9, 10]);\n    assert.equal(page.nextCursor, null);\n});\n\ntest(\"walking every page returns each item exactly once\", () => {\n    const seen: number[] = [];\n    let cursor: number | null = 0;\n    while (cursor !== null) {\n        const page = paginate(ids, cursor, 3);\n        seen.push(...page.items);\n        cursor = page.nextCursor;\n    }\n    assert.deepEqual(seen, ids);\n});\n\ntest(\"parseLimit falls back to 20 and caps at 100\", () => {\n    assert.equal(parseLimit(undefined), 20);\n    assert.equal(parseLimit(\"0\"), 20);\n    assert.equal(parseLimit(\"abc\"), 20);\n    assert.equal(parseLimit(\"500\"), 100);\n});\n\ntest(\"GET /orders returns the newest orders first\", () => {\n    const page = listOrders(orders.slice(0, 3), { limit: \"2\" });\n    assert.deepEqual(page.items.map((o) => o.id), [\"o3\", \"o2\"]);\n    assert.equal(page.nextCursor, 2);\n});\n\ntest(\"the HTTP handler rejects bad cursors\", () => {\n    for (const cursor of [\"-1\", \"2.5\", \"abc\", \"\"]) {\n        assert.equal(handleListOrders(orders, { cursor }).status, 400, `cursor=${JSON.stringify(cursor)}`);\n    }\n    assert.equal(handleListOrders(orders, {}).status, 200);\n});\n\ntest(\"the Link header leads to the next page and is absent on the last one\", () => {\n    const first = handleListOrders(orders, { limit: \"4\" });\n    assert.equal(first.headers.Link, '</orders?cursor=4&limit=4>; rel=\"next\"');\n    assert.equal(first.headers[\"X-Total-Count\"], \"7\");\n    const last = handleListOrders(orders, { cursor: \"4\", limit: \"4\" });\n    assert.deepEqual((last.body as { items: Order[] }).items.map((o) => o.id), [\"o3\", \"o2\", \"o1\"]);\n    assert.equal(last.headers.Link, undefined);\n});\n\ntest(\"the nightly export contains every order exactly once\", () => {\n    const csv = exportOrdersCsv(orders, 3);\n    const rows = csv.trim().split(\"\\n\");\n    assert.equal(rows[0], \"id,created_at,total\");\n    assert.deepEqual(rows.slice(1).map((r) => r.split(\",\")[0]), [\"o7\", \"o6\", \"o5\", \"o4\", \"o3\", \"o2\", \"o1\"]);\n    assert.equal(rows[1], \"o7,2026-11-07T10:00:00Z,16.30\");\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.pagination"
+  ]
+}

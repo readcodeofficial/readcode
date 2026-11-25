@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "auth/login.ts",
+          "content": "import { hashPassword, verifyPassword } from \"./passwords.ts\";\nimport type { LoginThrottle } from \"./throttle.ts\";\n\nexport interface Employee {\n    id: string;\n    username: string; // stored normalized\n    passwordHash: string;\n    disabled: boolean;\n}\n\nexport interface EmployeeDirectory {\n    findByUsername(username: string): Promise<Employee | null>;\n}\n\nexport interface SessionIssuer {\n    issue(employeeId: string): Promise<string>;\n}\n\nexport type LoginResult =\n    | { ok: true; employeeId: string; sessionId: string }\n    | { ok: false; reason: \"invalid_credentials\" }\n    | { ok: false; reason: \"locked\"; retryAfterMs: number };\n\n// Usernames are case-insensitive, and people paste them with stray spaces.\nexport const normalizeUsername = (username: string) => username.trim().toLowerCase();\n\n// Checked when the username doesn't exist, so unknown and known usernames take the same time.\nconst DUMMY_HASH = hashPassword(\"placeholder-password-never-matches\");\n\n// Payroll portal sign-in.\nexport function loginService(directory: EmployeeDirectory, throttle: LoginThrottle, sessions: SessionIssuer, now: () => number) {\n    return {\n        async login(username: string, password: string): Promise<LoginResult> {\n            // Throttle on the same identity the directory resolves, or \"Dana\" and \"DANA\" get separate budgets.\n            const key = normalizeUsername(username);\n            const t = now();\n            if (throttle.isLocked(key, t)) {\n                return { ok: false, reason: \"locked\", retryAfterMs: throttle.lockedUntil(key) - t };\n            }\n\n            const employee = await directory.findByUsername(key);\n            const passwordOk = verifyPassword(password, employee?.passwordHash ?? DUMMY_HASH);\n            if (!employee || !passwordOk || employee.disabled) {\n                throttle.recordFailure(key, t);\n                return { ok: false, reason: \"invalid_credentials\" };\n            }\n\n            throttle.reset(key);\n            return { ok: true, employeeId: employee.id, sessionId: await sessions.issue(employee.id) };\n        },\n    };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "login() looks the employee up by the normalized username (trimmed and lower-cased) but uses the raw string the client sent as the throttle key. Every spelling of the same username therefore gets its own failure counter, so an attacker can make unlimited guesses by rotating case or padding with spaces, and a locked account can still be signed into under another spelling. The fix normalizes once and uses that one key for the lock check, recording failures, resetting, and the directory lookup. The lockout then applies to the account identity, not the bytes that were typed."
+  ]
+}

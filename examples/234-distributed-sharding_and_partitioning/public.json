@@ -1,0 +1,27 @@
+{
+  "id": "cddbd618-160a-4b75-9e8d-632b6bbe6adb",
+  "title": "Shard router: hash modulo with signed integers",
+  "name": "User shard router",
+  "createdAt": "2026-11-19T23:52:31.252Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Since user IDs moved from \"u123\" to the longer \"user-123\" format, about half of all sign-ups fail with \"Cannot read properties of undefined (reading 'rows')\". Fix the router so every key maps to a shard and the tests pass. Keys that routed correctly before must keep their shard.",
+      "editable": [
+        "shards/router.ts"
+      ],
+      "tests": [
+        {
+          "path": "shards.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { setTimeout as sleep } from \"node:timers/promises\";\nimport { ShardRouter, hashKey } from \"../src/shards/router.ts\";\nimport { ShardedUserStore } from \"../src/shards/userStore.ts\";\nimport { batchMoves, planMigration } from \"../src/shards/migration.ts\";\nimport { scatterGather } from \"../src/shards/scatterGather.ts\";\n\nconst ids = Array.from({ length: 5000 }, (_, i) => `user-${i}`);\n\ntest(\"short keys route as before\", () => {\n    const router = new ShardRouter([\"a\", \"b\", \"c\", \"d\"]);\n    assert.equal(hashKey(\"u1\"), 3676);\n    assert.equal(router.indexFor(\"u1\"), 0);\n});\n\ntest(\"every key routes to an existing shard\", () => {\n    const router = new ShardRouter([\"a\", \"b\", \"c\", \"d\"]);\n    const bad = ids.filter((id) => {\n        const i = router.indexFor(id);\n        return !(Number.isInteger(i) && i >= 0 && i < 4);\n    });\n    console.log(`${bad.length} of ${ids.length} keys routed outside 0..3, e.g.`, bad.slice(0, 3).map((id) => `${id} -> ${router.indexFor(id)}`));\n    assert.equal(bad.length, 0);\n});\n\ntest(\"routing is stable and roughly even\", () => {\n    const router = new ShardRouter([0, 1, 2, 3]);\n    const counts = [0, 0, 0, 0];\n    for (const id of ids) {\n        assert.equal(router.indexFor(id), router.indexFor(id));\n        counts[router.indexFor(id)]++;\n    }\n    for (const c of counts) assert.ok(c > 1000 && c < 1500, `shard sizes ${counts}`);\n});\n\ntest(\"users can be stored and read back on any shard\", async () => {\n    const store = new ShardedUserStore(4);\n    for (const id of ids.slice(0, 500)) await store.put({ id, email: `${id}@example.com`, name: id });\n    for (const id of ids.slice(0, 500)) assert.equal((await store.get(id))?.id, id);\n    assert.equal((await store.findByEmail(\"user-321@example.com\"))?.id, \"user-321\");\n    assert.equal(store.sizes().reduce((a, b) => a + b, 0), 500);\n});\n\ntest(\"a 4 -> 5 shard migration moves only keys whose shard changes, to real shards\", () => {\n    const plan = planMigration(ids, 4, 5);\n    assert.equal(plan.moves.length + plan.staying, ids.length);\n    assert.ok(plan.moves.every((m) => m.to >= 0 && m.to < 5 && m.from >= 0 && m.from < 4), \"every move has valid shards\");\n    assert.equal(plan.incomingByShard.reduce((a, b) => a + b, 0), plan.moves.length);\n    // modulo placement: a key stays only if hash % 4 === hash % 5, about 1 in 5\n    assert.ok(plan.staying > 700 && plan.staying < 1300, `staying ${plan.staying}`);\n});\n\ntest(\"moves are batched per source and target shard\", () => {\n    const moves = [\n        { key: \"a\", from: 0, to: 4 }, { key: \"b\", from: 0, to: 4 }, { key: \"c\", from: 0, to: 4 },\n        { key: \"d\", from: 1, to: 4 }, { key: \"e\", from: 0, to: 2 },\n    ];\n    assert.deepEqual(batchMoves(moves, 2).map((b) => b.map((m) => m.key)), [[\"a\", \"b\"], [\"c\"], [\"d\"], [\"e\"]]);\n});\n\ntest(\"scatter-gather returns partial results and names the slow shard\", async () => {\n    const shards = [{ name: \"users-0\", delay: 1 }, { name: \"users-1\", delay: 200 }, { name: \"users-2\", delay: 1 }];\n    const gathered = await scatterGather(shards, async (s) => (await sleep(s.delay), s.name.length), 50);\n    assert.deepEqual(gathered, { results: [7, 7], failedShards: [\"users-1\"] });\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.distributed.sharding_and_partitioning"
+  ]
+}

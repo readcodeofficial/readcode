@@ -1,0 +1,29 @@
+{
+  "id": "fb44e357-2900-42f2-a8d8-4381ad190977",
+  "title": "Hospital on-call rota: a coverage check that isn't safe under concurrency",
+  "name": "On-call rota cover",
+  "createdAt": "2026-11-19T23:52:41.438Z",
+  "durationMinutes": 22,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Last night the ICU night shift ended up with nobody on call for 40 minutes. Both doctors on the rota had tapped 'come off call' in the app within a second of each other, and both got a success message. The rule that a shift always keeps at least one doctor on call works fine when we test it by hand. Fix rota.ts so the tests pass.",
+      "editable": [
+        "oncall/rota.ts"
+      ],
+      "tests": [
+        {
+          "path": "rota.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { Store } from \"../src/db/store.ts\";\nimport { RotaService } from \"../src/oncall/rota.ts\";\nimport { coverageReport, uncovered } from \"../src/oncall/coverage.ts\";\n\nconst now = new Date(\"2026-11-19T22:00:00Z\");\n\nasync function setup(shifts: Record<string, string[]>) {\n    const db = new Store();\n    const rota = new RotaService(db);\n    for (const [shiftId, doctors] of Object.entries(shifts)) {\n        for (const d of doctors) await rota.join(shiftId, d, now);\n    }\n    return { db, rota };\n}\n\ntest(\"a doctor can leave while a colleague still covers the shift\", async () => {\n    const { db, rota } = await setup({ \"icu-night\": [\"dr-adeyemi\", \"dr-brandt\"] });\n    assert.equal(await rota.leave(\"icu-night\", \"dr-adeyemi\", now), \"left\");\n    assert.deepEqual(await coverageReport(db, [\"icu-night\"]), [{ shiftId: \"icu-night\", onCall: [\"dr-brandt\"] }]);\n});\n\ntest(\"the last doctor on call is refused\", async () => {\n    const { rota } = await setup({ \"icu-night\": [\"dr-adeyemi\"] });\n    assert.equal(await rota.leave(\"icu-night\", \"dr-adeyemi\", now), \"refused_last_cover\");\n});\n\ntest(\"two doctors leaving the same shift at the same moment can't both go\", async () => {\n    const { db, rota } = await setup({ \"icu-night\": [\"dr-adeyemi\", \"dr-brandt\"] });\n    const results = await Promise.all([rota.leave(\"icu-night\", \"dr-adeyemi\", now), rota.leave(\"icu-night\", \"dr-brandt\", now)]);\n    const report = await coverageReport(db, [\"icu-night\"]);\n    console.log(\"leave results:\", results, \"still on call:\", report[0].onCall);\n    assert.deepEqual([...results].sort(), [\"left\", \"refused_last_cover\"]);\n    assert.equal(report[0].onCall.length, 1);\n});\n\ntest(\"when a whole team asks to leave at once, exactly one doctor stays\", async () => {\n    const { db, rota } = await setup({ \"er-night\": [\"dr-a\", \"dr-b\", \"dr-c\", \"dr-d\"] });\n    const results = await Promise.all([\"dr-a\", \"dr-b\", \"dr-c\", \"dr-d\"].map((d) => rota.leave(\"er-night\", d, now)));\n    assert.equal(results.filter((r) => r === \"left\").length, 3);\n    assert.equal((await coverageReport(db, [\"er-night\"]))[0].onCall.length, 1);\n});\n\ntest(\"concurrent leave requests across wards never leave a shift uncovered\", async () => {\n    const { db, rota } = await setup({ \"icu-night\": [\"dr-a\", \"dr-b\"], \"peds-night\": [\"dr-c\", \"dr-d\"], \"er-night\": [\"dr-e\", \"dr-f\", \"dr-g\"] });\n    await Promise.all([\n        rota.leave(\"icu-night\", \"dr-a\", now),\n        rota.leave(\"icu-night\", \"dr-b\", now),\n        rota.leave(\"peds-night\", \"dr-c\", now),\n        rota.leave(\"peds-night\", \"dr-d\", now),\n        rota.leave(\"er-night\", \"dr-e\", now),\n    ]);\n    assert.deepEqual(uncovered(await coverageReport(db, [\"icu-night\", \"peds-night\", \"er-night\"])), []);\n});\n\ntest(\"leaving different shifts at the same time doesn't cause retries\", async () => {\n    const { db, rota } = await setup({ \"icu-night\": [\"dr-a\", \"dr-b\"], \"peds-night\": [\"dr-c\", \"dr-d\"] });\n    const before = db.attempts;\n    await Promise.all([rota.leave(\"icu-night\", \"dr-a\", now), rota.leave(\"peds-night\", \"dr-c\", now)]);\n    assert.equal(db.attempts - before, 2);\n});\n\ntest(\"a handover keeps the shift covered, and leaving when not on call is an error\", async () => {\n    const { db, rota } = await setup({ \"icu-night\": [\"dr-adeyemi\"] });\n    await rota.handOver(\"icu-night\", \"dr-adeyemi\", \"dr-cho\", now);\n    assert.deepEqual((await coverageReport(db, [\"icu-night\"]))[0].onCall, [\"dr-cho\"]);\n    await assert.rejects(rota.leave(\"icu-night\", \"dr-adeyemi\", now), /not on call/);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.transactions_and_isolation_levels",
+    "backend.concurrency.race_conditions",
+    "backend.data.optimistic_vs_pessimistic_locking"
+  ]
+}

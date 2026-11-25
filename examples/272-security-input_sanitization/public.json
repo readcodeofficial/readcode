@@ -1,0 +1,28 @@
+{
+  "id": "4004ce13-ebee-47f1-a249-1146d3de2e53",
+  "title": "Restaurant review emails: an HTML escaper that lets some markup through",
+  "name": "Review digest escaping",
+  "createdAt": "2026-11-19T23:52:56.918Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Restaurant owners forwarded weekly digest emails where parts of customer reviews rendered as bold or italic text, and one review's author name showed up with extra attributes in the HTML source. Reviews containing a single tag look fine. Fix escape.ts so the tests pass.",
+      "editable": [
+        "reviews/escape.ts"
+      ],
+      "tests": [
+        {
+          "path": "reviews.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { escapeHtml, safeUrl } from \"../src/reviews/escape.ts\";\nimport { renderReviewCard, type Review } from \"../src/reviews/card.ts\";\nimport { buildWeeklyDigest } from \"../src/reviews/digest.ts\";\n\nconst review = (over: Partial<Review> = {}): Review => ({\n    id: \"r1\",\n    authorName: \"Priya\",\n    rating: 4,\n    body: \"Great dumplings.\\n\\nSlow service on Friday.\",\n    postedAt: \"2026-11-14T19:30:00Z\",\n    ...over,\n});\n\ntest(\"a review card shows the author, stars, date and paragraphs\", () => {\n    const html = renderReviewCard(review());\n    assert.ok(html.includes(`<h3 title=\"Review by Priya\">Priya <span class=\"stars\">★★★★☆</span></h3>`));\n    assert.ok(html.includes(`<time datetime=\"2026-11-14T19:30:00Z\">2026-11-14</time>`));\n    assert.ok(html.includes(\"<p>Great dumplings.</p><p>Slow service on Friday.</p>\"));\n});\n\ntest(\"markup typed into a review is shown as text, every time it appears\", () => {\n    const html = renderReviewCard(review({ body: \"The <b>best</b> noodles, <i>truly</i>.\" }));\n    console.log(\"rendered body:\", html.match(/<p>.*<\\/p>/)?.[0]);\n    assert.ok(html.includes(\"<p>The &lt;b&gt;best&lt;/b&gt; noodles, &lt;i&gt;truly&lt;/i&gt;.</p>\"));\n});\n\ntest(\"an author name can't close the title attribute and add its own\", () => {\n    const html = renderReviewCard(review({ authorName: `Sam\" data-x=\"1\" onclick=\"steal()` }));\n    const h3 = html.match(/<h3[^>]*>/)?.[0] ?? \"\";\n    // the only raw quotes in the tag should be the two around the title value\n    assert.equal(h3.split('\"').length - 1, 2, h3);\n    assert.ok(h3.startsWith(`<h3 title=\"Review by Sam&quot; data-x=&quot;1&quot;`));\n});\n\ntest(\"every ampersand is escaped exactly once\", () => {\n    assert.equal(escapeHtml(\"Fish & Chips & Peas\"), \"Fish &amp; Chips &amp; Peas\");\n    assert.equal(escapeHtml(\"&lt;\"), \"&amp;lt;\");\n    assert.equal(escapeHtml(`it's \"fine\"`), \"it&#39;s &quot;fine&quot;\");\n});\n\ntest(\"only http(s) photo links are kept\", () => {\n    assert.equal(safeUrl(\"javascript:alert(document.cookie)\"), null);\n    assert.equal(safeUrl(\"data:text/html,hi\"), null);\n    assert.equal(safeUrl(\"not a url\"), null);\n    assert.equal(safeUrl(\" https://img.example.com/a.jpg \"), \"https://img.example.com/a.jpg\");\n    assert.ok(!renderReviewCard(review({ photoUrl: \"javascript:void(0)\" })).includes(\"<a \"));\n});\n\ntest(\"the digest lists the newest reviews first, up to the limit\", () => {\n    const reviews = [\"2026-11-10\", \"2026-11-15\", \"2026-11-12\", \"2026-11-13\"].map((d, i) => review({ id: `r${i}`, postedAt: `${d}T12:00:00Z` }));\n    const { html } = buildWeeklyDigest({ id: \"x\", name: \"Lotus\" }, reviews, 3);\n    const ids = [...html.matchAll(/data-id=\"(\\w+)\"/g)].map((m) => m[1]);\n    assert.deepEqual(ids, [\"r1\", \"r3\", \"r2\"]);\n    assert.ok(html.includes(\"4 new reviews, averaging 4.0 stars.\"));\n});\n\ntest(\"low ratings without a reply are called out, and owner replies render under the review\", () => {\n    const reviews = [\n        review({ id: \"a\", rating: 1 }),\n        review({ id: \"b\", rating: 2, ownerReply: { body: \"Sorry, we'll do better.\", repliedAt: \"2026-11-15T09:00:00Z\" } }),\n    ];\n    const { html } = buildWeeklyDigest({ id: \"x\", name: \"Lotus\" }, reviews);\n    assert.ok(html.includes(`<p class=\"attention\">1 low rating is waiting for a reply.</p>`));\n    assert.ok(html.includes(\"<strong>Owner replied on 2026-11-15</strong><p>Sorry, we&#39;ll do better.</p>\"));\n});\n\ntest(\"a restaurant name with markup is escaped in the digest heading\", () => {\n    const { subject, html } = buildWeeklyDigest({ id: \"x\", name: \"<i>Joe's</i> <b>Diner</b>\" }, []);\n    assert.equal(subject, \"This week at <i>Joe's</i> <b>Diner</b>\");\n    assert.ok(html.includes(\"<h1>This week at &lt;i&gt;Joe&#39;s&lt;/i&gt; &lt;b&gt;Diner&lt;/b&gt;</h1>\"));\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.input_sanitization",
+    "backend.api.serialization_and_deserialization"
+  ]
+}

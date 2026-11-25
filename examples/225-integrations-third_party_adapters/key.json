@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "carrier/swiftShipAdapter.ts",
+          "content": "import { CarrierUnavailableError, type ShipmentStatus, type TrackingInfo } from \"./types.ts\";\n\nexport type HttpGet = (url: string) => Promise<{ status: number; body: unknown }>;\n\ninterface SwiftShipEvent {\n    code: string;\n    occurred_at: string;\n}\n\ninterface SwiftShipTracking {\n    tracking_no: string;\n    events: SwiftShipEvent[]; // oldest first\n    estimated_delivery?: string | null;\n}\n\nconst STATUS_BY_CODE: Record<string, ShipmentStatus> = {\n    LC: \"label_created\",\n    PU: \"in_transit\",\n    IT: \"in_transit\",\n    AR: \"in_transit\",\n    OFD: \"out_for_delivery\",\n    DL: \"delivered\",\n    EX: \"exception\",\n    RTS: \"exception\",\n};\n\nexport function mapStatus(code: string | undefined): ShipmentStatus {\n    if (code === undefined) return \"label_created\";\n    return STATUS_BY_CODE[code] ?? \"unknown\";\n}\n\nexport class SwiftShipAdapter {\n    private readonly baseUrl: string;\n    private readonly get: HttpGet;\n\n    constructor(baseUrl: string, get: HttpGet) {\n        this.baseUrl = baseUrl.replace(/\\/+$/, \"\");\n        this.get = get;\n    }\n\n    async track(trackingNumber: string): Promise<TrackingInfo | null> {\n        const res = await this.get(`${this.baseUrl}/v2/tracking/${encodeURIComponent(trackingNumber)}`);\n        if (res.status === 404) return null;\n        if (res.status === 429 || res.status >= 500) {\n            throw new CarrierUnavailableError(`SwiftShip returned ${res.status}`);\n        }\n        if (res.status !== 200) throw new Error(`Unexpected SwiftShip response ${res.status}`);\n\n        const body = res.body as SwiftShipTracking;\n        const latest = body.events.at(-1);\n        return {\n            trackingNumber: body.tracking_no,\n            status: mapStatus(latest?.code),\n            lastEventAt: latest?.occurred_at ?? null,\n            etaDate: body.estimated_delivery ?? null,\n        };\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "mapStatus falls back to \"delivered\" for any code missing from STATUS_BY_CODE, so every new carrier code becomes a delivery and triggers the email in notifyIfDelivered. An adapter should map codes it doesn't recognise to a neutral status (\"unknown\") so the rest of the system doesn't act on them, and ideally log them so the mapping can be extended."
+  ]
+}

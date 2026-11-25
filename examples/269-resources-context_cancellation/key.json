@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "search/signals.ts",
+          "content": "export class DeadlineExceededError extends Error {\n    constructor(budgetMs: number) {\n        super(`search budget of ${budgetMs}ms exceeded`);\n        this.name = \"DeadlineExceededError\";\n    }\n}\n\nexport interface Scope {\n    signal: AbortSignal;\n    // Stops the timer and detaches from the parent. Call when the work is done.\n    dispose(): void;\n}\n\n// A child signal for one unit of work: it aborts when the parent aborts (the client went away)\n// or when the time budget runs out, whichever comes first. The reason says which.\nexport function withDeadline(parent: AbortSignal, budgetMs: number): Scope {\n    const controller = new AbortController();\n    const onParentAbort = () => controller.abort(parent.reason);\n    if (parent.aborted) controller.abort(parent.reason);\n    parent.addEventListener(\"abort\", onParentAbort, { once: true });\n    const timer = setTimeout(() => controller.abort(new DeadlineExceededError(budgetMs)), budgetMs);\n    return {\n        signal: controller.signal,\n        dispose() {\n            clearTimeout(timer);\n            parent.removeEventListener(\"abort\", onParentAbort);\n        },\n    };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "withDeadline links the child signal to the parent with an 'abort' event listener. An AbortSignal fires 'abort' only once, when it is aborted, so a parent that was aborted before withDeadline ran (a client who left while the search waited for a limiter slot) never notifies the child. The child signal looks live, every supplier is called and billed, and the search keeps its limiter slot until the suppliers answer or the budget runs out. Cancelling during a running search worked because the listener was already attached. The fix checks parent.aborted when creating the scope and aborts the child at once with the parent's reason. AbortSignal.any([parent, AbortSignal.timeout(ms)]) handles this case too."
+  ]
+}

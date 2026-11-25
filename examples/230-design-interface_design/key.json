@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "storage/objectStorageBlobStore.ts",
+          "content": "import type { BlobStore } from \"./blobStore.ts\";\n\n// The subset of the cloud provider's SDK we use. Its errors carry a string `code`.\nexport interface ObjectStorageClient {\n    getObject(bucket: string, key: string): Promise<Uint8Array>;\n    putObject(bucket: string, key: string, body: Uint8Array): Promise<void>;\n    deleteObject(bucket: string, key: string): Promise<void>;\n}\n\nconst codeOf = (err: unknown): string | undefined => (err as { code?: string } | null)?.code;\n\nexport class ObjectStorageBlobStore implements BlobStore {\n    private readonly client: ObjectStorageClient;\n    private readonly bucket: string;\n    private readonly prefix: string;\n\n    constructor(client: ObjectStorageClient, bucket: string, prefix = \"\") {\n        this.client = client;\n        this.bucket = bucket;\n        this.prefix = prefix;\n    }\n\n    private objectKey(key: string): string {\n        return this.prefix + key;\n    }\n\n    async get(key: string): Promise<Buffer | null> {\n        try {\n            const body = await this.client.getObject(this.bucket, this.objectKey(key));\n            return Buffer.from(body);\n        } catch (err) {\n            if (codeOf(err) === \"NoSuchKey\") return null;\n            throw err;\n        }\n    }\n\n    async put(key: string, data: Buffer): Promise<void> {\n        await this.client.putObject(this.bucket, this.objectKey(key), data);\n    }\n\n    async delete(key: string): Promise<void> {\n        try {\n            await this.client.deleteObject(this.bucket, this.objectKey(key));\n        } catch (err) {\n            if (codeOf(err) !== \"NoSuchKey\") throw err;\n        }\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The contract says get() returns null only when the key doesn't exist and rejects on any other failure. ObjectStorageBlobStore.get catches every error and returns null, so a timeout or AccessDenied looks like \"no avatar yet\". getOrCreateAvatar trusts the contract, generates an initials avatar and overwrites the uploaded photo. Translating only NoSuchKey to null and rethrowing everything else makes the implementation interchangeable with MemoryBlobStore, which is what the shared contract tests check."
+  ]
+}

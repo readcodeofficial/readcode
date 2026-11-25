@@ -6,6 +6,8 @@ import { areaName, topicName } from "@/lib/format";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ExampleViewer from "./ExampleViewer";
+import { ExerciseKindTag } from "@/components/exercise-kind-tag";
+import { exerciseKind } from "../../../../shared/types";
 
 const href = (name: string) => `/examples/${encodeURIComponent(name)}`;
 
@@ -34,9 +36,12 @@ export default async function ExamplePage({ params }: PageProps<"/examples/[name
                         {topic && `${areaName(topic)} › ${topicName(topic)}`}
                         {at >= 0 && unit.length > 1 && ` · ${at + 1} of ${unit.length}`}
                     </div>
-                    <h1 className="truncate text-base font-semibold" title={example.public.title}>
-                        {example.public.name ?? example.public.title}
-                    </h1>
+                    <div className="flex min-w-0 items-center gap-2">
+                        <h1 className="truncate text-base font-semibold" title={example.public.title}>
+                            {example.public.name ?? example.public.title}
+                        </h1>
+                        <ExerciseKindTag kind={exerciseKind(example.public)} />
+                    </div>
                 </div>
                 <div className="hidden items-center gap-1.5 lg:flex">
                     {related.slice(0, 3).map((c) => (

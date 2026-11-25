@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "flags/evaluate.ts",
+          "content": "import { fnv1a } from \"./hash.ts\";\n\nexport interface FlagConfig {\n    key: string;\n    enabled: boolean; // global kill switch\n    rolloutPercent: number; // 0..100\n    allowUsers: string[];\n    denyUsers: string[];\n}\n\n// 0..99, the same for a given flag and user on every server.\nexport function bucketOf(flagKey: string, userId: string): number {\n    return fnv1a(`${flagKey}:${userId}`) % 100;\n}\n\nexport function isEnabled(flag: FlagConfig | undefined, userId: string): boolean {\n    if (!flag || !flag.enabled) return false;\n    if (flag.denyUsers.includes(userId)) return false;\n    if (flag.allowUsers.includes(userId)) return true;\n    const percent = Math.min(100, Math.max(0, flag.rolloutPercent));\n    return bucketOf(flag.key, userId) < percent;\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "bucketOf returns 0..99, so a user is in an N% rollout when their bucket is below N. With `<=`, bucket 0 is enabled at 0% (about 1 in 100 users) and every rollout reaches one extra bucket: 1% enables 2%, 25% enables 26%. Only 100% happens to be right. Using `<` makes 0% mean nobody and N% mean N buckets."
+  ]
+}

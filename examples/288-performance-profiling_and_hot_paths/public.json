@@ -1,0 +1,28 @@
+{
+  "id": "d27e8d40-4a13-42ff-8595-8318004b639c",
+  "title": "Ad bidder: compiled targeting rules on the per-request hot path",
+  "name": "Bidder rule cache",
+  "createdAt": "2026-11-19T23:53:04.458Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Since the bidder moved to text targeting rules, p99 latency has gone past the exchange's 10 ms deadline at peak and we're losing auctions on timeouts. The CPU profile is dominated by compileRule and regex matching, and the bidder's rulesCompiled counter grows as fast as the request counter. Results are correct, just slow. Fix bidding/bidder.ts so the tests pass.",
+      "editable": [
+        "bidding/bidder.ts"
+      ],
+      "tests": [
+        {
+          "path": "bidder.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { Bidder } from \"../src/bidding/bidder.ts\";\nimport { Pacer } from \"../src/bidding/pacing.ts\";\nimport { compileRule } from \"../src/bidding/rules.ts\";\nimport type { BidRequest, Campaign } from \"../src/bidding/types.ts\";\n\nfunction setup() {\n    const campaigns: Campaign[] = [\n        { id: \"sports\", version: 1, status: \"active\", rule: \"country in [PT, ES] and segment:sports\", bidCents: 250, dailyBudgetCents: 100 },\n        { id: \"ctv\", version: 1, status: \"active\", rule: \"device:ctv and hour in 18..23\", bidCents: 900, dailyBudgetCents: 5000 },\n        { id: \"night\", version: 1, status: \"active\", rule: \"!device:tablet and hour in 22..2\", bidCents: 120, dailyBudgetCents: 5000 },\n        { id: \"promo\", version: 3, status: \"paused\", rule: \"country in [PT]\", bidCents: 2000, dailyBudgetCents: 5000 },\n    ];\n    const compiles = new Map<string, number>(); // rule text -> times compiled\n    const compile = (rule: string) => {\n        compiles.set(rule, (compiles.get(rule) ?? 0) + 1);\n        return compileRule(rule);\n    };\n    const pacer = new Pacer(() => \"2026-11-19\");\n    const bidder = new Bidder(() => campaigns, compile, pacer);\n    return { campaigns, compiles, pacer, bidder };\n}\n\nlet n = 0;\nconst req = (over: Partial<BidRequest> = {}): BidRequest => ({\n    id: `r${++n}`,\n    country: \"PT\",\n    device: \"phone\",\n    segments: [\"sports\", \"news\"],\n    hour: 12,\n    floorCents: 100,\n    ...over,\n});\n\n// A morning of mixed exchange traffic.\nconst traffic = (count: number) =>\n    Array.from({ length: count }, (_, i) =>\n        req({ country: [\"PT\", \"ES\", \"FR\"][i % 3], device: ([\"phone\", \"ctv\", \"tablet\"] as const)[i % 3 === 0 ? 0 : (i >> 1) % 3], hour: i % 24, segments: i % 4 ? [\"sports\"] : [] }),\n    );\n\ntest(\"the highest-paying campaign whose targeting matches wins\", () => {\n    const { bidder } = setup();\n    assert.equal(bidder.bid(req({ device: \"ctv\", hour: 20 }))?.campaignId, \"ctv\");\n    assert.equal(bidder.bid(req())?.campaignId, \"sports\");\n    assert.equal(bidder.bid(req({ device: \"tablet\", segments: [], hour: 23 })), null);\n});\n\ntest(\"targeting handles negation, hour ranges across midnight and the publisher's floor\", () => {\n    const { bidder } = setup();\n    assert.equal(bidder.bid(req({ country: \"US\", hour: 1 }))?.campaignId, \"night\");\n    assert.equal(bidder.bid(req({ country: \"US\", hour: 3 })), null);\n    assert.equal(bidder.bid(req({ floorCents: 300 })), null);\n    assert.throws(() => compileRule(\"country in [PT] or segment:sports\"), /Unknown targeting clause/);\n});\n\ntest(\"a campaign stops bidding once today's budget is spent\", () => {\n    const { bidder, pacer } = setup();\n    let won = 0;\n    for (let i = 0; i < 450; i++) if (bidder.bid(req())) won++;\n    assert.equal(won, 400);\n    assert.equal(pacer.spentCents(\"sports\"), 100);\n});\n\ntest(\"each campaign's targeting rule is compiled once, however much traffic arrives\", () => {\n    const { bidder, compiles } = setup();\n    for (const r of traffic(2000)) bidder.bid(r);\n    console.log(\"bidder stats after 2000 requests:\", bidder.stats(), \"compiles per rule:\", Object.fromEntries(compiles));\n    assert.ok(bidder.stats().bids > 0);\n    assert.ok(bidder.stats().rulesCompiled <= 3, `compiled ${bidder.stats().rulesCompiled} rules for 3 active campaigns`);\n    assert.deepEqual([...compiles.values()].filter((count) => count > 1), []);\n});\n\ntest(\"an edited campaign is recompiled once and its new targeting applies straight away\", () => {\n    const { bidder, campaigns, compiles } = setup();\n    for (let i = 0; i < 50; i++) bidder.bid(req());\n    campaigns[0] = { ...campaigns[0], version: 2, rule: \"country in [FR] and segment:sports\" };\n    assert.equal(bidder.bid(req()), null);\n    for (let i = 0; i < 50; i++) assert.equal(bidder.bid(req({ country: \"FR\" }))?.campaignId, \"sports\");\n    assert.equal(compiles.get(\"country in [PT, ES] and segment:sports\"), 1);\n    assert.equal(compiles.get(\"country in [FR] and segment:sports\"), 1);\n});\n\ntest(\"a paused campaign never bids and its rule is never compiled\", () => {\n    const { bidder, compiles } = setup();\n    for (let i = 0; i < 20; i++) assert.notEqual(bidder.bid(req({ segments: [] }))?.campaignId, \"promo\");\n    assert.equal(compiles.has(\"country in [PT]\"), false);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.performance.profiling_and_hot_paths",
+    "backend.caching.cache_invalidation"
+  ]
+}

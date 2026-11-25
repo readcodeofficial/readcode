@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "catalog/versions.ts",
+          "content": "// Date-based API versions. Each account is pinned to the version it signed up on, and a\n// request can ask for another with the Tunes-Version header. Handlers always build the\n// latest shape; older clients get it converted back by the changes below.\ntype Json = Record<string, unknown>;\n\nexport interface VersionChange {\n    version: string; // the version that introduced the change\n    description: string;\n    downgrade(track: Json): Json; // converts a track from this version's shape to the previous one\n}\n\n// Oldest first.\nexport const CHANGES: VersionChange[] = [\n    {\n        version: \"2025-03-01\",\n        description: \"artist renamed to artistName\",\n        downgrade: ({ artistName, ...rest }) => ({ ...rest, artist: artistName }),\n    },\n    {\n        version: \"2025-09-15\",\n        description: \"artistName replaced by artists: [{ id, name }] for collaborations\",\n        downgrade: ({ artists, ...rest }) => ({ ...rest, artistName: (artists as { name: string }[]).map((a) => a.name).join(\", \") }),\n    },\n    {\n        version: \"2026-02-01\",\n        description: \"explicit: boolean replaced by contentRating\",\n        downgrade: ({ contentRating, ...rest }) => ({ ...rest, explicit: contentRating === \"explicit\" }),\n    },\n];\n\nexport const FIRST_VERSION = \"2024-01-10\";\nexport const SUPPORTED_VERSIONS = [FIRST_VERSION, ...CHANGES.map((c) => c.version)];\nexport const LATEST_VERSION = SUPPORTED_VERSIONS[SUPPORTED_VERSIONS.length - 1];\n\nexport type Resolved = { ok: true; version: string } | { ok: false; error: string };\n\nexport function resolveVersion(header: string | undefined, pinned: string): Resolved {\n    const requested = header?.trim() || pinned;\n    if (!SUPPORTED_VERSIONS.includes(requested)) {\n        return { ok: false, error: `Unsupported Tunes-Version ${requested}; supported: ${SUPPORTED_VERSIONS.join(\", \")}` };\n    }\n    return { ok: true, version: requested };\n}\n\nexport function renderTrack(latest: Json, version: string): Json {\n    let shaped = latest;\n    for (const change of [...CHANGES].reverse()) {\n        if (change.version > version) shaped = change.downgrade(shaped);\n    }\n    return shaped;\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "renderTrack() applies the downgrades in CHANGES order, oldest first, but each downgrade expects the shape produced by the version that introduced it. To reach 2024-01-10 from the latest shape you must undo 2025-09-15 (artists to artistName) before undoing 2025-03-01 (artistName to artist). Running them oldest first undoes the rename while artistName doesn't exist yet, which sets artist to undefined, and then produces an artistName the client doesn't know. Clients only one change behind never notice, because a single downgrade can't be misordered. The fix walks the changes newest first, so each conversion sees the shape it was written for."
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "e4e55515-541e-4570-bea8-0f5ff09a6eb9",
+  "title": "Course registration on a small ORM: roster changes that never reach the database",
+  "name": "Unit-of-work enrollment",
+  "createdAt": "2026-11-19T23:52:46.004Z",
+  "durationMinutes": 21,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Registrar staff report that course pages show seats as taken while the class list is empty, waitlisted students vanish, and when someone drops a class nobody is promoted off the waitlist. Credit totals on student records look right. Fix the Session in orm/session.ts so the tests pass, keeping flush() writing only the columns that changed.",
+      "editable": [
+        "orm/session.ts"
+      ],
+      "tests": [
+        {
+          "path": "enrollment.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { Database } from \"../src/orm/db.ts\";\nimport { Session } from \"../src/orm/session.ts\";\nimport { enroll } from \"../src/enrollment/courses.ts\";\nimport { register, rosterReport, withdraw } from \"../src/enrollment/registrar.ts\";\n\nfunction campus() {\n    const db = new Database();\n    db.insert(\"courses\", { id: \"cs101\", title: \"Intro to Programming\", credits: 4, capacity: 2, seatsTaken: 0, roster: [], waitlist: [] });\n    db.insert(\"courses\", { id: \"ma201\", title: \"Linear Algebra\", credits: 3, capacity: 30, seatsTaken: 0, roster: [], waitlist: [] });\n    for (const id of [\"ana\", \"ben\", \"cho\", \"dev\"]) db.insert(\"students\", { id, name: id.toUpperCase(), credits: 0, maxCredits: 12 });\n    db.log.length = 0;\n    return db;\n}\n\nconst credits = (db: Database, id: string) => new Session(db).get(\"students\", id)?.credits;\n\ntest(\"enrolling puts the student on the course roster\", () => {\n    const db = campus();\n    assert.deepEqual(register(db, \"ana\", [\"cs101\"]), { cs101: \"enrolled\" });\n    const report = rosterReport(db, \"cs101\");\n    console.log(\"cs101 after ana enrolled:\", report);\n    assert.deepEqual(report, { seatsTaken: 1, roster: [\"ana\"], waitlist: [] });\n});\n\ntest(\"a full course puts the student on the waitlist\", () => {\n    const db = campus();\n    register(db, \"ana\", [\"cs101\"]);\n    register(db, \"ben\", [\"cs101\"]);\n    assert.deepEqual(register(db, \"cho\", [\"cs101\"]), { cs101: \"waitlisted\" });\n    assert.deepEqual(rosterReport(db, \"cs101\").waitlist, [\"cho\"]);\n});\n\ntest(\"registering for several courses adds up the student's credits\", () => {\n    const db = campus();\n    assert.deepEqual(register(db, \"dev\", [\"cs101\", \"ma201\"]), { cs101: \"enrolled\", ma201: \"enrolled\" });\n    // the student row is loaded once and written once, with only the column that changed\n    assert.equal(db.log.filter((s) => s.kind === \"select\" && s.table === \"students\").length, 1);\n    assert.deepEqual(db.log.filter((s) => s.table === \"students\" && s.kind === \"update\").map((s) => s.columns), [[\"credits\"]]);\n    assert.equal(credits(db, \"dev\"), 7);\n});\n\ntest(\"reading without changing anything sends no writes\", () => {\n    const db = campus();\n    const session = new Session(db);\n    session.get(\"courses\", \"cs101\");\n    session.get(\"students\", \"ana\");\n    assert.equal(session.get(\"courses\", \"cs101\"), session.get(\"courses\", \"cs101\"));\n    assert.equal(session.flush(), 0);\n    assert.deepEqual(db.log.map((s) => s.kind), [\"select\", \"select\"]);\n});\n\ntest(\"dropping a course gives the seat to the first waitlisted student\", () => {\n    const db = campus();\n    for (const id of [\"ana\", \"ben\", \"cho\", \"dev\"]) register(db, id, [\"cs101\"]);\n    withdraw(db, \"ana\", \"cs101\");\n    assert.deepEqual(rosterReport(db, \"cs101\"), { seatsTaken: 2, roster: [\"ben\", \"cho\"], waitlist: [\"dev\"] });\n    assert.deepEqual([credits(db, \"ana\"), credits(db, \"cho\")], [0, 4]);\n});\n\ntest(\"a course created in a session is inserted, and later changes to it are saved\", () => {\n    const db = campus();\n    const session = new Session(db);\n    session.add(\"courses\", { id: \"ph110\", title: \"Physics I\", credits: 4, capacity: 1, seatsTaken: 0, roster: [], waitlist: [] });\n    session.flush();\n    assert.equal(enroll(session, \"ph110\", \"ben\"), \"enrolled\");\n    session.flush();\n    assert.deepEqual(rosterReport(db, \"ph110\").roster, [\"ben\"]);\n});\n\ntest(\"seat counts match the roster after a busy registration day\", () => {\n    const db = campus();\n    register(db, \"ana\", [\"cs101\", \"ma201\"]);\n    register(db, \"ben\", [\"ma201\", \"cs101\"]);\n    register(db, \"cho\", [\"cs101\"]);\n    withdraw(db, \"ben\", \"ma201\");\n    for (const id of [\"cs101\", \"ma201\"]) {\n        const { seatsTaken, roster } = rosterReport(db, id);\n        assert.equal(roster.length, seatsTaken, `${id}: ${seatsTaken} seats taken but roster is ${JSON.stringify(roster)}`);\n    }\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.orm_pitfalls",
+    "backend.data.transactions_and_isolation_levels"
+  ]
+}

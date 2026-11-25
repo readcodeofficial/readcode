@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "loyalty/pointsConsumer.ts",
+          "content": "import type { Delivery, InMemoryBroker } from \"../queue/broker.ts\";\nimport type { DedupStore, PointsLedger, Purchase } from \"./purchases.ts\";\n\nexport const POINTS_PER_UNIT = 1; // one point per whole dollar/euro spent\n\nexport interface ConsumerStats {\n    awarded: number;\n    duplicates: number;\n    failed: number;\n}\n\n// Awards loyalty points for PurchaseCompleted events. The bus delivers at least once and checkout\n// may publish an order more than once, so each event is claimed in the dedup store before awarding.\nexport class PointsConsumer {\n    private readonly broker: InMemoryBroker;\n    private readonly ledger: PointsLedger;\n    private readonly dedup: DedupStore;\n    private readonly now: () => number;\n    readonly stats: ConsumerStats = { awarded: 0, duplicates: 0, failed: 0 };\n\n    constructor(broker: InMemoryBroker, ledger: PointsLedger, dedup: DedupStore, now: () => number) {\n        this.broker = broker;\n        this.ledger = ledger;\n        this.dedup = dedup;\n        this.now = now;\n    }\n\n    private dedupKey(msg: Delivery): string {\n        return msg.headers[\"idempotency-key\"] ?? msg.id;\n    }\n\n    async handle(msg: Delivery): Promise<void> {\n        const key = this.dedupKey(msg);\n        if (!this.dedup.claim(key, this.now())) {\n            this.stats.duplicates++;\n            await this.broker.ack(msg.receipt);\n            return;\n        }\n        try {\n            const purchase = JSON.parse(msg.body) as Purchase;\n            await this.ledger.award(purchase.memberId, Math.floor(purchase.amountCents / 100) * POINTS_PER_UNIT);\n        } catch (err) {\n            // Not handled after all: let a redelivery claim it again.\n            this.dedup.release(key);\n            this.stats.failed++;\n            await this.broker.nack(msg.receipt);\n            return;\n        }\n        this.stats.awarded++;\n        await this.broker.ack(msg.receipt);\n    }\n\n    async drain(maxRounds = 100): Promise<void> {\n        for (let i = 0; i < maxRounds; i++) {\n            const batch = await this.broker.receive(10);\n            if (batch.length === 0) return;\n            for (const msg of batch) await this.handle(msg);\n        }\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The consumer dedupes on msg.id, which the broker assigns every time something is published. That catches redeliveries of the same broker message (the crash-before-ack case), but not producer retries. When checkout's publish times out after the broker already stored the event, publishPurchase publishes again and the broker creates a second message with a new id. Both pass the dedup check and the member is awarded twice. The producer already stamps every attempt with the same idempotency-key header (purchase:<orderId>), and that is the identity of the business event. Deduping on that key, falling back to the broker id for messages without one, collapses both kinds of duplicate."
+  ]
+}

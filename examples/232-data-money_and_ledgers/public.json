@@ -1,0 +1,27 @@
+{
+  "id": "06cc7553-f652-4d03-9dc2-ae701ec8f332",
+  "title": "Invoice charge-backs: proportional split that loses cents",
+  "name": "Invoice cost allocation",
+  "createdAt": "2026-11-19T23:52:29.997Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Month-end close is blocked: charging shared invoices back to teams fails with \"Unbalanced journal\" for some invoices. Fix allocate() so the shares always add up to the amount and the tests pass.",
+      "editable": [
+        "billing/allocate.ts"
+      ],
+      "tests": [
+        {
+          "path": "allocate.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { allocate } from \"../src/billing/allocate.ts\";\nimport { chargeBackInvoice } from \"../src/billing/splitInvoice.ts\";\nimport { prorate } from \"../src/billing/proration.ts\";\nimport { formatCents, parseDollars } from \"../src/billing/money.ts\";\n\nconst sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);\n\ntest(\"splitting $1.00 three ways gives 34, 33, 33\", () => {\n    const shares = allocate(100, [1, 1, 1]);\n    console.log(\"allocate(100, [1, 1, 1]) =\", shares);\n    assert.deepEqual(shares, [34, 33, 33]);\n});\n\ntest(\"shares always add up to the amount\", () => {\n    const cases: [number, number[]][] = [\n        [2, [1, 1, 1]],\n        [10, [1, 1, 1, 1]],\n        [99999, [3, 7, 11, 13]],\n        [1, [5, 5]],\n        [12345, [0.1, 0.2, 0.3]],\n    ];\n    for (const [amount, weights] of cases) {\n        assert.equal(sum(allocate(amount, weights)), amount, `allocate(${amount}, [${weights}])`);\n    }\n});\n\ntest(\"proportions are respected when they divide evenly, and bad input is rejected\", () => {\n    assert.deepEqual(allocate(1000, [1, 3]), [250, 750]);\n    assert.deepEqual(allocate(5, [0, 1]), [0, 5]);\n    assert.throws(() => allocate(10.5, [1]));\n    assert.throws(() => allocate(10, [0, 0]));\n    assert.throws(() => allocate(10, []));\n});\n\ntest(\"an invoice charged back to three equal teams balances\", () => {\n    const entries = chargeBackInvoice(\"INV-7\", 10000, [\n        { account: \"expense:search\", seats: 4 },\n        { account: \"expense:ads\", seats: 4 },\n        { account: \"expense:infra\", seats: 4 },\n    ]);\n    assert.equal(sum(entries.map((e) => e.debitCents)), 10000);\n});\n\ntest(\"upgrading mid-month credits the unused days and charges the rest of the new plan\", () => {\n    // $30 -> $90 plan, 10 of 30 days used\n    assert.deepEqual(prorate({ oldPriceCents: 3000, newPriceCents: 9000, daysInPeriod: 30, daysUsed: 10 }), {\n        creditCents: 2000, chargeCents: 6000, netCents: 4000,\n    });\n    assert.deepEqual(prorate({ oldPriceCents: 3000, newPriceCents: 9000, daysInPeriod: 30, daysUsed: 30 }), {\n        creditCents: 0, chargeCents: 0, netCents: 0,\n    });\n    assert.throws(() => prorate({ oldPriceCents: 3000, newPriceCents: 9000, daysInPeriod: 30, daysUsed: 31 }));\n});\n\ntest(\"used and unused parts of a price never gain or lose a cent\", () => {\n    // $29.99 plan switched exactly half way through a 30-day month: 14.995 each way\n    const lines = prorate({ oldPriceCents: 2999, newPriceCents: 4999, daysInPeriod: 30, daysUsed: 15 });\n    console.log(\"half-month proration:\", lines);\n    assert.equal(allocate(2999, [15, 15])[0] + lines.creditCents, 2999);\n    assert.equal(allocate(4999, [15, 15])[0] + lines.chargeCents, 4999);\n    assert.deepEqual(lines, { creditCents: 1499, chargeCents: 2499, netCents: 1000 });\n});\n\ntest(\"amounts are formatted and parsed without floating point\", () => {\n    assert.equal(formatCents(123456), \"$1,234.56\");\n    assert.equal(formatCents(-5), \"-$0.05\");\n    assert.equal(formatCents(100000000, \"EUR\"), \"EUR 1,000,000.00\");\n    assert.equal(parseDollars(\"$1,234.5\"), 123450);\n    assert.equal(parseDollars(\"0.29\"), 29);\n    assert.throws(() => parseDollars(\"1.234\"));\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.money_and_ledgers"
+  ]
+}

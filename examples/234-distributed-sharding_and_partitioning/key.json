@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "shards/router.ts",
+          "content": "// Java-style string hash, kept because existing data was placed with it.\nexport function hashKey(key: string): number {\n    let h = 0;\n    for (let i = 0; i < key.length; i++) {\n        h = (h * 31 + key.charCodeAt(i)) | 0;\n    }\n    return h;\n}\n\n// Routes each key to one of a fixed list of shards.\nexport class ShardRouter<T> {\n    private readonly shards: T[];\n\n    constructor(shards: T[]) {\n        if (shards.length === 0) throw new Error(\"at least one shard is required\");\n        this.shards = shards;\n    }\n\n    get count(): number {\n        return this.shards.length;\n    }\n\n    indexFor(key: string): number {\n        return (hashKey(key) >>> 0) % this.shards.length;\n    }\n\n    shardFor(key: string): T {\n        return this.shards[this.indexFor(key)];\n    }\n\n    all(): readonly T[] {\n        return this.shards;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "hashKey wraps to a signed 32-bit integer (`| 0`), so for longer keys the hash is often negative. In JavaScript, % keeps the sign of the left operand, so -7 % 4 is -3, and this.shards[-3] is undefined. Reinterpreting the hash as unsigned (`>>> 0`) before the modulo always gives 0..n-1. Keys whose hash was already non-negative (every short ID that used to work) keep the same shard, so no existing data moves."
+  ]
+}

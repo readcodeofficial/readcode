@@ -1,14 +1,16 @@
 "use client";
 
 import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import type { LoadedExample } from "@/lib/examples";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, ChevronDown, FileCode, RotateCcw, TextSelect, X } from "lucide-react";
+import { Check, ChevronDown, FileCode, Pencil, Play, RotateCcw, TextSelect, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { codeFont } from "@/lib/fonts";
-import type { DefectLocation, LocateAnswer } from "../../../../shared/types";
+import type { DefectLocation, FixAnswer, LocateAnswer, RunResult, SourceFile } from "../../../../shared/types";
+import { runFixQuestion } from "./actions";
+import RunResultView, { allPassed } from "./RunResultView";
 
 type MonacoEditor = Parameters<OnMount>[0];
 type Decorations = ReturnType<MonacoEditor["createDecorationsCollection"]>;
@@ -19,6 +21,13 @@ type LocateMark = DefectLocation | "none" | null;
 // A marked range counts as correct if it overlaps the defect, allowing this many lines either side.
 const LINE_TOLERANCE = 1;
 
+// Shown next to each question number. Legacy multiple-choice questions have no `kind`.
+const QUESTION_LABEL = {
+    fix: "Fix the bug · runnable",
+    locate: "Find the defect",
+    choice: "Multiple choice",
+} as const;
+
 // NOTE: the answer key is sent to the browser. Fine for a prototype, not for real use.
 export default function ExampleViewer({ example }: { example: LoadedExample }) {
     const [current, setCurrent] = useState(example.files[0]?.path ?? "");
@@ -26,18 +35,43 @@ export default function ExampleViewer({ example }: { example: LoadedExample }) {
     const [picked, setPicked] = useState<(number | null)[]>(questions.map(() => null));
     const [marks, setMarks] = useState<LocateMark[]>(questions.map(() => null));
     const [submitted, setSubmitted] = useState<boolean[]>(questions.map(() => false));
+    // fix questions: edited src/ files (path → content), and each question's latest test run
+    const [edits, setEdits] = useState<Record<string, string>>({});
+    const [runs, setRuns] = useState<(RunResult | null)[]>(questions.map(() => null));
+    const [running, startRun] = useTransition();
 
     const editorRef = useRef<MonacoEditor | null>(null);
     const decorationsRef = useRef<Decorations | null>(null);
     const [editorReady, setEditorReady] = useState(false);
 
-    const file = example.files.find((f) => f.path === current);
+    // Files in the tree: src/ as stored, plus each fix question's tests under tests/ (read-only).
+    const testFiles: SourceFile[] = questions.flatMap((q) =>
+        q.kind === "fix" ? q.tests.map((t) => ({ path: `tests/${t.path}`, content: t.content })) : [],
+    );
+    const allFiles = [...example.files, ...testFiles];
+    // A src/ file is editable while some unsubmitted fix question lists it.
+    const editable = new Set(questions.flatMap((q, qi) => (q.kind === "fix" && !submitted[qi] ? q.editable : [])));
+    const editableEver = new Set(questions.flatMap((q) => (q.kind === "fix" ? q.editable : [])));
+
+    const file = allFiles.find((f) => f.path === current);
+    const contentOf = (p: string) => edits[p] ?? allFiles.find((f) => f.path === p)?.content ?? "";
     const isCorrect = (qi: number) => {
+        const q = questions[qi];
         const answer = example.key.answers[qi];
-        return typeof answer === "number" ? picked[qi] === answer : locateCorrect(marks[qi], answer);
+        if (q.kind === "fix") return allPassed(runs[qi]);
+        if (q.kind === "locate") return locateCorrect(marks[qi], answer as LocateAnswer);
+        return picked[qi] === answer;
     };
     const doneCount = submitted.filter(Boolean).length;
     const score = questions.filter((_, qi) => submitted[qi] && isCorrect(qi)).length;
+
+    // Run qi's tests against the current edits; with `submit`, lock the question afterwards.
+    const runFix = (qi: number, submit: boolean) =>
+        startRun(async () => {
+            const result = await runFixQuestion(example.name, qi, edits);
+            setRuns((r) => r.map((v, i) => (i === qi ? result : v)));
+            if (submit) setSubmitted((s) => s.map((v, i) => (i === qi ? true : v)));
+        });
 
     // Highlight, in the open file: the candidate's marked lines, and after submission the actual defect.
     useEffect(() => {
@@ -50,8 +84,8 @@ export default function ExampleViewer({ example }: { example: LoadedExample }) {
             if (mark && mark !== "none" && mark.path === current) {
                 ranges.push(lineRange(mark, "rc-marked"));
             }
-            const answer = example.key.answers[qi];
-            if (submitted[qi] && typeof answer !== "number" && answer.defect && answer.defect.path === current) {
+            const answer = example.key.answers[qi] as LocateAnswer;
+            if (submitted[qi] && answer.defect && answer.defect.path === current) {
                 ranges.push(lineRange(answer.defect, "rc-defect"));
             }
         });
@@ -80,42 +114,76 @@ export default function ExampleViewer({ example }: { example: LoadedExample }) {
         setTimeout(() => editorRef.current?.revealLinesInCenter(loc.startLine, loc.endLine), 0);
     };
 
-    const canSubmit = (qi: number) => (questions[qi].kind === "locate" ? marks[qi] !== null : picked[qi] !== null);
+    const canSubmit = (qi: number) => {
+        const kind = questions[qi].kind;
+        if (kind === "fix") return !running;
+        return kind === "locate" ? marks[qi] !== null : picked[qi] !== null;
+    };
 
     const reset = () => {
         setPicked(questions.map(() => null));
         setMarks(questions.map(() => null));
         setSubmitted(questions.map(() => false));
+        setEdits({});
+        setRuns(questions.map(() => null));
     };
-    const submit = (qi: number) => setSubmitted((s) => s.map((v, i) => (i === qi ? true : v)));
+    const submit = (qi: number) =>
+        questions[qi].kind === "fix" ? runFix(qi, true) : setSubmitted((s) => s.map((v, i) => (i === qi ? true : v)));
 
     return (
         <div className="flex min-h-0 flex-1">
             {/* files */}
             <nav className={cn("w-56 shrink-0 overflow-auto border-r py-3 text-[13px]", codeFont.className)} aria-label="Files">
                 <div className="mb-2 px-3 font-sans text-xs font-medium text-muted-foreground">Files</div>
-                <FileTree node={buildTree(example.files.map((f) => f.path))} current={current} onOpen={setCurrent} depth={0} />
+                <FileTree
+                    node={buildTree(allFiles.map((f) => f.path))}
+                    current={current}
+                    onOpen={setCurrent}
+                    depth={0}
+                    badge={(p) => (editableEver.has(p) ? (p in edits ? "✎*" : "✎") : "")}
+                />
+                {editableEver.size > 0 && (
+                    <div className="mt-3 px-3 font-sans text-xs text-muted-foreground">✎ editable · * changed</div>
+                )}
             </nav>
 
             {/* code */}
-            <section className="min-w-0 flex-1">
-                <Editor
-                    path={current}
-                    value={file?.content ?? ""}
-                    language={languageFor(current)}
-                    theme="readcode-dark"
-                    beforeMount={defineTheme}
-                    onMount={onMount}
-                    options={{
-                        readOnly: true,
-                        minimap: { enabled: false },
-                        fontSize: 13,
-                        fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-                        scrollBeyondLastLine: false,
-                        renderLineHighlight: "none",
-                        padding: { top: 12 },
-                    }}
-                />
+            <section className="flex min-w-0 flex-1 flex-col">
+                {editable.has(current) && (
+                    <div className="flex items-center gap-3 border-b px-3 py-1.5 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                            <Pencil className="size-3" /> editing {current}
+                        </span>
+                        {current in edits && (
+                            <button
+                                className="underline underline-offset-2 hover:text-foreground"
+                                onClick={() => setEdits((e) => Object.fromEntries(Object.entries(e).filter(([p]) => p !== current)))}
+                            >
+                                undo my changes to this file
+                            </button>
+                        )}
+                    </div>
+                )}
+                <div className="min-h-0 flex-1">
+                    <Editor
+                        path={current}
+                        value={file ? contentOf(current) : ""}
+                        onChange={(v) => editable.has(current) && setEdits((e) => ({ ...e, [current]: v ?? "" }))}
+                        language={languageFor(current)}
+                        theme="readcode-dark"
+                        beforeMount={defineTheme}
+                        onMount={onMount}
+                        options={{
+                            readOnly: !editable.has(current),
+                            minimap: { enabled: false },
+                            fontSize: 13,
+                            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+                            scrollBeyondLastLine: false,
+                            renderLineHighlight: "none",
+                            padding: { top: 12 },
+                        }}
+                    />
+                </div>
             </section>
 
             {/* questions */}
@@ -151,22 +219,55 @@ export default function ExampleViewer({ example }: { example: LoadedExample }) {
                         const answer = example.key.answers[qi];
                         const explanation = example.key.explanations?.[qi];
                         const correct = done && isCorrect(qi);
+                        const run = runs[qi];
                         return (
-                            <Card key={qi} className={cn("gap-3 px-4 py-4", done && (correct ? "ring-emerald-500/40" : "ring-red-500/40"))}>
+                            <Card
+                                key={qi}
+                                data-question={qi + 1}
+                                className={cn("gap-3 px-4 py-4", done && (correct ? "ring-emerald-500/40" : "ring-red-500/40"))}
+                            >
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>
-                                        <span className="font-medium text-foreground">Q{qi + 1}</span> · {q.kind === "locate" ? "Find the defect" : "Multiple choice"}
+                                    <span data-slot="question-label">
+                                        <span className="font-medium text-foreground">Q{qi + 1}</span> · {QUESTION_LABEL[q.kind ?? "choice"]}
                                     </span>
                                     {done && (
                                         <span className={cn("flex items-center gap-1 font-medium", correct ? "text-emerald-400" : "text-red-400")}>
                                             {correct ? <Check className="size-3.5" /> : <X className="size-3.5" />}
                                             {correct ? "Correct" : "Incorrect"}
+                                            {q.kind === "fix" && <span className="font-normal">{correct ? " (all tests pass)" : " (some tests fail)"}</span>}
                                         </span>
                                     )}
                                 </div>
                                 <p className="leading-relaxed whitespace-pre-wrap">{q.prompt}</p>
 
-                                {q.kind === "locate" ? (
+                                {q.kind === "fix" ? (
+                                    <div className="space-y-2">
+                                        <div className={cn("space-y-1 text-xs text-muted-foreground", codeFont.className)}>
+                                            <p>
+                                                <span className="font-sans">Edit: </span>
+                                                {q.editable.map((p) => (
+                                                    <button key={p} className="mr-2 text-foreground underline underline-offset-2" onClick={() => setCurrent(p)}>
+                                                        {p}
+                                                    </button>
+                                                ))}
+                                            </p>
+                                            <p>
+                                                <span className="font-sans">Tests: </span>
+                                                {q.tests.map((t) => (
+                                                    <button key={t.path} className="mr-2 underline underline-offset-2 hover:text-foreground" onClick={() => setCurrent(`tests/${t.path}`)}>
+                                                        tests/{t.path}
+                                                    </button>
+                                                ))}
+                                            </p>
+                                        </div>
+                                        {!done && (
+                                            <Button size="sm" variant="secondary" disabled={running} onClick={() => runFix(qi, false)}>
+                                                <Play /> {running ? "Running…" : "Run tests"}
+                                            </Button>
+                                        )}
+                                        {run && <RunResultView result={run} />}
+                                    </div>
+                                ) : q.kind === "locate" ? (
                                     <div className="space-y-2">
                                         {!done && (
                                             <div className="flex flex-wrap gap-2">
@@ -230,22 +331,36 @@ export default function ExampleViewer({ example }: { example: LoadedExample }) {
 
                                 {!done ? (
                                     <Button size="sm" className="w-fit" disabled={!canSubmit(qi)} onClick={() => submit(qi)}>
-                                        Submit
+                                        {q.kind === "fix" ? "Submit (runs the tests)" : "Submit"}
                                     </Button>
                                 ) : (
                                     <div className="space-y-1.5 rounded-lg bg-muted/40 p-3 text-[13px] leading-relaxed">
-                                        {typeof answer === "number" ? (
-                                            !correct && <p className="font-medium">The answer is {String.fromCharCode(65 + answer)}.</p>
-                                        ) : answer.defect ? (
-                                            <p className="font-medium">
-                                                The defect is at{" "}
-                                                <button className="underline underline-offset-2" onClick={() => jumpTo(answer.defect!)}>
-                                                    {describe(answer.defect)}
-                                                </button>
-                                                .
-                                            </p>
+                                        {q.kind === "fix" ? (
+                                            <details>
+                                                <summary className="cursor-pointer font-medium">Show reference fix</summary>
+                                                {(answer as FixAnswer).solution.map((f) => (
+                                                    <div key={f.path} className="mt-2">
+                                                        <div className={cn("text-xs text-muted-foreground", codeFont.className)}>{f.path}</div>
+                                                        <pre className={cn("mt-1 max-h-64 overflow-auto rounded-md border bg-background p-2 text-xs", codeFont.className)}>
+                                                            {f.content}
+                                                        </pre>
+                                                    </div>
+                                                ))}
+                                            </details>
+                                        ) : q.kind === "locate" ? (
+                                            (answer as LocateAnswer).defect ? (
+                                                <p className="font-medium">
+                                                    The defect is at{" "}
+                                                    <button className="underline underline-offset-2" onClick={() => jumpTo((answer as LocateAnswer).defect!)}>
+                                                        {describe((answer as LocateAnswer).defect!)}
+                                                    </button>
+                                                    .
+                                                </p>
+                                            ) : (
+                                                <p className="font-medium">There is no defect in this code.</p>
+                                            )
                                         ) : (
-                                            <p className="font-medium">There is no defect in this code.</p>
+                                            !correct && <p className="font-medium">The answer is {String.fromCharCode(65 + (answer as number))}.</p>
                                         )}
                                         {explanation && <p className="whitespace-pre-wrap text-muted-foreground">{explanation}</p>}
                                     </div>
@@ -319,9 +434,9 @@ function buildTree(paths: string[]): TreeNode {
     return root;
 }
 
-function FileTree({ node, current, onOpen, depth }: {
-    node: TreeNode; current: string; onOpen: (path: string) => void; depth: number;
-}) {
+type TreeProps = { node: TreeNode; current: string; onOpen: (path: string) => void; depth: number; badge?: (path: string) => string };
+
+function FileTree({ node, current, onOpen, depth, badge }: TreeProps) {
     return (
         <ul>
             {node.children.map((child) =>
@@ -338,19 +453,18 @@ function FileTree({ node, current, onOpen, depth }: {
                         >
                             <FileCode className="size-3.5 shrink-0" />
                             <span className="truncate">{child.name}</span>
+                            {badge?.(child.path) && <span className="ml-auto text-xs text-amber-400">{badge(child.path)}</span>}
                         </button>
                     </li>
                 ) : (
-                    <Folder key={child.path} node={child} current={current} onOpen={onOpen} depth={depth} />
+                    <Folder key={child.path} node={child} current={current} onOpen={onOpen} depth={depth} badge={badge} />
                 ),
             )}
         </ul>
     );
 }
 
-function Folder({ node, current, onOpen, depth }: {
-    node: TreeNode; current: string; onOpen: (path: string) => void; depth: number;
-}) {
+function Folder({ node, current, onOpen, depth, badge }: TreeProps) {
     const [open, setOpen] = useState(true);
     return (
         <li>
@@ -362,7 +476,7 @@ function Folder({ node, current, onOpen, depth }: {
                 <ChevronDown className={cn("size-3.5 shrink-0 transition-transform", !open && "-rotate-90")} />
                 {node.name}
             </button>
-            {open && <FileTree node={node} current={current} onOpen={onOpen} depth={depth + 1} />}
+            {open && <FileTree node={node} current={current} onOpen={onOpen} depth={depth + 1} badge={badge} />}
         </li>
     );
 }

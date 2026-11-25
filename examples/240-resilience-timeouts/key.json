@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "shipping/timeout.ts",
+          "content": "export class TimeoutError extends Error {\n    readonly label: string;\n\n    constructor(label: string, ms: number) {\n        super(`${label} timed out after ${ms}ms`);\n        this.name = \"TimeoutError\";\n        this.label = label;\n    }\n}\n\n// Gives `work` at most `ms` milliseconds. The signal passed to `work` is aborted when the time is up,\n// so it can cancel its request. The timer is always cleared.\nexport function withTimeout<T>(label: string, ms: number, work: (signal: AbortSignal) => Promise<T>): Promise<T> {\n    const controller = new AbortController();\n    return new Promise<T>((resolve, reject) => {\n        const timer = setTimeout(() => {\n            const err = new TimeoutError(label, ms);\n            controller.abort(err); // ask the work to stop, if it can\n            reject(err); // and stop waiting for it either way\n        }, ms);\n        work(controller.signal).then(\n            (value) => {\n                clearTimeout(timer);\n                resolve(value);\n            },\n            (err) => {\n                clearTimeout(timer);\n                reject(err);\n            },\n        );\n    });\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "withTimeout() only aborts the AbortSignal when time is up, then keeps awaiting the work. That works for the HTTP carriers, whose transport rejects when the signal fires. Midwest Freight's callback-based SDK ignores the signal, so its promise never settles and withTimeout never returns, which stalls Promise.allSettled and the whole checkout. A timeout must stop waiting on its own and can't rely on the callee cooperating. The fix rejects with TimeoutError when the timer fires and still aborts the signal so cancellable work can clean up. It clears the timer when the work settles first."
+  ]
+}

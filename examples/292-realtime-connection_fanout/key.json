@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "live/hub.ts",
+          "content": "import { CLOSE_TRY_AGAIN_LATER, type Connection } from \"./connection.ts\";\n\nexport interface HubOptions {\n    // A client this far behind is disconnected rather than buffered without bound;\n    // it reconnects and fetches the current state over HTTP.\n    maxBufferedBytes: number;\n}\n\n// Rooms of live connections; one room per auction lot.\nexport class Hub {\n    private readonly rooms = new Map<string, Connection[]>();\n    private readonly maxBufferedBytes: number;\n\n    constructor(opts: HubOptions) {\n        this.maxBufferedBytes = opts.maxBufferedBytes;\n    }\n\n    join(room: string, conn: Connection): void {\n        let members = this.rooms.get(room);\n        if (!members) {\n            members = [];\n            this.rooms.set(room, members);\n        }\n        if (!members.includes(conn)) members.push(conn);\n    }\n\n    leave(room: string, conn: Connection): void {\n        const members = this.rooms.get(room);\n        if (!members) return;\n        const i = members.indexOf(conn);\n        if (i >= 0) members.splice(i, 1);\n        if (members.length === 0) this.rooms.delete(room);\n    }\n\n    leaveAll(conn: Connection): void {\n        for (const room of [...this.rooms.keys()]) this.leave(room, conn);\n    }\n\n    size(room: string): number {\n        return this.rooms.get(room)?.length ?? 0;\n    }\n\n    // Sends one event to everyone in the room. Returns how many connections it was written to.\n    broadcast(room: string, event: object): number {\n        const members = this.rooms.get(room);\n        if (!members) return 0;\n        const frame = JSON.stringify(event);\n        let delivered = 0;\n        for (const conn of [...members]) {\n            if (conn.readyState !== \"open\") {\n                this.leaveAll(conn);\n                continue;\n            }\n            if (conn.bufferedAmount > this.maxBufferedBytes) {\n                conn.close(CLOSE_TRY_AGAIN_LATER, \"client too slow\");\n                this.leaveAll(conn);\n                continue;\n            }\n            conn.send(frame);\n            delivered++;\n        }\n        return delivered;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "broadcast iterates the room's member array directly, and when it finds a closed or too-slow connection it calls leaveAll, which splices that connection out of the same array. An array iterator walks by index, so after the splice every later member shifts down one place and the iterator steps over the one that moved into the removed slot. That watcher silently misses the event, and with consecutive slow clients some are neither sent to nor disconnected. Iterating over a snapshot ([...members]) lets the hub remove connections from the live array without disturbing the loop, so every remaining member is visited exactly once."
+  ]
+}

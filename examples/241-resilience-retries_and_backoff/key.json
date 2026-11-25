@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "sms/retry.ts",
+          "content": "import { GatewayError, isRetryable } from \"./errors.ts\";\n\nexport interface RetryPolicy {\n    maxAttempts: number;\n    baseDelayMs: number;\n    maxDelayMs: number;\n}\n\nexport interface RetryDeps {\n    sleep: (ms: number) => Promise<void>;\n    random: () => number; // [0, 1)\n}\n\nexport async function withRetry<T>(policy: RetryPolicy, deps: RetryDeps, attemptFn: (attempt: number) => Promise<T>): Promise<T> {\n    for (let attempt = 1; ; attempt++) {\n        try {\n            return await attemptFn(attempt);\n        } catch (err) {\n            if (attempt >= policy.maxAttempts || !isRetryable(err)) throw err;\n            await deps.sleep(delayBeforeRetry(policy, attempt, err, deps.random));\n        }\n    }\n}\n\n// Exponential backoff with jitter (between half and all of the step), so a fleet of senders\n// that failed together doesn't retry in lockstep.\nexport function delayBeforeRetry(policy: RetryPolicy, attempt: number, err: unknown, random: () => number): number {\n    const step = Math.min(policy.maxDelayMs, policy.baseDelayMs * 2 ** (attempt - 1));\n    const backoff = Math.round(step / 2 + (random() * step) / 2);\n    const retryAfter = err instanceof GatewayError ? err.retryAfterMs : undefined;\n    return retryAfter === undefined ? backoff : Math.max(retryAfter, backoff);\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "delayBeforeRetry() combines the gateway's Retry-After with our own backoff using Math.min, so the server's request only ever shortens the wait. A 429 with Retry-After: 20 is retried after a few hundred milliseconds, still inside the throttling window. That breaks the provider's rate limit and burns every attempt on guaranteed failures. Retry-After is a lower bound the client must respect. Taking Math.max waits at least as long as the gateway asked, and never less than the normal jittered backoff, so a Retry-After: 0 can't trigger a tight retry loop either."
+  ]
+}

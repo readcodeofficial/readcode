@@ -6,6 +6,7 @@ import { ChevronRight, FileSearch } from "lucide-react";
 import type { JobMatch } from "@/lib/jobs";
 import { areaName as areaLabel, jobTitle, topicName } from "@/lib/format";
 import { LanguageBadge } from "@/components/language-badge";
+import { ExerciseKindTag, questionsLabel } from "@/components/exercise-kind-tag";
 
 const PREVIEW = 3;
 
@@ -149,11 +150,12 @@ export default function RoleCard({ job }: { job: JobMatch }) {
                         >
                             <FileSearch className="size-5 shrink-0 text-muted-foreground group-hover/row:text-foreground" />
                             <span className="min-w-0 flex-1">
-                                <span className="flex items-center gap-1.5">
+                                <span className="flex min-w-0 items-center gap-1.5">
                                     <span className="truncate">{e.shortName}</span>
                                     <LanguageBadge language={e.language} />
+                                    <ExerciseKindTag kind={e.kind} />
                                 </span>
-                                <span className="block text-xs text-muted-foreground">Code review · {e.questionCount} questions · {e.durationMinutes} min</span>
+                                <span className="block text-xs text-muted-foreground">{questionsLabel(e.questionCount)} · {e.durationMinutes} min</span>
                             </span>
                             <span className="size-2 shrink-0 rounded-full" style={{ background: activeTopic && !colored.includes(e.topic) ? "var(--foreground)" : colorOf(e.topic) }} title={topicName(e.topic)} />
                             {/* a round chevron that widens into "Practice" on hover */}

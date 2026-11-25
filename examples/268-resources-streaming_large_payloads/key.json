@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "royalties/ndjson.ts",
+          "content": "import { Transform, type TransformCallback } from \"node:stream\";\nimport { StringDecoder } from \"node:string_decoder\";\n\nexport interface ParsedLine {\n    line: number;\n    value: unknown;\n}\n\n// Turns a byte stream of newline-delimited JSON into one object per line.\n// Distributor statements run to several GB, so lines are parsed as the bytes arrive;\n// only the current partial line is kept in memory.\nexport class NdjsonParser extends Transform {\n    private readonly maxLineLength: number;\n    // Holds back the bytes of a multi-byte character that is split across two chunks.\n    private readonly decoder = new StringDecoder(\"utf8\");\n    private carry = \"\";\n    private lineNo = 0;\n\n    constructor(maxLineLength = 64 * 1024) {\n        super({ readableObjectMode: true });\n        this.maxLineLength = maxLineLength;\n    }\n\n    _transform(chunk: Buffer, _encoding: BufferEncoding, done: TransformCallback): void {\n        const lines = (this.carry + this.decoder.write(chunk)).split(\"\\n\");\n        this.carry = lines.pop() ?? \"\";\n        if (this.carry.length > this.maxLineLength) {\n            done(new Error(`line ${this.lineNo + lines.length + 1}: longer than ${this.maxLineLength} characters`));\n            return;\n        }\n        try {\n            for (const line of lines) this.emitLine(line);\n            done();\n        } catch (err) {\n            done(err as Error);\n        }\n    }\n\n    _flush(done: TransformCallback): void {\n        try {\n            this.emitLine(this.carry + this.decoder.end());\n            this.carry = \"\";\n            done();\n        } catch (err) {\n            done(err as Error);\n        }\n    }\n\n    private emitLine(raw: string): void {\n        this.lineNo++;\n        const line = raw.trim(); // also drops the \\r of CRLF files\n        if (line === \"\") return;\n        let value: unknown;\n        try {\n            value = JSON.parse(line);\n        } catch {\n            throw new Error(`line ${this.lineNo}: invalid JSON`);\n        }\n        this.push({ line: this.lineNo, value } satisfies ParsedLine);\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The parser decodes every incoming Buffer on its own with chunk.toString(\"utf8\"). Chunk boundaries fall at arbitrary byte offsets, so a multi-byte UTF-8 character such as \"ó\" (2 bytes) or \"龍\" (3 bytes) is sometimes split between two chunks. Each half is invalid on its own and decodes to U+FFFD replacement characters, which are still valid JSON, so the corrupted name goes into the totals as a different artist. Small files arrive as one chunk and never hit this, and ASCII names can't be split. The fix keeps a StringDecoder for the life of the stream. decoder.write() holds back an incomplete trailing character until the next chunk, and _flush adds decoder.end(). Carrying the partial line in `carry` handles lines that span chunks, and the decoder does the same for characters."
+  ]
+}

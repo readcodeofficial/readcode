@@ -1,0 +1,28 @@
+{
+  "id": "ae88b5e6-49a3-406a-ba6e-ffd5d976dadf",
+  "title": "Ride-hailing config: layered overrides that drop sibling settings",
+  "name": "Layered config loading",
+  "createdAt": "2026-11-19T23:53:00.942Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "We added a Lisbon config file that only raises the surge cap and widens the search radius. The Lisbon rides service now fails to start with \"pricing.baseFareCents must be a non-negative integer\", even though the file doesn't mention base fares. Ops also say that setting a single RIDES__PRICING__... variable on a healthy city breaks it the same way. Fix load.ts so the tests pass.",
+      "editable": [
+        "config/load.ts"
+      ],
+      "tests": [
+        {
+          "path": "config.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { loadConfig } from \"../src/config/load.ts\";\nimport { DEFAULTS } from \"../src/config/defaults.ts\";\nimport { quoteFare } from \"../src/rides/fare.ts\";\nimport { pickDriver, type Driver } from \"../src/rides/matching.ts\";\n\nconst lisbonFile = { city: \"lisbon\", pricing: { surgeCap: 3 }, dispatch: { searchRadiusKm: 8 } };\n\ntest(\"with no file and no environment, the defaults are used\", () => {\n    assert.deepEqual(loadConfig({}), DEFAULTS);\n});\n\ntest(\"environment variables are typed like the setting they override\", () => {\n    const config = loadConfig({ RIDES__CITY: \"porto\", RIDES__FEATURES__SCHEDULED_RIDES: \"true\", PATH: \"/usr/bin\" });\n    assert.equal(config.city, \"porto\");\n    assert.equal(config.features.scheduledRides, true);\n    assert.throws(() => loadConfig({ RIDES__FEATURES__SCHEDULED_RIDES: \"yes\" }), /must be true or false/);\n    assert.throws(() => loadConfig({ RIDES__PRICING__SURGECAP: \"2\" }), /unknown setting RIDES__PRICING__SURGECAP/);\n});\n\ntest(\"a city file that sets one pricing value keeps the other pricing defaults\", () => {\n    let config;\n    try {\n        config = loadConfig({}, lisbonFile);\n    } catch (err) {\n        console.log(\"loadConfig with the Lisbon file threw:\", (err as Error).message);\n        throw err;\n    }\n    assert.deepEqual(config.pricing, { ...DEFAULTS.pricing, surgeCap: 3 });\n    assert.deepEqual(config.dispatch, { ...DEFAULTS.dispatch, searchRadiusKm: 8 });\n});\n\ntest(\"an environment variable beats the city file for that one key only\", () => {\n    const config = loadConfig({ RIDES__PRICING__SURGE_CAP: \"2.5\", RIDES__PRICING__PER_KM_CENTS: \"95\" }, lisbonFile);\n    assert.deepEqual(config.pricing, { ...DEFAULTS.pricing, surgeCap: 2.5, perKmCents: 95 });\n    assert.equal(config.dispatch.searchRadiusKm, 8);\n    assert.equal(config.city, \"lisbon\");\n});\n\ntest(\"loading never changes the built-in defaults\", () => {\n    try {\n        loadConfig({ RIDES__DISPATCH__MAX_ETA_MINUTES: \"20\" }, lisbonFile);\n    } catch {\n        // only the defaults matter here\n    }\n    assert.equal(DEFAULTS.pricing.surgeCap, 2);\n    assert.equal(DEFAULTS.dispatch.searchRadiusKm, 5);\n    assert.equal(DEFAULTS.dispatch.maxEtaMinutes, 12);\n});\n\ntest(\"fares in Lisbon use the city's surge cap and the default rates\", () => {\n    const { pricing } = loadConfig({}, lisbonFile);\n    const quote = quoteFare(pricing, { distanceKm: 10, minutes: 20, surge: 4 });\n    assert.deepEqual(quote, { currency: \"EUR\", amountCents: 5550, surgeApplied: 3 });\n});\n\ntest(\"dispatch combines the city's radius with vehicle classes from the environment\", () => {\n    const { dispatch } = loadConfig({ RIDES__DISPATCH__VEHICLE_CLASSES: \"standard, xl, tuk-tuk\" }, lisbonFile);\n    const drivers: Driver[] = [\n        { id: \"d1\", vehicleClass: \"tuk-tuk\", distanceKm: 7, etaMinutes: 9 },\n        { id: \"d2\", vehicleClass: \"tuk-tuk\", distanceKm: 9, etaMinutes: 6 },\n        { id: \"d3\", vehicleClass: \"standard\", distanceKm: 1, etaMinutes: 2 },\n    ];\n    assert.equal(pickDriver(dispatch, drivers, \"tuk-tuk\")?.id, \"d1\");\n    assert.equal(dispatch.maxEtaMinutes, 12);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.config.configuration_loading",
+    "backend.config.defaults_and_validation"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "logging/redact.ts",
+          "content": "// Fields that may hold PHI or credentials. Matched case-insensitively, ignoring _ and -.\nconst SENSITIVE_KEYS = new Set([\n    \"ssn\",\n    \"dateofbirth\",\n    \"dob\",\n    \"phone\",\n    \"email\",\n    \"address\",\n    \"insuranceid\",\n    \"diagnosis\",\n    \"notes\",\n    \"password\",\n    \"token\",\n]);\n\nconst EMAIL = /[^\\s@<>\"]+@[^\\s@<>\"]+\\.[a-z]{2,}/gi;\nconst MAX_DEPTH = 8;\n\nconst normalize = (key: string) => key.toLowerCase().replace(/[_-]/g, \"\");\n\nfunction isPlainObject(value: unknown): value is Record<string, unknown> {\n    if (typeof value !== \"object\" || value === null) return false;\n    const proto = Object.getPrototypeOf(value);\n    return proto === Object.prototype || proto === null;\n}\n\n// Free text (messages, error strings) can still contain addresses typed in by staff.\nexport function redactText(text: string): string {\n    return text.replace(EMAIL, \"[email]\");\n}\n\n// Returns a copy of value that is safe to log. The input is never modified.\nexport function redact(value: unknown, depth = 0): unknown {\n    if (depth > MAX_DEPTH) return \"[truncated]\";\n    if (typeof value === \"string\") return redactText(value);\n    if (value instanceof Error) return { name: value.name, message: redactText(value.message) };\n    if (Array.isArray(value)) return value.map((v) => redact(v, depth + 1));\n    if (isPlainObject(value)) {\n        const out: Record<string, unknown> = {};\n        for (const [key, v] of Object.entries(value)) {\n            out[key] = SENSITIVE_KEYS.has(normalize(key)) ? \"[redacted]\" : redact(v, depth + 1);\n        }\n        return out;\n    }\n    return value;\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "redact() recurses into plain objects and masks strings, but an array is not a plain object (its prototype is Array.prototype), so it falls through to `return value` and is logged untouched. The reminder job logs `failed: [{ appointmentId, patient }]`, so every patient in that list is written out in full. Bare strings inside arrays also skip the email masking. Booking logs pass because the patient there is a nested object, not an array element. The fix maps over arrays and redacts each element, which also builds a new array so the logged object isn't modified."
+  ]
+}

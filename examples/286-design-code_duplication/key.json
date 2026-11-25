@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "tickets/refunds.ts",
+          "content": "import { refundAmountCents } from \"./policy.ts\";\nimport type { PaymentProvider, Ticket, TicketStore } from \"./types.ts\";\n\nexport class NotRefundableError extends Error {\n    constructor(ticketId: string, reason: string) {\n        super(`Ticket ${ticketId} can't be refunded: ${reason}`);\n        this.name = \"NotRefundableError\";\n    }\n}\n\nexport class RefundService {\n    private readonly store: TicketStore;\n    private readonly payments: PaymentProvider;\n\n    constructor(store: TicketStore, payments: PaymentProvider) {\n        this.store = store;\n        this.payments = payments;\n    }\n\n    // Customer pressed Return: send the money back and release the seat.\n    async refund(ticketId: string, holderId: string, now: Date): Promise<Ticket> {\n        const ticket = await this.store.ticket(ticketId);\n        if (!ticket || ticket.holderId !== holderId) throw new NotRefundableError(ticketId, \"not your ticket\");\n        if (ticket.refundedCents !== null) throw new NotRefundableError(ticketId, \"already refunded\");\n        const event = await this.store.event(ticket.eventId);\n        if (!event) throw new Error(`Unknown event ${ticket.eventId}`);\n\n        const cents = refundAmountCents(ticket, event, now);\n        if (cents <= 0) throw new NotRefundableError(ticketId, \"outside the refund window\");\n\n        await this.payments.refund(ticket.paymentId, cents);\n        const refunded: Ticket = { ...ticket, refundedCents: cents };\n        await this.store.saveTicket(refunded);\n        return refunded;\n    }\n\n    // Organiser cancelled the show: refund every ticket that hasn't been refunded yet.\n    async refundCancelledEvent(tickets: Ticket[], now: Date): Promise<number> {\n        let totalCents = 0;\n        for (const t of tickets) {\n            if (t.refundedCents !== null) continue;\n            totalCents += (await this.refund(t.id, t.holderId, now)).refundedCents ?? 0;\n        }\n        return totalCents;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "RefundService computes the refund with its own private copy of the refund rule instead of the shared policy in policy.ts, and the copy predates flex tickets. The preview uses refundAmountCents, which gives flex tickets 100% up to 24 hours before the show and 50% after that. The copy in refunds.ts treats every ticket as standard, so a flex ticket inside 72 hours is refused even though the page promised a refund. The fix deletes the duplicate and calls refundAmountCents from policy.ts. The money paid out then comes from the same rule the customer was shown, and the next policy change only has to be made once."
+  ]
+}

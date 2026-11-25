@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "tickets/versionedCache.ts",
+          "content": "interface Slot<V> {\n    version: number;\n    live: boolean; // false: invalidated at `version`, no value cached\n    value?: V;\n    expiresAt: number;\n}\n\n// Cache for rows that carry a version number (bumped by every write).\n// Readers fill it with what they read; writers invalidate it with the version they wrote.\n// The versions stop a slow reader from caching a row that a write has already replaced.\nexport class VersionedCache<V> {\n    private readonly slots = new Map<string, Slot<V>>();\n    private readonly ttlMs: number;\n    private readonly now: () => number;\n\n    constructor(ttlMs: number, now: () => number) {\n        this.ttlMs = ttlMs;\n        this.now = now;\n    }\n\n    private slot(key: string): Slot<V> | undefined {\n        const slot = this.slots.get(key);\n        if (slot && this.now() >= slot.expiresAt) {\n            this.slots.delete(key);\n            return undefined;\n        }\n        return slot;\n    }\n\n    get(key: string): { value: V; version: number } | undefined {\n        const slot = this.slot(key);\n        return slot?.live ? { value: slot.value as V, version: slot.version } : undefined;\n    }\n\n    // Read path. Returns false if the cache already knows about a newer version.\n    fill(key: string, value: V, version: number): boolean {\n        const existing = this.slot(key);\n        if (existing && existing.version > version) return false;\n        this.slots.set(key, { version, live: true, value, expiresAt: this.now() + this.ttlMs });\n        return true;\n    }\n\n    // Write path: drop the cached value but remember which version replaced it.\n    invalidate(key: string, version: number): void {\n        const existing = this.slot(key);\n        if (existing && existing.version > version) return;\n        this.slots.set(key, { version, live: false, expiresAt: this.now() + this.ttlMs });\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "invalidate() correctly leaves a marker with the written version, so the cache knows the row moved on. fill() only checks that version against live entries, though (existing?.live && ...). A page load that read version 1 before a reservation, and finishes after the reservation invalidated the key at version 2, overwrites the marker and caches the old counts for the full TTL. The fix compares against any existing slot, live or invalidated, so a fill with an older version than the cache knows about is rejected. The next read misses, loads version 2, and caches that."
+  ]
+}

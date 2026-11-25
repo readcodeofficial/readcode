@@ -1,0 +1,29 @@
+{
+  "id": "bef732db-ef99-4f47-863c-d95a71058b06",
+  "title": "Lab results ingestion: retry counting that never dead-letters",
+  "name": "Lab results DLQ",
+  "createdAt": "2026-11-19T23:52:51.695Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The lab-results consumer has been pegged at 100% CPU since this morning, and clinicians report potassium and troponin results arriving hours late. The logs show the same result for one MRN failing with UnknownPatientError thousands of times (a patient whose registration was entered at the wrong site). The dead-letter queue is empty, even though malformed messages do still show up there. Fix the results consumer so the tests pass.",
+      "editable": [
+        "labs/resultsConsumer.ts"
+      ],
+      "tests": [
+        {
+          "path": "labResults.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { InMemoryQueue } from \"../src/queue/broker.ts\";\nimport { ChartStore, type LabResult } from \"../src/labs/results.ts\";\nimport { LabResultsConsumer } from \"../src/labs/resultsConsumer.ts\";\nimport { redrive } from \"../src/labs/redrive.ts\";\n\nconst potassium = (mrn: string) => `${mrn}|2823-3|4.1|mmol/L|2026-11-19T07:42:00Z`;\n\nfunction setup(registered: string[] = [\"MRN-100\"]) {\n    const main = new InMemoryQueue();\n    const dlq = new InMemoryQueue();\n    const charts = new ChartStore();\n    registered.forEach((m) => charts.register(m));\n    return { main, dlq, charts, consumer: new LabResultsConsumer(main, dlq, charts, 3) };\n}\n\nasync function dlqContents(dlq: InMemoryQueue) {\n    const msgs = await dlq.receive(100);\n    for (const m of msgs) await dlq.nack(m.receipt);\n    return msgs;\n}\n\ntest(\"a valid result is filed into the patient's chart\", async () => {\n    const { main, charts, consumer } = setup();\n    await main.send(potassium(\"MRN-100\"));\n    await consumer.drain();\n    assert.deepEqual(charts.resultsFor(\"MRN-100\").map((r) => [r.testCode, r.value]), [[\"2823-3\", 4.1]]);\n    assert.equal(main.depth(), 0);\n});\n\ntest(\"a malformed message goes straight to the dead-letter queue\", async () => {\n    const { main, dlq, consumer } = setup();\n    await main.send(\"MRN-100|2823-3|high\");\n    await consumer.drain();\n    const [parked] = await dlqContents(dlq);\n    assert.match(parked.attributes[\"x-error\"], /MalformedResultError/);\n    assert.equal(consumer.stats.retried, 0);\n});\n\ntest(\"a result for a patient who isn't registered yet is retried and then filed\", async () => {\n    const { main, dlq, charts, consumer } = setup([]);\n    const add = charts.addResult.bind(charts);\n    let calls = 0;\n    charts.addResult = async (r: LabResult) => {\n        if (++calls === 2) charts.register(\"MRN-200\"); // registration lands while we retry\n        return add(r);\n    };\n    await main.send(potassium(\"MRN-200\"));\n    await consumer.drain();\n    assert.equal(charts.resultsFor(\"MRN-200\").length, 1);\n    assert.equal(dlq.depth(), 0);\n});\n\ntest(\"a result that keeps failing is dead-lettered after 3 attempts\", async () => {\n    const { main, dlq, consumer } = setup();\n    await main.send(potassium(\"MRN-999\"));\n    await consumer.drain().catch((err) => console.log(\"drain:\", err.message, consumer.stats));\n    assert.equal(dlq.depth(), 1);\n    assert.deepEqual(consumer.stats, { charted: 0, retried: 2, deadLettered: 1 });\n});\n\ntest(\"a poison message doesn't keep the results behind it waiting\", async () => {\n    const { main, charts, consumer } = setup();\n    await main.send(potassium(\"MRN-999\"));\n    for (let i = 0; i < 5; i++) await main.send(potassium(\"MRN-100\"));\n    await consumer.drain();\n    assert.equal(charts.resultsFor(\"MRN-100\").length, 5);\n    assert.equal(main.depth(), 0);\n});\n\ntest(\"a dead-lettered message keeps its body and records why and how often it failed\", async () => {\n    const { main, dlq, consumer } = setup();\n    const id = await main.send(potassium(\"MRN-999\"), { \"x-sending-facility\": \"NORTH-LAB\" });\n    await consumer.drain();\n    const [parked] = await dlqContents(dlq);\n    assert.equal(parked.body, potassium(\"MRN-999\"));\n    assert.deepEqual(parked.attributes, {\n        \"x-sending-facility\": \"NORTH-LAB\",\n        \"x-original-id\": id,\n        \"x-error\": \"UnknownPatientError: no chart for MRN MRN-999\",\n        \"x-attempts\": \"3\",\n    });\n});\n\ntest(\"once the patient is registered, redriving the DLQ files the parked result\", async () => {\n    const { main, dlq, charts, consumer } = setup();\n    await main.send(potassium(\"MRN-300\"));\n    await main.send(\"garbage\");\n    await consumer.drain();\n    charts.register(\"MRN-300\");\n    const moved = await redrive(dlq, main, (body) => body.startsWith(\"MRN-300|\"));\n    assert.equal(moved, 1);\n    await consumer.drain();\n    assert.equal(charts.resultsFor(\"MRN-300\").length, 1);\n    assert.equal(dlq.depth(), 1);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.dead_letter_queues",
+    "backend.messaging.queues_and_consumers",
+    "backend.resilience.retries_and_backoff"
+  ]
+}

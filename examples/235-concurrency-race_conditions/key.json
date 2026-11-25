@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "dispatch/dispatcher.ts",
+          "content": "import { distanceKm, type LatLng } from \"./geo.ts\";\nimport type { DriverRegistry, VehicleClass } from \"./drivers.ts\";\n\nexport interface EtaService {\n    // Driving time in minutes, from the routing service.\n    minutes(from: LatLng, to: LatLng): Promise<number>;\n}\n\nexport interface Assignment {\n    driverId: string;\n    etaMinutes: number;\n}\n\nconst MAX_PICKUP_MINUTES = 12;\nconst CANDIDATES = 3;\n\nexport class Dispatcher {\n    private readonly drivers: DriverRegistry;\n    private readonly eta: EtaService;\n    private readonly radiusKm: number;\n\n    constructor(drivers: DriverRegistry, eta: EtaService, radiusKm = 5) {\n        this.drivers = drivers;\n        this.eta = eta;\n        this.radiusKm = radiusKm;\n    }\n\n    // Picks the closest available driver whose road ETA to the pickup is acceptable.\n    async dispatch(rideId: string, pickup: LatLng, vehicle: VehicleClass): Promise<Assignment | null> {\n        const shortlist = this.drivers\n            .available(vehicle)\n            .map((driver) => ({ driver, km: distanceKm(driver.location, pickup) }))\n            .filter((c) => c.km <= this.radiusKm)\n            .sort((a, b) => a.km - b.km)\n            .slice(0, CANDIDATES);\n\n        for (const { driver } of shortlist) {\n            // Road time can be far off the straight-line distance (rivers, one-way streets).\n            const etaMinutes = await this.eta.minutes(driver.location, pickup);\n            if (etaMinutes > MAX_PICKUP_MINUTES || !this.drivers.isAvailable(driver.id)) continue;\n            this.drivers.markBusy(driver.id, rideId);\n            return { driverId: driver.id, etaMinutes };\n        }\n        return null;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "dispatch() builds its shortlist from the drivers that are available at that moment, then awaits the routing service before calling markBusy. While it waits, other dispatch calls run, see the same driver as still available, and shortlist them too. Each one then marks that driver busy for its own ride and overwrites the last. This is a check-then-act race across an await. The fix checks availability again right after the await, in the same synchronous step as markBusy, so no other request can run between the check and the claim. A driver someone else took in the meantime is skipped for the next candidate."
+  ]
+}

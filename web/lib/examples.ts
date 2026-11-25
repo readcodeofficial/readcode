@@ -3,7 +3,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
-import type { ExampleKey, ExamplePublic, SourceFile } from "../../shared/types";
+import { exerciseKind, type ExampleKey, type ExamplePublic, type ExerciseKind, type SourceFile } from "../../shared/types";
 
 // Where example folders live. Defaults to the repo root (one level above web/).
 // turbopackIgnore: these are runtime paths, not files to bundle
@@ -19,6 +19,7 @@ export type ExampleSummary = {
     topic: string;
     concepts: string[];
     questionCount: number;
+    kind: ExerciseKind;  // "bugfix" (runnable fix question) or "comprehension"
     durationMinutes: number;
     language: string;
 };
@@ -46,6 +47,7 @@ export const listExamples = cache(async (): Promise<ExampleSummary[]> => {
                 topic: pub.concepts?.[0] ?? "(none)",
                 concepts: pub.concepts ?? [],
                 questionCount: pub.questions?.length ?? 0,
+                kind: exerciseKind(pub),
                 durationMinutes: pub.durationMinutes ?? 0,
                 language: pub.language,
             };

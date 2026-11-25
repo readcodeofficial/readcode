@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { DataTable, ExpandChevron, FilterBar, RowArrow } from "@/components/data-table";
 import { LanguageBadge } from "@/components/language-badge";
+import { ExerciseKindTag, questionsLabel } from "@/components/exercise-kind-tag";
 
 // A one-line description per module (top-level area). Modules are listed alphabetically (no implied sequence).
 const BLURBS: Record<string, string> = {
@@ -36,10 +37,12 @@ const BLURBS: Record<string, string> = {
 // A role the curriculum can be narrowed to: its plan's topics with their weights.
 export type RoleOption = { id: string; label: string; topics: { label: string; weight: number }[] };
 
+// Comprehension exercises take ~10–16 min; bug-fix exercises (more code, plus running tests) ~18–22.
 const LENGTHS = [
     { id: "", label: "Any length", test: () => true },
-    { id: "short", label: "Up to 12 min", test: (m: number) => m <= 12 },
-    { id: "long", label: "13 min or more", test: (m: number) => m >= 13 },
+    { id: "short", label: "Short · up to 12 min", test: (m: number) => m <= 12 },
+    { id: "medium", label: "Medium · 13–16 min", test: (m: number) => m >= 13 && m <= 16 },
+    { id: "long", label: "Long · 17 min or more", test: (m: number) => m >= 17 },
 ];
 
 // Shared column layout for every row of the table: [toggle] [topic] [match] [exercises] [time] [action]
@@ -242,9 +245,10 @@ function ExampleRow({ example: e }: { example: ExampleSummary }) {
                 <FileSearch className="size-4 shrink-0 text-muted-foreground group-hover/row:text-foreground" />
                 <span className="truncate">{e.shortName}</span>
                 <LanguageBadge language={e.language} />
+                <ExerciseKindTag kind={e.kind} />
             </span>
             <span />
-            <span className="text-right text-xs text-muted-foreground tabular-nums">{e.questionCount} questions</span>
+            <span className="text-right text-xs text-muted-foreground tabular-nums">{questionsLabel(e.questionCount)}</span>
             <span className="text-right text-xs text-muted-foreground tabular-nums">{e.durationMinutes} min</span>
             <RowArrow />
         </Link>

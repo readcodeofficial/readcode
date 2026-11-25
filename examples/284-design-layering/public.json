@@ -1,0 +1,29 @@
+{
+  "id": "484ae72a-8709-4e3b-852a-e965ff746643",
+  "title": "Clinic appointments: an HTTP handler that writes around the service layer",
+  "name": "Clinic rescheduling",
+  "createdAt": "2026-11-19T23:53:02.783Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Clinicians are finding two patients in the same slot, and the front desk found an appointment booked for 18:00 after the clinic closes. Every case so far was a patient who moved their appointment in the app; new bookings are fine. Fix clinic/handlers.ts so the tests pass.",
+      "editable": [
+        "clinic/handlers.ts"
+      ],
+      "tests": [
+        {
+          "path": "appointments.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { AppointmentService } from \"../src/clinic/service.ts\";\nimport { appointmentHandlers, type Req } from \"../src/clinic/handlers.ts\";\nimport { coverDay } from \"../src/clinic/coverage.ts\";\nimport { dayOf, type Appointment, type AppointmentRepo } from \"../src/clinic/types.ts\";\n\nfunction setup() {\n    const rows = new Map<string, Appointment>();\n    const repo: AppointmentRepo = {\n        get: async (id) => rows.get(id) ?? null,\n        listForClinician: async (clinicianId, day) => [...rows.values()].filter((a) => a.clinicianId === clinicianId && dayOf(a.start) === day),\n        save: async (a) => void rows.set(a.id, { ...a }),\n    };\n    let n = 0;\n    const service = new AppointmentService(repo, () => `a${++n}`);\n    const api = appointmentHandlers(service, repo);\n    const as = (patientId: string, body: Record<string, unknown> = {}, params: Record<string, string> = {}): Req => ({ caller: { patientId }, params, body });\n    const book = (patientId: string, clinicianId: string, start: string, minutes = 30) => api.book(as(patientId, { clinicianId, start, minutes }));\n    return { rows, repo, service, api, as, book };\n}\n\ntest(\"a patient books a free slot\", async () => {\n    const { book, rows } = setup();\n    const res = await book(\"p1\", \"dr-osei\", \"2026-12-01T10:00:00Z\");\n    assert.equal(res.status, 201);\n    assert.equal(rows.get(\"a1\")?.clinicianId, \"dr-osei\");\n});\n\ntest(\"booking a slot the clinician already has is a 409\", async () => {\n    const { book } = setup();\n    await book(\"p1\", \"dr-osei\", \"2026-12-01T10:00:00Z\");\n    const res = await book(\"p2\", \"dr-osei\", \"2026-12-01T10:15:00Z\");\n    assert.equal(res.status, 409);\n});\n\ntest(\"a patient moves their appointment to another free time\", async () => {\n    const { book, api, as, rows } = setup();\n    await book(\"p1\", \"dr-osei\", \"2026-12-01T10:00:00Z\");\n    const res = await api.reschedule(as(\"p1\", { start: \"2026-12-01T14:30:00Z\" }, { id: \"a1\" }));\n    assert.equal(res.status, 200);\n    assert.equal(rows.get(\"a1\")?.start.toISOString(), \"2026-12-01T14:30:00.000Z\");\n});\n\ntest(\"rescheduling onto another patient's slot is refused and leaves the appointment where it was\", async () => {\n    const { book, api, as, rows } = setup();\n    await book(\"p1\", \"dr-osei\", \"2026-12-01T10:00:00Z\");\n    await book(\"p2\", \"dr-osei\", \"2026-12-01T11:00:00Z\");\n    const res = await api.reschedule(as(\"p1\", { start: \"2026-12-01T11:00:00Z\" }, { id: \"a1\" }));\n    console.log(\"reschedule onto a taken slot ->\", res);\n    assert.equal(res.status, 409);\n    assert.equal(rows.get(\"a1\")?.start.toISOString(), \"2026-12-01T10:00:00.000Z\");\n});\n\ntest(\"rescheduling outside opening hours or off the 15-minute grid is a 422\", async () => {\n    const { book, api, as, rows } = setup();\n    await book(\"p1\", \"dr-osei\", \"2026-12-01T10:00:00Z\");\n    assert.equal((await api.reschedule(as(\"p1\", { start: \"2026-12-01T16:45:00Z\" }, { id: \"a1\" }))).status, 422);\n    assert.equal((await api.reschedule(as(\"p1\", { start: \"2026-12-01T12:10:00Z\" }, { id: \"a1\" }))).status, 422);\n    assert.equal(rows.get(\"a1\")?.start.toISOString(), \"2026-12-01T10:00:00.000Z\");\n});\n\ntest(\"a patient can't see or change someone else's appointment\", async () => {\n    const { book, api, as } = setup();\n    await book(\"p1\", \"dr-osei\", \"2026-12-01T10:00:00Z\");\n    assert.equal((await api.reschedule(as(\"p2\", { start: \"2026-12-01T13:00:00Z\" }, { id: \"a1\" }))).status, 404);\n    assert.equal((await api.cancel(as(\"p2\", {}, { id: \"a1\" }))).status, 404);\n    assert.equal((await api.reschedule(as(\"p1\", { start: \"not a date\" }, { id: \"a1\" }))).status, 400);\n});\n\ntest(\"cover for a sick clinician only takes the appointments that fit their day\", async () => {\n    const { book, api, as, service, repo } = setup();\n    await book(\"p1\", \"dr-osei\", \"2026-12-01T09:00:00Z\"); // a1\n    await book(\"p2\", \"dr-osei\", \"2026-12-01T11:00:00Z\"); // a2\n    await book(\"p3\", \"dr-lind\", \"2026-12-01T13:00:00Z\"); // a3, dr-lind's own patient\n    await book(\"p4\", \"dr-osei\", \"2026-12-01T15:00:00Z\"); // a4\n    // p4 tries to squeeze in next to p2, then dr-osei's day is handed over\n    await api.reschedule(as(\"p4\", { start: \"2026-12-01T11:15:00Z\" }, { id: \"a4\" }));\n    const report = await coverDay(service, repo, \"dr-osei\", \"dr-lind\", \"2026-12-01\");\n    assert.deepEqual(report, { moved: [\"a1\", \"a2\", \"a4\"], unmoved: [] });\n    const lind = (await repo.listForClinician(\"dr-lind\", \"2026-12-01\")).map((a) => a.start.toISOString().slice(11, 16)).sort();\n    assert.deepEqual(lind, [\"09:00\", \"11:00\", \"13:00\", \"15:00\"]);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.layering",
+    "backend.api.request_validation",
+    "backend.concurrency.race_conditions"
+  ]
+}

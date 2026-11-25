@@ -1,0 +1,28 @@
+{
+  "id": "72aa8801-95ef-4c1d-82b1-6a3fead11087",
+  "title": "IoT gateway diagnostics: config redaction that misses some credentials",
+  "name": "Gateway config redaction",
+  "createdAt": "2026-11-19T23:52:57.329Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "A screenshot of a factory gateway's /debug/status page, attached to a public support ticket, showed the site's live cloud API key in plain text. The MQTT password on the same page was masked. The central log store has the same problem in every gateway's startup line. Fix redact.ts so the tests pass.",
+      "editable": [
+        "gateway/redact.ts"
+      ],
+      "tests": [
+        {
+          "path": "diagnostics.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { createHmac } from \"node:crypto\";\nimport { loadConfig } from \"../src/gateway/config.ts\";\nimport { redact } from \"../src/gateway/redact.ts\";\nimport { diagnosticsReport, startupLogLine } from \"../src/gateway/diagnostics.ts\";\nimport { buildUplinkRequest, verifyFirmwareManifest } from \"../src/gateway/cloud.ts\";\n\nconst SECRETS = {\n    MQTT_PASSWORD: \"mqtt-pw-7f3a\",\n    CLOUD_API_KEY: \"ck_live_91b2c4\",\n    OTA_SIGNING_SECRET: \"ota-sign-55e1\",\n    WEBHOOK_TOKEN: \"hook-tok-0c9d\",\n};\n\nconst env = {\n    SITE_ID: \"plant-12\",\n    MQTT_URL: \"mqtts://gw12:mqtt-pw-7f3a@broker.example.com:8883\",\n    MQTT_USERNAME: \"gw12\",\n    MQTT_PASSWORD: SECRETS.MQTT_PASSWORD,\n    CLOUD_ENDPOINT: \"https://ingest.example.com\",\n    CLOUD_API_KEY: SECRETS.CLOUD_API_KEY,\n    OTA_SIGNING_SECRET: SECRETS.OTA_SIGNING_SECRET,\n    ALERT_WEBHOOKS: JSON.stringify([{ url: \"https://hooks.example.com/alerts\", authToken: SECRETS.WEBHOOK_TOKEN }]),\n};\n\nconst leaked = (text: string) => Object.entries(SECRETS).filter(([, v]) => text.includes(v)).map(([k]) => k);\n\ntest(\"config is read from the environment and missing settings are rejected\", () => {\n    const config = loadConfig(env);\n    assert.equal(config.siteId, \"plant-12\");\n    assert.equal(config.ota.channel, \"stable\");\n    assert.equal(config.alertWebhooks.length, 1);\n    assert.throws(() => loadConfig({ ...env, CLOUD_API_KEY: \" \" }), /CLOUD_API_KEY/);\n});\n\ntest(\"the diagnostics page still shows the non-secret settings\", () => {\n    const report = diagnosticsReport(loadConfig(env), new Date(\"2026-11-19T08:00:00Z\"), new Date(\"2026-11-19T09:30:00Z\"), 42);\n    const config = report.config as Record<string, any>;\n    assert.equal(report.uptimeSeconds, 5400);\n    assert.equal(config.siteId, \"plant-12\");\n    assert.equal(config.cloud.endpoint, \"https://ingest.example.com\");\n    assert.equal(config.mqtt.username, \"gw12\");\n    assert.equal(config.alertWebhooks[0].url, \"https://hooks.example.com/alerts\");\n});\n\ntest(\"the diagnostics page contains none of the credentials\", () => {\n    const report = JSON.stringify(diagnosticsReport(loadConfig(env), new Date(0), new Date(0), 0));\n    console.log(\"secrets visible on /debug/status:\", leaked(report));\n    assert.deepEqual(leaked(report), []);\n});\n\ntest(\"the startup log line doesn't carry the cloud API key or OTA signing secret\", () => {\n    const line = startupLogLine(loadConfig(env), \"4.2.0\");\n    const config = JSON.parse(line).config;\n    assert.equal(config.cloud.apiKey, \"[redacted]\");\n    assert.equal(config.ota.signingSecret, \"[redacted]\");\n});\n\ntest(\"a password inside the broker URL is masked\", () => {\n    const shown = redact(loadConfig(env)) as Record<string, any>;\n    assert.equal(shown.mqtt.url, \"mqtts://gw12:***@broker.example.com:8883\");\n    assert.equal(shown.mqtt.password, \"[redacted]\");\n});\n\ntest(\"redaction works on any field name style and leaves other values alone\", () => {\n    const shown = redact({ DB_PASSWORD: \"p\", stripeKey: \"k\", sessionToken: \"t\", keyId: \"kid-1\", retries: 3, tags: [\"a\"] });\n    assert.deepEqual(shown, { DB_PASSWORD: \"[redacted]\", stripeKey: \"[redacted]\", sessionToken: \"[redacted]\", keyId: \"kid-1\", retries: 3, tags: [\"a\"] });\n});\n\ntest(\"redacting for display doesn't change the live config the gateway uses\", () => {\n    const config = loadConfig(env);\n    diagnosticsReport(config, new Date(0), new Date(0), 0);\n    const req = buildUplinkRequest(config, [{ sensorId: \"t1\", at: \"2026-11-19T09:00:00Z\", value: 21.5 }]);\n    assert.equal(req.headers.authorization, `Bearer ${SECRETS.CLOUD_API_KEY}`);\n    assert.equal(req.url, \"https://ingest.example.com/v1/sites/plant-12/readings\");\n    const manifest = '{\"version\":\"4.3.0\"}';\n    const sig = createHmac(\"sha256\", SECRETS.OTA_SIGNING_SECRET).update(manifest).digest(\"hex\");\n    assert.equal(verifyFirmwareManifest(config, manifest, sig), true);\n    assert.equal(verifyFirmwareManifest(config, manifest.replace(\"4.3.0\", \"4.3.1\"), sig), false);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.secrets_handling",
+    "backend.observability.logging_sensitive_data"
+  ]
+}

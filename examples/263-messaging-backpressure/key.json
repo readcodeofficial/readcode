@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "telemetry/ingest.ts",
+          "content": "import type { BoundedChannel } from \"./channel.ts\";\n\nexport interface Reading {\n    deviceId: string;\n    metric: string;\n    value: number;\n    at: number; // epoch millis, as reported by the device\n}\n\nexport interface IngestStats {\n    accepted: number;\n    rejected: number;\n}\n\nconst METRIC = /^[a-z][a-z0-9_.]{0,63}$/;\n\n// Devices send one frame per reading: \"<metric> <value> <epochMillis>\".\nexport function parseFrame(deviceId: string, frame: string): Reading | null {\n    const parts = frame.trim().split(/\\s+/);\n    if (parts.length !== 3) return null;\n    const [metric, rawValue, rawAt] = parts;\n    const value = Number(rawValue);\n    const at = Number(rawAt);\n    if (!METRIC.test(metric) || !Number.isFinite(value) || !Number.isInteger(at) || at <= 0) return null;\n    return { deviceId, metric, value, at };\n}\n\n// Reads one device connection until it closes and forwards every valid reading to the writer.\n// A device that sends faster than storage can absorb is slowed down to storage's pace.\nexport async function ingestDevice(\n    deviceId: string,\n    frames: AsyncIterable<string>,\n    channel: BoundedChannel<Reading>,\n    stats: IngestStats,\n): Promise<void> {\n    for await (const frame of frames) {\n        const reading = parseFrame(deviceId, frame);\n        if (!reading) {\n            stats.rejected++;\n            continue;\n        }\n        await channel.send(reading);\n        stats.accepted++;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "ingestDevice calls channel.send() for every frame but collects the promises and only awaits them all at the end. The loop never waits, so it reads the whole device connection as fast as frames arrive. Every reading past the capacity becomes a parked sender inside the channel, and memory grows with the device's send rate instead of being bounded. send() only applies backpressure if the caller waits for it. Awaiting each send before reading the next frame pauses the device connection while the buffer is full, so at most one reading per device is parked beyond the capacity."
+  ]
+}

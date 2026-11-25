@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "billing/allocate.ts",
+          "content": "// Split a whole-cent amount across parties in proportion to their weights.\nexport function allocate(amountCents: number, weights: number[]): number[] {\n    if (!Number.isInteger(amountCents) || amountCents < 0) {\n        throw new Error(\"amountCents must be a non-negative integer\");\n    }\n    if (weights.length === 0) throw new Error(\"at least one weight is required\");\n    if (weights.some((w) => !Number.isFinite(w) || w < 0)) throw new Error(\"weights must be non-negative numbers\");\n\n    const totalWeight = weights.reduce((sum, w) => sum + w, 0);\n    if (totalWeight === 0) throw new Error(\"weights must not all be zero\");\n\n    // Largest remainder: round every share down, then hand the leftover cents, one each,\n    // to the shares with the biggest fractional parts (earlier parties win ties).\n    const exact = weights.map((w) => (amountCents * w) / totalWeight);\n    const shares = exact.map(Math.floor);\n    let leftover = amountCents - shares.reduce((sum, s) => sum + s, 0);\n    const byRemainder = exact\n        .map((x, i) => ({ i, remainder: x - Math.floor(x) }))\n        .sort((a, b) => b.remainder - a.remainder || a.i - b.i);\n    for (const { i } of byRemainder) {\n        if (leftover === 0) break;\n        shares[i]++;\n        leftover--;\n    }\n    return shares;\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Rounding each share on its own doesn't preserve the total: 100 split three ways rounds to 33 + 33 + 33 = 99, and 2 split three ways rounds to 1 + 1 + 1 = 3. A ledger needs debits to equal credits exactly, so the journal is rejected. The fix uses the largest remainder method: floor every exact share, then give the leftover cents, one each, to the shares with the largest fractional parts (ties to the earlier party, so the result is deterministic). The sum is then always exact and no share is off by more than one cent."
+  ]
+}

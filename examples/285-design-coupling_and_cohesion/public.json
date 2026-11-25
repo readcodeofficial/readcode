@@ -1,0 +1,29 @@
+{
+  "id": "64c9c3fb-9043-4f61-970a-664ec6ea99a2",
+  "title": "Food delivery pricing: quotes that reach into the shared fee schedule",
+  "name": "Delivery fee quotes",
+  "createdAt": "2026-11-19T23:53:03.189Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Support tickets from Lisbon: after the Friday dinner rush, customers kept seeing doubled delivery fees long after dispatch turned surge off. Others got free delivery on a single coffee right after someone placed a big order. Couriers in the same zones say their pay per drop is all over the place. Restarting the pricing service fixes it for a while. Fix delivery/quote.ts so the tests pass.",
+      "editable": [
+        "delivery/quote.ts"
+      ],
+      "tests": [
+        {
+          "path": "delivery.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { quoteOrder, type Order } from \"../src/delivery/quote.ts\";\nimport { courierPayout } from \"../src/delivery/courierPay.ts\";\nimport { checkout } from \"../src/delivery/checkout.ts\";\nimport { UnknownZoneError } from \"../src/delivery/feeSchedule.ts\";\n\nlet seq = 0;\nconst order = (zone: string, subtotalCents: number): Order => ({\n    id: `o${++seq}`,\n    zone,\n    lines: [{ sku: \"bifana\", unitCents: subtotalCents / 2, qty: 2 }],\n});\n\nfunction fakeGateway() {\n    const charges: [string, number][] = [];\n    return { charges, charge: async (id: string, cents: number) => void charges.push([id, cents]) };\n}\n\ntest(\"a small basket pays delivery, the minimum service fee and the small-order fee\", () => {\n    assert.deepEqual(quoteOrder(order(\"lis-centro\", 900)), {\n        subtotalCents: 900,\n        deliveryCents: 299,\n        serviceCents: 99,\n        smallOrderCents: 150,\n        totalCents: 1448,\n    });\n});\n\ntest(\"surge raises the delivery fee during a busy period\", () => {\n    const q = quoteOrder(order(\"lis-oriente\", 2000), 1.5);\n    assert.equal(q.deliveryCents, 599);\n    assert.equal(q.totalCents, 2000 + 599 + 240);\n});\n\ntest(\"the next order after a busy period pays the normal delivery fee\", () => {\n    quoteOrder(order(\"lis-oriente\", 2000), 1.5);\n    const calm = quoteOrder(order(\"lis-oriente\", 2000), 1);\n    console.log(\"delivery fee once the surge is over:\", calm.deliveryCents, \"(standard is 399)\");\n    assert.equal(calm.deliveryCents, 399);\n});\n\ntest(\"free delivery on a big basket doesn't carry over to the next customer's small basket\", () => {\n    assert.equal(quoteOrder(order(\"lis-centro\", 3500)).deliveryCents, 0);\n    const small = quoteOrder(order(\"lis-centro\", 900));\n    assert.deepEqual([small.deliveryCents, small.smallOrderCents, small.totalCents], [299, 150, 1448]);\n});\n\ntest(\"unknown zones, empty orders and silly surge values are rejected\", () => {\n    assert.throws(() => quoteOrder(order(\"porto-baixa\", 1000)), UnknownZoneError);\n    assert.throws(() => quoteOrder({ id: \"e\", zone: \"lis-centro\", lines: [] }), /empty/);\n    assert.throws(() => quoteOrder(order(\"lis-centro\", 1000), 0.5), /out of range/);\n});\n\ntest(\"a free-delivery order still pays the courier their share of the standard fee\", async () => {\n    const gateway = fakeGateway();\n    const s = await checkout(gateway, order(\"lis-centro\", 3500), 1, 100);\n    assert.deepEqual(gateway.charges, [[s.orderId, 3950]]);\n    assert.equal(s.courierCents, 239 + 100);\n    assert.equal(s.platformCents, 3950 - 3500 - 339);\n});\n\ntest(\"courier surge bonus is computed on the standard fee, however many surge quotes came before\", () => {\n    for (let i = 0; i < 3; i++) quoteOrder(order(\"lis-oriente\", 1500), 2);\n    assert.equal(courierPayout({ orderId: \"x\", zone: \"lis-oriente\", tipCents: 0, surge: 2 }), 299 * 2);\n    assert.equal(courierPayout({ orderId: \"y\", zone: \"lis-oriente\", tipCents: 50, surge: 1 }), 299 + 50);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.design.coupling_and_cohesion",
+    "backend.concurrency.shared_state_in_request_handlers",
+    "backend.data.money_and_ledgers"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "transcode/pool.ts",
+          "content": "// Runs at most `size` tasks at a time; the rest wait in FIFO order.\n// Encoders are CPU- and memory-heavy, so each worker host gets one pool sized to its cores.\nexport class WorkerPool {\n    private readonly size: number;\n    private active = 0;\n    private readonly queue: (() => void)[] = [];\n    private readonly idleWaiters: (() => void)[] = [];\n\n    constructor(size: number) {\n        if (!Number.isInteger(size) || size < 1) throw new Error(\"Pool size must be a positive integer\");\n        this.size = size;\n    }\n\n    submit<T>(task: () => Promise<T>): Promise<T> {\n        return new Promise<T>((resolve, reject) => {\n            const run = () => {\n                this.active++;\n                task()\n                    .then(resolve, reject)\n                    .finally(() => {\n                        this.active--;\n                        this.startNext();\n                    });\n            };\n            if (this.active < this.size) run();\n            else this.queue.push(run);\n        });\n    }\n\n    private startNext(): void {\n        const next = this.queue.shift();\n        if (next) next();\n        else if (this.active === 0) for (const wake of this.idleWaiters.splice(0)) wake();\n    }\n\n    // Resolves when nothing is running or queued (used before a host scales down).\n    onIdle(): Promise<void> {\n        if (this.active === 0 && this.queue.length === 0) return Promise.resolve();\n        return new Promise((resolve) => this.idleWaiters.push(resolve));\n    }\n\n    stats() {\n        return { size: this.size, active: this.active, queued: this.queue.length };\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "submit() frees the worker slot (active-- and startNext()) only when a task succeeds. When a task rejects, the rejection goes straight to the caller, but active stays incremented and the next queued task is never started. Each failed encode permanently takes one slot, so after `size` failures the pool thinks it is full forever, and everything queued behind it waits even though nothing runs. The fix releases the slot and starts the next task in a finally, so a slot comes back however the task ends."
+  ]
+}

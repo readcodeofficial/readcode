@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "pricing/quoteCart.ts",
+          "content": "export interface PriceSource {\n    fetchPriceCents(sku: string): Promise<number>;\n}\n\nexport interface PriceQuote {\n    sku: string;\n    priceCents: number | null; // null when the price service failed for this SKU\n    error?: string;\n}\n\n// Look up the price of every SKU, at most `concurrency` requests at a time.\nexport async function quoteCart(skus: string[], source: PriceSource, concurrency = 4): Promise<PriceQuote[]> {\n    const quotes: PriceQuote[] = new Array(skus.length);\n    let next = 0;\n\n    async function worker(): Promise<void> {\n        while (next < skus.length) {\n            const index = next++;\n            const sku = skus[index];\n            try {\n                quotes[index] = { sku, priceCents: await source.fetchPriceCents(sku) };\n            } catch (err) {\n                quotes[index] = { sku, priceCents: null, error: (err as Error).message };\n            }\n        }\n    }\n\n    const workers = Array.from({ length: Math.min(concurrency, skus.length) }, () => worker());\n    await Promise.all(workers);\n    return quotes;\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Workers push each quote when its request finishes, so the array is in completion order, not input order. cartTotal pairs quotes[i] with lines[i], so when a later SKU answers first, prices end up multiplied by the wrong quantities. It only shows up when latencies differ enough, which is why the test was flaky. Writing each result to the index it was taken from (quotes[index] = ...) keeps input order whatever the timing. The tests make the timing deterministic so the bug reproduces on every run."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "bc8441ad-f262-436e-81ba-6259d3906d27",
+  "title": "Payroll environments: a non-production stack that behaves like production",
+  "name": "Payroll environment settings",
+  "createdAt": "2026-11-19T23:53:01.399Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "A QA engineer ran a test payroll on the per-pull-request preview stack (APP_ENV=preview). It asked for a second approver, which never happens outside production, and once she entered one, two employees received real salary transfers and payslip emails. Staging and local runs are still fine. Fix environment.ts so the tests pass.",
+      "editable": [
+        "env/environment.ts"
+      ],
+      "tests": [
+        {
+          "path": "environment.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { resolveEnvironment } from \"../src/env/environment.ts\";\nimport { executePayroll, type PayrollRun } from \"../src/payroll/payrollRun.ts\";\nimport type { HttpTransport } from \"../src/payroll/bank.ts\";\nimport type { Mailer } from \"../src/payroll/notify.ts\";\n\nfunction fakes() {\n    const posts: string[] = [];\n    const mail: { to: string; subject: string }[] = [];\n    const http: HttpTransport = {\n        async post(url) {\n            posts.push(url);\n            return { status: 201, body: { transferId: `tr-${posts.length}` } };\n        },\n    };\n    const mailer: Mailer = { send: async (to, subject) => void mail.push({ to, subject }) };\n    return { posts, mail, http, mailer };\n}\n\nconst run: PayrollRun = {\n    period: \"2026-11\",\n    approvedBy: \"cfo@corp.example\",\n    employees: [\n        { id: \"e1\", email: \"mia@corp.example\", iban: \"DE89370400440532013000\", netCents: 412_000 },\n        { id: \"e2\", email: \"omar@corp.example\", iban: \"DE02120300000000202051\", netCents: 389_550 },\n    ],\n};\n\ntest(\"production pays through the live bank and emails employees directly\", async () => {\n    const env = resolveEnvironment({ APP_ENV: \"production\" });\n    assert.deepEqual([env.bank.mode, env.emailRedirect, env.requireApproval], [\"live\", null, true]);\n    const { posts, mail, http, mailer } = fakes();\n    const result = await executePayroll(env, http, mailer, run);\n    assert.equal(result.paid.length, 2);\n    assert.ok(posts.every((u) => u === \"https://api.bank.example/v2/transfers\"));\n    assert.deepEqual(mail.map((m) => m.to), [\"mia@corp.example\", \"omar@corp.example\"]);\n});\n\ntest(\"aliases are accepted, unknown names are rejected, and a missing APP_ENV means development\", () => {\n    assert.equal(resolveEnvironment({ APP_ENV: \" Prod \" }).name, \"production\");\n    assert.equal(resolveEnvironment({ APP_ENV: \"stage\" }).name, \"staging\");\n    assert.throws(() => resolveEnvironment({ APP_ENV: \"qa\" }), /unknown APP_ENV \"qa\"/);\n    const dev = resolveEnvironment({});\n    assert.deepEqual([dev.name, dev.bank.mode, dev.logLevel], [\"development\", \"sandbox\", \"debug\"]);\n});\n\ntest(\"a live payroll run without a second approver pays nobody\", async () => {\n    const { posts, http, mailer } = fakes();\n    await assert.rejects(executePayroll(resolveEnvironment({ APP_ENV: \"prod\" }), http, mailer, { ...run, approvedBy: undefined }), /second approver/);\n    assert.deepEqual(posts, []);\n});\n\ntest(\"staging uses the bank sandbox and the QA inbox without needing approval\", async () => {\n    const env = resolveEnvironment({ APP_ENV: \"staging\", EMAIL_REDIRECT: \"qa-team@corp.example\" });\n    const { posts, mail, http, mailer } = fakes();\n    await executePayroll(env, http, mailer, { ...run, approvedBy: undefined });\n    assert.ok(posts.every((u) => u.startsWith(\"https://sandbox.bank.example/\")));\n    assert.deepEqual(mail.map((m) => m.to), [\"qa-team@corp.example\", \"qa-team@corp.example\"]);\n    assert.equal(mail[0].subject, \"[staging → mia@corp.example] Your payslip for 2026-11 is ready\");\n});\n\ntest(\"preview environments are not treated as production\", () => {\n    const env = resolveEnvironment({ APP_ENV: \"preview\" });\n    assert.deepEqual(\n        { isProduction: env.isProduction, bank: env.bank.mode, redirect: env.emailRedirect, approval: env.requireApproval },\n        { isProduction: false, bank: \"sandbox\", redirect: \"payroll-qa@corp.example\", approval: false },\n    );\n});\n\ntest(\"a payroll run in a preview environment moves no real money and emails no employee\", async () => {\n    const { posts, mail, http, mailer } = fakes();\n    await executePayroll(resolveEnvironment({ APP_ENV: \"preview\" }), http, mailer, run);\n    console.log(\"bank calls from preview:\", posts, \"emails to:\", mail.map((m) => m.to));\n    assert.ok(posts.length === 2 && posts.every((u) => u.startsWith(\"https://sandbox.bank.example/\")));\n    assert.ok(mail.every((m) => m.to === \"payroll-qa@corp.example\"));\n});\n\ntest(\"only production logs at info level\", () => {\n    const levels = [\"development\", \"test\", \"preview\", \"staging\", \"production\"].map((n) => resolveEnvironment({ APP_ENV: n }).logLevel);\n    assert.deepEqual(levels, [\"debug\", \"debug\", \"debug\", \"debug\", \"info\"]);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.config.environment_specific_behaviour",
+    "backend.config.defaults_and_validation",
+    "backend.data.money_and_ledgers"
+  ]
+}

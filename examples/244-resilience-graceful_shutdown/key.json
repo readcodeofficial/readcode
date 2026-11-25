@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "telemetry/lifecycle.ts",
+          "content": "import type { Batcher, TimeseriesSink } from \"./batcher.ts\";\nimport type { IngestServer } from \"./server.ts\";\n\nexport interface ShutdownReport {\n    inFlightAtStart: number;\n    drained: boolean; // false if requests were still running when the drain timeout hit\n}\n\nasync function within(work: Promise<void>, ms: number): Promise<boolean> {\n    let timer: ReturnType<typeof setTimeout> | undefined;\n    const timeout = new Promise<false>((resolve) => (timer = setTimeout(() => resolve(false), ms)));\n    try {\n        return await Promise.race([work.then(() => true as const), timeout]);\n    } finally {\n        clearTimeout(timer);\n    }\n}\n\n// Called on SIGTERM when the orchestrator rolls the ingest fleet. The process exits once the\n// returned promise settles, so everything acknowledged with a 202 must be stored by then.\nexport class Lifecycle {\n    private readonly server: IngestServer;\n    private readonly batcher: Batcher;\n    private readonly sink: TimeseriesSink;\n    private readonly drainTimeoutMs: number;\n    private stopping: Promise<ShutdownReport> | null = null;\n\n    constructor(server: IngestServer, batcher: Batcher, sink: TimeseriesSink, drainTimeoutMs = 10_000) {\n        this.server = server;\n        this.batcher = batcher;\n        this.sink = sink;\n        this.drainTimeoutMs = drainTimeoutMs;\n    }\n\n    // Safe to call more than once (SIGTERM followed by SIGINT, say): every caller gets the same run.\n    shutdown(): Promise<ShutdownReport> {\n        this.stopping ??= this.run();\n        return this.stopping;\n    }\n\n    private async run(): Promise<ShutdownReport> {\n        const inFlightAtStart = this.server.inFlight;\n        this.server.stopAccepting();\n        const drained = await within(this.server.drained(), this.drainTimeoutMs);\n        await this.batcher.flush();\n        await this.sink.close();\n        return { inFlightAtStart, drained };\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "run() flushes the batcher before it waits for in-flight requests to finish. A request that was already past the 'accepting' check when SIGTERM arrived finishes afterwards: it adds its readings to the batcher's buffer and answers 202. But the flush has already happened, and the process exits with those readings still in memory. Shutdown has to go in dependency order: stop accepting, wait for in-flight requests to drain, then flush what they buffered, then close the sink. Moving the flush after the drain makes every 202 durable before exit."
+  ]
+}

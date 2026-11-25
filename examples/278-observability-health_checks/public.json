@@ -1,0 +1,28 @@
+{
+  "id": "4c29c120-4014-4567-9abb-3fe9f8b0c596",
+  "title": "Playback service probes: liveness that depends on the database",
+  "name": "Liveness vs readiness",
+  "createdAt": "2026-11-19T23:53:00.103Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "During last night's 4-minute Postgres failover, Kubernetes restarted every playback pod, twice. Each restart reloaded the full catalog and opened a burst of new database connections, so playback took about 20 minutes to recover instead of 4. Fix HealthService so the tests pass.",
+      "editable": [
+        "health/health.ts"
+      ],
+      "tests": [
+        {
+          "path": "health.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { setImmediate as tick } from \"node:timers/promises\";\nimport { playbackHealth } from \"../src/health/app.ts\";\n\ntype DbState = \"up\" | \"down\" | \"hanging\";\n\nfunction setup(opts: { db?: DbState; originStatus?: number; titles?: number } = {}) {\n    const state = { db: opts.db ?? \"up\", originStatus: opts.originStatus ?? 200, dbQueries: 0 };\n    const app = playbackHealth({\n        timeoutMs: 30,\n        db: {\n            async query() {\n                state.dbQueries++;\n                await tick();\n                if (state.db === \"down\") throw new Error(\"connection refused\");\n                if (state.db === \"hanging\") await new Promise(() => {});\n                return [{ \"?column?\": 1 }];\n            },\n        },\n        origin: { head: async () => ({ status: state.originStatus }) },\n        catalog: { load: async () => opts.titles ?? 1200 },\n    });\n    return { app, state };\n}\n\ntest(\"readiness is 503 until the catalog is loaded, then 200\", async () => {\n    const { app } = setup();\n    assert.deepEqual([(await app.readyz()).status, (await app.readyz()).body.reason], [503, \"starting\"]);\n    await app.boot();\n    const ready = await app.readyz();\n    assert.equal(ready.status, 200);\n    assert.equal(ready.body.status, \"ok\");\n});\n\ntest(\"readiness is 503 while the database is unreachable\", async () => {\n    const { app } = setup({ db: \"down\" });\n    await app.boot();\n    const ready = await app.readyz();\n    assert.equal(ready.status, 503);\n    assert.deepEqual(ready.body.checks.find((c) => c.name === \"postgres\"), { name: \"postgres\", critical: true, ok: false, error: \"connection refused\" });\n});\n\ntest(\"a broken thumbnail origin degrades readiness but keeps serving traffic\", async () => {\n    const { app } = setup({ originStatus: 502 });\n    await app.boot();\n    const ready = await app.readyz();\n    assert.equal(ready.status, 200);\n    assert.equal(ready.body.status, \"degraded\");\n});\n\ntest(\"liveness stays 200 during a database outage, so pods aren't restarted for it\", async () => {\n    const { app, state } = setup();\n    await app.boot();\n    state.db = \"down\";\n    const live = await app.livez();\n    console.log(\"GET /livez during a database outage:\", live);\n    assert.equal(live.status, 200);\n    assert.equal((await app.readyz()).status, 503);\n});\n\ntest(\"a liveness probe doesn't touch the database\", async () => {\n    const { app, state } = setup({ db: \"hanging\" });\n    await app.boot();\n    const before = state.dbQueries;\n    for (let i = 0; i < 5; i++) assert.equal((await app.livez()).status, 200);\n    assert.equal(state.dbQueries, before);\n});\n\ntest(\"a dependency that hangs is reported as timed out instead of stalling readiness\", async () => {\n    const { app } = setup({ db: \"hanging\" });\n    await app.boot();\n    const ready = await app.readyz();\n    assert.equal(ready.status, 503);\n    assert.equal(ready.body.checks.find((c) => c.name === \"postgres\")?.error, \"timed out after 30ms\");\n});\n\ntest(\"draining stops traffic but keeps the pod alive; corrupted license keys restart it\", async () => {\n    const { app } = setup();\n    await app.boot();\n    app.onSigterm();\n    assert.deepEqual([(await app.readyz()).status, (await app.livez()).status], [503, 200]);\n    app.onLicenseKeysCorrupted();\n    const live = await app.livez();\n    assert.deepEqual([live.status, live.body.reason], [503, \"license keys corrupted\"]);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.health_checks",
+    "backend.resilience.graceful_degradation"
+  ]
+}

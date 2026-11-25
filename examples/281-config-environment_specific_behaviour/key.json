@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "env/environment.ts",
+          "content": "export type EnvName = \"development\" | \"test\" | \"preview\" | \"staging\" | \"production\";\n\nexport interface Settings {\n    name: EnvName;\n    isProduction: boolean;\n    bank: { mode: \"live\" | \"sandbox\"; baseUrl: string };\n    // Non-production environments send every email here instead of to employees.\n    emailRedirect: string | null;\n    // Live payroll runs need a second person to sign off.\n    requireApproval: boolean;\n    logLevel: \"debug\" | \"info\";\n}\n\nconst KNOWN: readonly EnvName[] = [\"development\", \"test\", \"preview\", \"staging\", \"production\"];\nconst ALIASES: Record<string, EnvName> = { dev: \"development\", ci: \"test\", stage: \"staging\", prod: \"production\" };\n\nconst LIVE_BANK = \"https://api.bank.example/v2\";\nconst SANDBOX_BANK = \"https://sandbox.bank.example/v2\";\n\n// Resolves the deployment environment from variables passed in by the entry point (normally process.env).\nexport function resolveEnvironment(vars: Record<string, string | undefined>): Settings {\n    const raw = (vars.APP_ENV ?? \"development\").trim().toLowerCase();\n    const name = (ALIASES[raw] ?? raw) as EnvName;\n    if (!KNOWN.includes(name)) throw new Error(`unknown APP_ENV \"${vars.APP_ENV}\"`);\n\n    // Local machines, CI and the shared staging stack never touch real money or real inboxes.\n    const isProduction = name === \"production\";\n\n    return {\n        name,\n        isProduction,\n        bank: isProduction ? { mode: \"live\", baseUrl: LIVE_BANK } : { mode: \"sandbox\", baseUrl: SANDBOX_BANK },\n        emailRedirect: isProduction ? null : (vars.EMAIL_REDIRECT ?? \"payroll-qa@corp.example\"),\n        requireApproval: isProduction,\n        logLevel: isProduction ? \"info\" : \"debug\",\n    };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "isProduction is computed as \"not one of the known safe environments\", and that list was never updated when the preview environment was added to KNOWN. So preview counts as production: it gets the live bank URL, no email redirect, the approval requirement and info logging. Defining the dangerous case by exclusion fails open, because every new environment gets real money and real inboxes until someone remembers to update the list. The fix allowlists production (isProduction = name === \"production\"), so anything else, including environments added later, falls back to the sandbox behaviour."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "4a20d53b-c54a-4e77-8236-6d5c1a345ae5",
+  "title": "Loyalty points: deduplicating purchase events on the wrong key",
+  "name": "Loyalty points dedup",
+  "createdAt": "2026-11-19T23:52:50.875Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "After the Black Friday rush, support got a wave of tickets from members whose points balance was double or triple what their orders justify. Every case we checked lines up with a \"publish timed out\" warning from checkout at the time of the order. Redeliveries after consumer crashes are handled fine, and the dedup store is working (it reports hits). Fix the points consumer so the tests pass.",
+      "editable": [
+        "loyalty/pointsConsumer.ts"
+      ],
+      "tests": [
+        {
+          "path": "points.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { InMemoryBroker } from \"../src/queue/broker.ts\";\nimport { DedupStore, PointsLedger, publishPurchase } from \"../src/loyalty/purchases.ts\";\nimport { PointsConsumer } from \"../src/loyalty/pointsConsumer.ts\";\n\nconst DAY = 86_400_000;\n\nfunction setup() {\n    const broker = new InMemoryBroker();\n    const ledger = new PointsLedger();\n    const clock = { now: Date.parse(\"2026-11-27T09:00:00Z\") };\n    const consumer = new PointsConsumer(broker, ledger, new DedupStore(DAY), () => clock.now);\n    return { broker, ledger, clock, consumer };\n}\n\ntest(\"a purchase earns one point per whole dollar\", async () => {\n    const { broker, ledger, consumer } = setup();\n    await publishPurchase(broker, { orderId: \"o-1\", memberId: \"m-42\", amountCents: 12_999 });\n    await consumer.drain();\n    assert.equal(ledger.balances.get(\"m-42\"), 129);\n    assert.equal(broker.depth(), 0);\n});\n\ntest(\"a delivery that comes back after a crash before the ack is not awarded again\", async () => {\n    const { broker, ledger, consumer } = setup();\n    await publishPurchase(broker, { orderId: \"o-1\", memberId: \"m-42\", amountCents: 5_000 });\n    const [msg] = await broker.receive(1);\n    const ack = broker.ack;\n    broker.ack = async () => { throw new Error(\"connection reset\"); };\n    await assert.rejects(consumer.handle(msg));\n    broker.ack = ack;\n    broker.expireInFlight();\n    await consumer.drain();\n    assert.equal(ledger.balances.get(\"m-42\"), 50);\n    assert.equal(consumer.stats.duplicates, 1);\n});\n\ntest(\"an order checkout re-published after a timeout earns points once\", async () => {\n    const { broker, ledger, consumer } = setup();\n    broker.timeoutsAfterAccept = 1;\n    await publishPurchase(broker, { orderId: \"o-7\", memberId: \"m-42\", amountCents: 20_000 });\n    await consumer.drain();\n    console.log(\"balance for one $200 order:\", ledger.balances.get(\"m-42\"), consumer.stats);\n    assert.equal(ledger.balances.get(\"m-42\"), 200);\n    assert.equal(consumer.stats.duplicates, 1);\n});\n\ntest(\"two different orders for the same amount both earn points\", async () => {\n    const { broker, ledger, consumer } = setup();\n    await publishPurchase(broker, { orderId: \"o-1\", memberId: \"m-42\", amountCents: 1_000 });\n    await publishPurchase(broker, { orderId: \"o-2\", memberId: \"m-42\", amountCents: 1_000 });\n    await consumer.drain();\n    assert.equal(ledger.balances.get(\"m-42\"), 20);\n    assert.equal(consumer.stats.duplicates, 0);\n});\n\ntest(\"an award that failed is retried rather than treated as a duplicate\", async () => {\n    const { broker, ledger, consumer } = setup();\n    ledger.failNextAwards = 2;\n    await publishPurchase(broker, { orderId: \"o-3\", memberId: \"m-9\", amountCents: 7_550 });\n    await consumer.drain();\n    assert.equal(ledger.balances.get(\"m-9\"), 75);\n    assert.deepEqual(consumer.stats, { awarded: 1, duplicates: 0, failed: 2 });\n});\n\ntest(\"a Black Friday session with flaky publishes and a flaky ledger balances exactly\", async () => {\n    const { broker, ledger, consumer } = setup();\n    const orders = [\n        { orderId: \"o-10\", memberId: \"m-1\", amountCents: 4_000 },\n        { orderId: \"o-11\", memberId: \"m-2\", amountCents: 9_900 },\n        { orderId: \"o-12\", memberId: \"m-1\", amountCents: 15_050 },\n    ];\n    for (const o of orders) {\n        broker.timeoutsAfterAccept = o.orderId === \"o-11\" ? 0 : 2;\n        await publishPurchase(broker, o);\n    }\n    ledger.failNextAwards = 1;\n    await consumer.drain();\n    assert.deepEqual(Object.fromEntries(ledger.balances), { \"m-1\": 190, \"m-2\": 99 });\n    assert.equal(broker.depth(), 0);\n});\n\ntest(\"once the dedup window has passed, a key can be claimed again\", () => {\n    const store = new DedupStore(DAY);\n    const t0 = Date.parse(\"2026-11-27T09:00:00Z\");\n    assert.equal(store.claim(\"purchase:o-1\", t0), true);\n    assert.equal(store.claim(\"purchase:o-1\", t0 + DAY - 1), false);\n    assert.equal(store.claim(\"purchase:o-1\", t0 + DAY), true);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.deduplication",
+    "backend.messaging.at_least_once_delivery",
+    "backend.api.idempotency"
+  ]
+}

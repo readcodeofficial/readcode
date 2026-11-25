@@ -1,0 +1,29 @@
+{
+  "id": "aaaf9835-e655-4392-b00b-320919f0b95b",
+  "title": "SMS API: a token bucket that keeps punishing clients after they back off",
+  "name": "SMS send rate limiter",
+  "createdAt": "2026-11-19T23:52:39.254Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Several trial customers whose integrations retry on every 429 say they get locked out of POST /v1/messages for a long time, even after they slow down to one message a second. The Retry-After header they get keeps going up the more they retry. One customer also says a short OTP was refused right after a long marketing message got a 429. Fix tokenBucket.ts so the tests pass.",
+      "editable": [
+        "limits/tokenBucket.ts"
+      ],
+      "tests": [
+        {
+          "path": "sms.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { makeSendHandler, type Account } from \"../src/sms/api.ts\";\nimport { countSegments } from \"../src/sms/segments.ts\";\n\nfunction setup() {\n    let now = Date.parse(\"2026-11-19T09:00:00Z\");\n    const clock = { now: () => now };\n    const sent: { accountId: string; segments: number }[] = [];\n    const outbox = {\n        async enqueue(accountId: string, _to: string, _text: string, segments: number) {\n            sent.push({ accountId, segments });\n            return `msg_${sent.length}`;\n        },\n    };\n    const accounts = new Map<string, Account>([\n        [\"key_trial\", { id: \"acme\", plan: \"trial\" }],\n        [\"key_trial_2\", { id: \"globex\", plan: \"trial\" }],\n        [\"key_std\", { id: \"initech\", plan: \"standard\" }],\n    ]);\n    const send = makeSendHandler(accounts, outbox, clock);\n    const sms = (apiKey: string, text = \"Your code is 4821\") => send({ apiKey, body: { to: \"+14155550100\", text } });\n    return { sms, sent, send, advance: (ms: number) => void (now += ms) };\n}\n\ntest(\"a trial account can send its burst, then gets 429\", async () => {\n    const { sms } = setup();\n    for (let i = 0; i < 5; i++) assert.equal((await sms(\"key_trial\")).status, 202);\n    const limited = await sms(\"key_trial\");\n    assert.equal(limited.status, 429);\n    assert.equal(limited.headers[\"Retry-After\"], \"1\");\n});\n\ntest(\"after a 429, waiting the advertised Retry-After lets the next message through\", async () => {\n    const { sms, advance } = setup();\n    for (let i = 0; i < 5; i++) await sms(\"key_trial\");\n    const limited = await sms(\"key_trial\");\n    advance(Number(limited.headers[\"Retry-After\"]) * 1000);\n    assert.equal((await sms(\"key_trial\")).status, 202);\n});\n\ntest(\"a client that hammered the API recovers once it slows to its plan's rate\", async () => {\n    const { sms, advance } = setup();\n    for (let i = 0; i < 20; i++) await sms(\"key_trial\");\n    const statuses: number[] = [];\n    for (let i = 0; i < 5; i++) {\n        advance(1000);\n        const res = await sms(\"key_trial\");\n        statuses.push(res.status);\n        if (res.status === 429) console.log(`${i + 1}s after the burst: 429 with Retry-After ${res.headers[\"Retry-After\"]}s`);\n    }\n    assert.deepEqual(statuses, [202, 202, 202, 202, 202]);\n});\n\ntest(\"Retry-After doesn't grow while a client keeps retrying\", async () => {\n    const { sms } = setup();\n    for (let i = 0; i < 5; i++) await sms(\"key_trial\");\n    const retryAfter: string[] = [];\n    for (let i = 0; i < 4; i++) retryAfter.push((await sms(\"key_trial\")).headers[\"Retry-After\"]);\n    assert.deepEqual(retryAfter, [\"1\", \"1\", \"1\", \"1\"]);\n});\n\ntest(\"long messages use one token per segment\", async () => {\n    const { sms, sent } = setup();\n    assert.equal(countSegments(\"a\".repeat(160)), 1);\n    assert.equal(countSegments(\"a\".repeat(161)), 2);\n    assert.equal(countSegments(\"Привет \".repeat(12)), 2);\n    const res = await sms(\"key_std\", \"x\".repeat(400));\n    assert.equal(res.status, 202);\n    assert.deepEqual(res.body, { id: \"msg_1\", segments: 3 });\n    assert.equal(res.headers[\"X-RateLimit-Remaining\"], \"27\");\n    assert.deepEqual(sent, [{ accountId: \"initech\", segments: 3 }]);\n});\n\ntest(\"a long message that doesn't fit is refused without blocking a short one\", async () => {\n    const { sms, sent } = setup();\n    for (let i = 0; i < 3; i++) await sms(\"key_trial\");\n    assert.equal((await sms(\"key_trial\", \"y\".repeat(400))).status, 429);\n    assert.equal((await sms(\"key_trial\")).status, 202);\n    assert.equal(sent.length, 4);\n});\n\ntest(\"accounts have separate limits, and bad requests are rejected before counting\", async () => {\n    const { sms, send } = setup();\n    for (let i = 0; i < 5; i++) await sms(\"key_trial\");\n    assert.equal((await sms(\"key_trial\")).status, 429);\n    assert.equal((await sms(\"key_trial_2\")).status, 202);\n    assert.equal((await sms(\"nope\")).status, 401);\n    assert.equal((await send({ apiKey: \"key_trial_2\", body: { to: \"555-0100\", text: \"hi\" } })).status, 400);\n    assert.equal((await sms(\"key_trial_2\", \"z\".repeat(2000))).status, 400);\n    assert.equal((await sms(\"key_trial_2\")).headers[\"X-RateLimit-Remaining\"], \"3\");\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.rate_limiting",
+    "backend.api.status_codes_and_error_responses",
+    "backend.resilience.retries_and_backoff"
+  ]
+}

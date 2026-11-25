@@ -1,0 +1,29 @@
+{
+  "id": "dd1b4e72-332a-453e-b07b-b9a787f116e3",
+  "title": "Shipping label API: Idempotency-Key handling that still double-buys",
+  "name": "Idempotent label purchase",
+  "createdAt": "2026-11-19T23:52:48.166Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Finance found hundreds of duplicate postage labels on this month's carrier invoice, each billed to the merchant twice. They all come from warehouse scanners that time out after 2 seconds and resend the same request with the same Idempotency-Key while the first is still waiting on the carrier. Retries that arrive after the first request finished are handled correctly. Fix runIdempotent in shipping/idempotency.ts so the tests pass.",
+      "editable": [
+        "shipping/idempotency.ts"
+      ],
+      "tests": [
+        {
+          "path": "labels.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { setImmediate as tick } from \"node:timers/promises\";\nimport { labelsEndpoint, type LabelRequest } from \"../src/shipping/labels.ts\";\nimport { MemoryIdempotencyStore } from \"../src/shipping/store.ts\";\nimport { KEY_TTL_MS } from \"../src/shipping/idempotency.ts\";\n\nfunction setup() {\n    let now = Date.parse(\"2026-11-19T14:00:00Z\");\n    const carrier = {\n        bought: [] as LabelRequest[],\n        failNext: false,\n        async buyLabel(req: LabelRequest) {\n            await tick(); // the carrier API is slow\n            await tick();\n            if (this.failNext) {\n                this.failNext = false;\n                throw new Error(\"503 from carrier\");\n            }\n            this.bought.push(req);\n            return { trackingNumber: `1Z${String(this.bought.length).padStart(6, \"0\")}`, costCents: req.service === \"express\" ? 2400 : 890 };\n        },\n    };\n    const charges: Record<string, number> = {};\n    const accounts = { charge: async (id: string, cents: number) => void (charges[id] = (charges[id] ?? 0) + cents) };\n    const post = labelsEndpoint(carrier, accounts, new MemoryIdempotencyStore(), () => now);\n    return { carrier, charges, post, advance: (ms: number) => (now += ms) };\n}\n\nconst parcel = { fromZip: \"94107\", toZip: \"10001\", weightGrams: 1200, service: \"ground\" };\nconst req = (key: string | undefined, body: unknown = parcel, accountId = \"acme\") => ({ accountId, headers: { \"idempotency-key\": key }, body });\n\ntest(\"a retried request gets the original label back without buying another\", async () => {\n    const { carrier, charges, post } = setup();\n    const first = await post(req(\"scan-001\"));\n    const retry = await post(req(\"scan-001\"));\n    assert.equal(first.status, 201);\n    assert.deepEqual(retry.body, first.body);\n    assert.equal(retry.headers?.[\"Idempotent-Replayed\"], \"true\");\n    assert.equal(carrier.bought.length, 1);\n    assert.deepEqual(charges, { acme: 890 });\n});\n\ntest(\"two copies of the same request sent at once buy and bill one label\", async () => {\n    const { carrier, charges, post } = setup();\n    const responses = await Promise.all([post(req(\"scan-002\")), post(req(\"scan-002\"))]);\n    console.log(\"statuses:\", responses.map((r) => r.status), \"labels bought:\", carrier.bought.length, \"charged:\", charges);\n    assert.equal(carrier.bought.length, 1);\n    assert.deepEqual(charges, { acme: 890 });\n});\n\ntest(\"a duplicate that arrives while the first request is running is told to retry\", async () => {\n    const { post } = setup();\n    const first = post(req(\"scan-003\"));\n    const duplicate = await post(req(\"scan-003\"));\n    assert.equal(duplicate.status, 409);\n    assert.equal(duplicate.headers?.[\"Retry-After\"], \"1\");\n    assert.equal((await first).status, 201);\n    assert.equal((await post(req(\"scan-003\"))).headers?.[\"Idempotent-Replayed\"], \"true\");\n});\n\ntest(\"reusing a key with a different parcel is rejected\", async () => {\n    const { carrier, post } = setup();\n    await post(req(\"scan-004\"));\n    const res = await post(req(\"scan-004\", { ...parcel, service: \"express\" }));\n    assert.equal(res.status, 422);\n    assert.equal(carrier.bought.length, 1);\n});\n\ntest(\"a carrier outage doesn't use up the key, so the scanner's retry succeeds\", async () => {\n    const { carrier, charges, post } = setup();\n    carrier.failNext = true;\n    assert.equal((await post(req(\"scan-005\"))).status, 502);\n    assert.equal((await post(req(\"scan-005\"))).status, 201);\n    assert.deepEqual(charges, { acme: 890 });\n});\n\ntest(\"keys are per account and expire after 24 hours\", async () => {\n    const { carrier, charges, post, advance } = setup();\n    await post(req(\"scan-006\", parcel, \"acme\"));\n    await post(req(\"scan-006\", parcel, \"globex\"));\n    assert.deepEqual(charges, { acme: 890, globex: 890 });\n    advance(KEY_TTL_MS);\n    assert.equal((await post(req(\"scan-006\"))).headers?.[\"Idempotent-Replayed\"], undefined);\n    assert.equal(carrier.bought.length, 3);\n});\n\ntest(\"requests without a key or with a bad parcel are rejected before anything is bought\", async () => {\n    const { carrier, post } = setup();\n    assert.equal((await post(req(undefined))).status, 400);\n    assert.equal((await post(req(\"scan-007\", { ...parcel, toZip: \"1000\" }))).status, 400);\n    assert.equal((await post(req(\"scan-008\", { ...parcel, weightGrams: 0 }))).status, 400);\n    assert.equal(carrier.bought.length, 0);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.idempotency",
+    "backend.concurrency.race_conditions",
+    "backend.integrations.third_party_adapters"
+  ]
+}

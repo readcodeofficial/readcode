@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "tickets/events.ts",
+          "content": "import type { Db, Row } from \"../db.ts\";\n\nexport type EventType = \"opened\" | \"customer_message\" | \"agent_reply\" | \"closed\";\n\nexport interface TicketEvent {\n    id: string;\n    ticketId: string;\n    type: EventType;\n    actor: string;\n    body: string | null;\n    at: Date;\n}\n\nconst TABLE = \"ticket_events\";\n\nfunction toEvent(row: Row): TicketEvent {\n    return {\n        id: String(row.id),\n        ticketId: String(row.ticket_id),\n        type: row.type as EventType,\n        actor: String(row.actor),\n        body: row.body === null ? null : String(row.body),\n        at: new Date(String(row.at)),\n    };\n}\n\n// Append-only log of everything that happens on a support ticket.\nexport class TicketEvents {\n    private readonly db: Db;\n    private readonly newId: () => string;\n\n    constructor(db: Db, newId: () => string) {\n        this.db = db;\n        this.newId = newId;\n    }\n\n    async append(ticketId: string, type: EventType, actor: string, at: Date, body: string | null = null): Promise<TicketEvent> {\n        const row: Row = { id: this.newId(), ticket_id: ticketId, type, actor, body, at: at.toISOString() };\n        await this.db.insert(TABLE, row);\n        return toEvent(row);\n    }\n\n    // Every event on the ticket, oldest first.\n    async history(ticketId: string): Promise<TicketEvent[]> {\n        const rows = await this.db.select(TABLE, { where: { ticket_id: ticketId }, orderBy: { column: \"at\", direction: \"asc\" } });\n        return rows.map(toEvent);\n    }\n\n    async latest(ticketId: string): Promise<TicketEvent | null> {\n        const [row] = await this.db.select(TABLE, { where: { ticket_id: ticketId }, orderBy: { column: \"at\", direction: \"desc\" }, limit: 1 });\n        return row ? toEvent(row) : null;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "history() promises events oldest first but selects without an ORDER BY. An in-memory array returns rows in insertion order, so unit tests passed. A SQL database makes no ordering promise without ORDER BY: rows come back in whatever order the plan produces, here primary-key order, and with random UUID keys that's effectively random. The timeline is then shuffled, and firstResponse() picks whichever agent reply happens to come first instead of the earliest. latest() was unaffected because it already orders by `at`, which is why statuses stayed right. The fix orders history by `at` ascending in the query, the only place the ordering can be guaranteed."
+  ]
+}

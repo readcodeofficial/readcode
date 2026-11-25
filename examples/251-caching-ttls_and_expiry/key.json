@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "surge/ttlCache.ts",
+          "content": "interface Entry<V> {\n    value: V;\n    expiresAt: number;\n}\n\n// In-process cache with a TTL per entry and a size cap. When full, the least recently\n// used entry is evicted (a Map iterates in insertion order, so the first key is the oldest).\nexport class TtlCache<V> {\n    private readonly entries = new Map<string, Entry<V>>();\n    private readonly maxEntries: number;\n    private readonly now: () => number;\n\n    constructor(maxEntries: number, now: () => number) {\n        if (maxEntries < 1) throw new Error(\"maxEntries must be at least 1\");\n        this.maxEntries = maxEntries;\n        this.now = now;\n    }\n\n    get(key: string): V | undefined {\n        const entry = this.entries.get(key);\n        if (!entry) return undefined;\n        if (this.now() >= entry.expiresAt) {\n            this.entries.delete(key);\n            return undefined;\n        }\n        // Move to the back of the eviction order.\n        this.entries.delete(key);\n        this.entries.set(key, entry);\n        return entry.value;\n    }\n\n    set(key: string, value: V, ttlMs: number): void {\n        if (!(ttlMs > 0)) throw new Error(\"ttlMs must be positive\");\n        this.entries.delete(key);\n        this.entries.set(key, { value, expiresAt: this.now() + ttlMs });\n        while (this.entries.size > this.maxEntries) {\n            const oldest = this.entries.keys().next().value as string;\n            this.entries.delete(oldest);\n        }\n    }\n\n    get size(): number {\n        return this.entries.size;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "TtlCache.get() resets entry.expiresAt to now + ttl on every hit, turning the absolute TTL into a sliding one. A zone that riders ask about more often than every 30 seconds never expires, so its surge multiplier (or its 5-second fallback after a feed error) is served for as long as traffic continues. Only quiet zones ever recompute. The fix leaves expiresAt as set when the value was computed. A hit should still move the entry to the back of the LRU order, which affects eviction but must not extend the value's lifetime."
+  ]
+}

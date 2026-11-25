@@ -1,0 +1,29 @@
+{
+  "id": "903cefe8-82a7-4541-a74b-d7a8dec87dee",
+  "title": "Clinic scheduling logs: a redactor that misses part of the data",
+  "name": "PHI log redaction",
+  "createdAt": "2026-11-19T23:53:00.486Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "A compliance scan of our log archive found patients' phone numbers, birth dates and insurance IDs in error entries from the reminder job, even though every log line goes through the redactor and booking logs come out clean. Fix redact.ts so the tests pass.",
+      "editable": [
+        "logging/redact.ts"
+      ],
+      "tests": [
+        {
+          "path": "logging.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { Logger } from \"../src/logging/logger.ts\";\nimport { redact } from \"../src/logging/redact.ts\";\nimport { bookAppointment, type Appointment, type Patient } from \"../src/scheduling/appointments.ts\";\nimport { sendReminders } from \"../src/scheduling/reminders.ts\";\n\nfunction capture() {\n    const lines: string[] = [];\n    const log = new Logger({ write: (l) => lines.push(l) }, () => new Date(\"2026-11-19T08:00:00Z\"), { service: \"scheduling\" });\n    return { lines, log, entries: () => lines.map((l) => JSON.parse(l)) };\n}\n\nconst patient = (n: number): Patient => ({\n    id: `p${n}`,\n    name: `Patient ${n}`,\n    dateOfBirth: `1980-01-0${n}`,\n    phone: `+1555010${n}`,\n    email: `patient${n}@mail.example`,\n    insuranceId: `INS-77${n}`,\n});\n\nconst appt: Appointment = { id: \"a1\", patientId: \"p1\", clinicId: \"c9\", startsAt: \"2026-11-20T09:30:00Z\", reason: { code: \"Z00.0\", notes: \"chest pain since Monday\" } };\n\n// Anything a patient could be identified or contacted by.\nconst SECRETS = [/\\+1555010\\d/, /1980-01-0\\d/, /patient\\d@mail\\.example/, /INS-77\\d/, /chest pain/];\nconst leaks = (lines: string[]) => lines.flatMap((l) => SECRETS.filter((re) => re.test(l)).map((re) => re.source));\n\ntest(\"sensitive fields are redacted whatever their casing\", () => {\n    assert.deepEqual(redact({ SSN: \"123-45-6789\", date_of_birth: \"1990-02-03\", Email: \"a@b.io\", clinicId: \"c1\" }), {\n        SSN: \"[redacted]\",\n        date_of_birth: \"[redacted]\",\n        Email: \"[redacted]\",\n        clinicId: \"c1\",\n    });\n});\n\ntest(\"booking an appointment logs ids but no patient details\", async () => {\n    const { lines, entries, log } = capture();\n    const store = { isSlotFree: async () => true, insert: async () => {} };\n    assert.equal(await bookAppointment(store, log, patient(1), appt), true);\n    assert.deepEqual(leaks(lines), []);\n    const [entry] = entries();\n    assert.deepEqual([entry.msg, entry.appointmentId, entry.clinicId, entry.patient.id], [\"appointment booked\", \"a1\", \"c9\", \"p1\"]);\n});\n\ntest(\"email addresses typed into messages and errors are masked\", () => {\n    const { entries, log } = capture();\n    log.error(\"could not notify jane.doe@clinic.example\", { err: new Error(\"bounce from jane.doe@clinic.example\") });\n    const [entry] = entries();\n    assert.equal(entry.msg, \"could not notify [email]\");\n    assert.deepEqual(entry.err, { name: \"Error\", message: \"bounce from [email]\" });\n});\n\ntest(\"records inside lists are redacted too\", () => {\n    const out = redact({ patients: [patient(1), patient(2)], phones: [\"+15550101\"] }) as { patients: Patient[] };\n    console.log(\"redacted list:\", JSON.stringify(out));\n    assert.deepEqual(out.patients.map((p) => [p.id, p.phone, p.dateOfBirth]), [[\"p1\", \"[redacted]\", \"[redacted]\"], [\"p2\", \"[redacted]\", \"[redacted]\"]]);\n});\n\ntest(\"a reminder delivery failure is logged without any patient's phone number or birth date\", async () => {\n    const { lines, entries, log } = capture();\n    const reminders = [1, 2, 3].map((n) => ({ appointmentId: `a${n}`, startsAt: \"2026-11-20T09:30:00Z\", patient: patient(n) }));\n    const sent = await sendReminders({ sendBulk: async () => [\"+15550102\", \"+15550103\"] }, log, \"c9\", reminders);\n    assert.equal(sent, 1);\n    assert.deepEqual(leaks(lines), []);\n    assert.deepEqual(entries()[0].failed.map((f: { appointmentId: string }) => f.appointmentId), [\"a2\", \"a3\"]);\n});\n\ntest(\"redacting never modifies the object being logged\", () => {\n    const { log } = capture();\n    const p = patient(4);\n    const record = { patient: p, visits: [{ notes: \"follow-up\" }] };\n    log.info(\"audit\", record);\n    assert.equal(p.phone, \"+15550104\");\n    assert.equal(record.visits[0].notes, \"follow-up\");\n});\n\ntest(\"a taken slot is logged with the time but not the patient's contact details\", async () => {\n    const { lines, entries, log } = capture();\n    const store = { isSlotFree: async () => false, insert: async () => assert.fail(\"must not insert\") };\n    assert.equal(await bookAppointment(store, log, patient(5), appt), false);\n    assert.deepEqual(leaks(lines), []);\n    assert.equal(entries()[0].startsAt, \"2026-11-20T09:30:00Z\");\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.observability.logging_sensitive_data",
+    "backend.observability.structured_logging",
+    "backend.security.input_sanitization"
+  ]
+}

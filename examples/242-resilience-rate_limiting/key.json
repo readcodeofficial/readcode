@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "limits/tokenBucket.ts",
+          "content": "export interface Clock {\n    now(): number; // epoch milliseconds\n}\n\nexport interface Decision {\n    allowed: boolean;\n    remaining: number; // whole tokens left after this request\n    retryAfterMs: number; // 0 when allowed\n}\n\ninterface Bucket {\n    tokens: number;\n    updatedAt: number;\n}\n\n// One token bucket per key: it holds up to `capacity` tokens and refills continuously at\n// `refillPerSec`. A request of cost N needs N tokens.\nexport class TokenBucketLimiter {\n    private readonly capacity: number;\n    private readonly refillPerSec: number;\n    private readonly clock: Clock;\n    private readonly buckets = new Map<string, Bucket>();\n\n    constructor(capacity: number, refillPerSec: number, clock: Clock) {\n        if (capacity < 1 || refillPerSec <= 0) throw new Error(\"capacity and refill rate must be positive\");\n        this.capacity = capacity;\n        this.refillPerSec = refillPerSec;\n        this.clock = clock;\n    }\n\n    take(key: string, cost = 1): Decision {\n        if (cost > this.capacity) throw new Error(`cost ${cost} exceeds bucket capacity ${this.capacity}`);\n        const now = this.clock.now();\n        const bucket = this.buckets.get(key) ?? { tokens: this.capacity, updatedAt: now };\n\n        const elapsedMs = Math.max(0, now - bucket.updatedAt);\n        bucket.tokens = Math.min(this.capacity, bucket.tokens + (elapsedMs * this.refillPerSec) / 1000);\n        bucket.updatedAt = now;\n        this.buckets.set(key, bucket);\n\n        if (bucket.tokens >= cost) {\n            bucket.tokens -= cost;\n            return { allowed: true, remaining: Math.floor(bucket.tokens), retryAfterMs: 0 };\n        }\n        const missing = cost - bucket.tokens;\n        return { allowed: false, remaining: 0, retryAfterMs: Math.ceil((missing * 1000) / this.refillPerSec) };\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "take() subtracts the cost before it checks whether the bucket had enough tokens, so a rejected request still spends tokens and pushes the balance below zero. Each retry while limited digs the hole deeper, and the bucket takes longer and longer to refill. That's why Retry-After grows, a client that slows to its plan's rate is still refused, and a refused 3-segment message leaves too little for a 1-segment one. A denied request must not consume anything. The fix checks tokens >= cost first, deducts only when the request is allowed, and computes Retry-After from the shortfall (cost - tokens)."
+  ]
+}

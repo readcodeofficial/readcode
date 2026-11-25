@@ -1,0 +1,28 @@
+{
+  "id": "2f13fa55-70ca-4dbf-92a8-6396c288210a",
+  "title": "Course platform migrations: a runner that skips some migrations for good",
+  "name": "Schema migration runner",
+  "createdAt": "2026-11-19T23:52:45.545Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Since Tuesday's deploy, the learner dashboard has been throwing 'column \"progress_pct\" of relation \"enrollments\" does not exist' in production, but works on every fresh dev and CI database. The add_enrollment_progress PR (migration 0004) was opened weeks ago and merged on Tuesday. The deploy log says 'migrate: nothing to do', and `status` lists every migration as applied. Fix migrator.ts so the tests pass.",
+      "editable": [
+        "db/migrator.ts"
+      ],
+      "tests": [
+        {
+          "path": "migrations.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { Database } from \"../src/db/database.ts\";\nimport { Migrator, type Migration } from \"../src/db/migrator.ts\";\nimport { MIGRATIONS, prepareDatabase } from \"../src/courses/schema.ts\";\n\nconst now = () => new Date(\"2026-11-19T06:00:00Z\");\n// Main as it was before the add_enrollment_progress PR merged (5 and 6 merged first).\nconst withoutV4 = MIGRATIONS.filter((m) => m.version !== 4);\n\ntest(\"a fresh database gets every migration, in version order\", async () => {\n    const db = new Database();\n    const applied = await new Migrator(db, MIGRATIONS, now).migrate();\n    assert.deepEqual(applied, [\n        \"0001_create_courses\",\n        \"0002_create_enrollments\",\n        \"0003_add_course_language\",\n        \"0004_add_enrollment_progress\",\n        \"0005_create_certificates\",\n        \"0006_add_course_slug\",\n    ]);\n    assert.deepEqual(db.columns(\"courses\"), [\"id\", \"title\", \"published\", \"language\", \"slug\"]);\n});\n\ntest(\"running migrate again applies nothing\", async () => {\n    const db = new Database();\n    await new Migrator(db, MIGRATIONS, now).migrate();\n    assert.deepEqual(await new Migrator(db, MIGRATIONS, now).migrate(), []);\n    assert.equal(db.select(\"schema_migrations\").length, 6);\n});\n\ntest(\"a migration merged after newer ones already ran is still applied\", async () => {\n    const db = new Database();\n    await new Migrator(db, withoutV4, now).migrate();\n    const applied = await new Migrator(db, MIGRATIONS, now).migrate();\n    console.log(\"second deploy applied:\", applied, \"enrollments columns:\", db.columns(\"enrollments\"));\n    assert.deepEqual(applied, [\"0004_add_enrollment_progress\"]);\n    assert.ok(db.columns(\"enrollments\").includes(\"progress_pct\"));\n});\n\ntest(\"status reports a late-merged migration as pending until it runs\", async () => {\n    const db = new Database();\n    await new Migrator(db, withoutV4, now).migrate();\n    const status = new Migrator(db, MIGRATIONS, now).status();\n    assert.deepEqual(status.filter((s) => s.state === \"pending\").map((s) => s.id), [\"0004_add_enrollment_progress\"]);\n});\n\ntest(\"the app refuses to boot while any migration is pending\", async () => {\n    const db = new Database();\n    await prepareDatabase(db, { autoMigrate: true, now, migrations: withoutV4 });\n    await assert.rejects(prepareDatabase(db, { autoMigrate: false, now }), /pending: 0004_add_enrollment_progress/);\n});\n\ntest(\"a failing migration leaves no trace and stops the run\", async () => {\n    const db = new Database();\n    const broken: Migration[] = [\n        ...MIGRATIONS.slice(0, 2),\n        {\n            version: 3,\n            name: \"add_course_price\",\n            up(tx) {\n                tx.addColumn(\"courses\", \"price_cents\", 0);\n                tx.addColumn(\"course\", \"currency\", \"EUR\");\n            },\n        },\n        MIGRATIONS[4],\n    ];\n    await assert.rejects(new Migrator(db, broken, now).migrate(), /0003_add_course_price failed: relation \"course\" does not exist/);\n    assert.deepEqual(db.columns(\"courses\"), [\"id\", \"title\", \"published\"]);\n    assert.deepEqual(db.select(\"schema_migrations\").map((r) => r.version), [1, 2]);\n    assert.equal(db.hasTable(\"certificates\"), false);\n});\n\ntest(\"the slug migration backfills existing courses\", async () => {\n    const db = new Database();\n    const migrator = new Migrator(db, MIGRATIONS.slice(0, 5), now);\n    await migrator.migrate();\n    db.insert(\"courses\", { id: \"c1\", title: \"Intro to SQL: Joins & Indexes\", published: true, language: \"pt\" });\n    await new Migrator(db, MIGRATIONS, now).migrate();\n    assert.deepEqual(db.select(\"courses\").map((c) => [c.slug, c.language]), [[\"intro-to-sql-joins-indexes\", \"pt\"]]);\n    assert.throws(() => new Migrator(db, [...MIGRATIONS, { version: 6, name: \"dup\", up() {} }], now), /duplicate/);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.data.migrations",
+    "backend.config.environment_specific_behaviour"
+  ]
+}

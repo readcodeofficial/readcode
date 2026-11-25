@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "scheduling/service.ts",
+          "content": "import { InvalidRequestError, SlotUnavailableError, toSchedulingError } from \"./errors.ts\";\n\nexport interface Slot {\n    id: string;\n    providerId: string;\n    start: string;\n}\n\nexport interface Appointment {\n    id: string;\n    slotId: string;\n    patientId: string;\n    providerId: string;\n    start: string;\n    reason: string;\n}\n\n// The clinic calendar service's client. Every method throws HttpError on a non-2xx response.\nexport interface CalendarClient {\n    findSlot(providerId: string, start: string): Promise<Slot | null>;\n    reserve(slot: Slot, booking: { patientId: string; reason: string }): Promise<Appointment>;\n    release(appointmentId: string): Promise<void>;\n}\n\nexport interface BookingRequest {\n    patientId: string;\n    providerId: string;\n    start: string; // ISO date-time\n    reason: string;\n}\n\nconst MIN_NOTICE_MS = 2 * 60 * 60 * 1000;\n\nexport class BookingService {\n    private readonly calendar: CalendarClient;\n    private readonly now: () => Date;\n\n    constructor(calendar: CalendarClient, now: () => Date) {\n        this.calendar = calendar;\n        this.now = now;\n    }\n\n    async book(req: BookingRequest): Promise<Appointment> {\n        const startMs = Date.parse(req.start);\n        if (Number.isNaN(startMs)) throw new InvalidRequestError(\"start must be an ISO date-time\");\n        if (startMs < this.now().getTime() + MIN_NOTICE_MS) throw new InvalidRequestError(\"appointments need at least 2 hours' notice\");\n        if (!req.reason.trim()) throw new InvalidRequestError(\"reason is required\");\n        const start = new Date(startMs).toISOString();\n\n        try {\n            const slot = await this.calendar.findSlot(req.providerId, start);\n            if (!slot) throw new SlotUnavailableError(req.providerId, start);\n            return await this.calendar.reserve(slot, { patientId: req.patientId, reason: req.reason.trim() });\n        } catch (err) {\n            throw toSchedulingError(err, { providerId: req.providerId, start });\n        }\n    }\n\n    async cancel(appointmentId: string): Promise<void> {\n        try {\n            await this.calendar.release(appointmentId);\n        } catch (err) {\n            throw toSchedulingError(err, { appointmentId });\n        }\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "book() returns the promise from calendar.reserve() without awaiting it inside the try block. The async function settles with that promise after the try/catch has already exited, so when reserve rejects (409 because someone else just took the slot, or 429/5xx during an outage) the catch never runs. The raw HttpError escapes untranslated. The HTTP layer and the waitlist only understand scheduling errors, so the patient gets a 500 and isn't waitlisted. Errors from findSlot were translated correctly only because that call is awaited. `return await` keeps the rejection inside the try, so every calendar failure goes through toSchedulingError."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "f8ef7f89-652d-43d2-80cd-da5dfdf6354a",
+  "title": "Payroll portal sign-in: a brute-force lockout that can be sidestepped",
+  "name": "Payroll login lockout",
+  "createdAt": "2026-11-19T23:52:56.051Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Security monitoring flagged hundreds of failed sign-ins against a single payroll account in an hour, yet the account was never locked. The attempts used the same username typed with different capitalisation (\"Dana.Reyes\", \"DANA.REYES\", ...). Fix login.ts so the tests pass.",
+      "editable": [
+        "auth/login.ts"
+      ],
+      "tests": [
+        {
+          "path": "login.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { hashPassword } from \"../src/auth/passwords.ts\";\nimport { LoginThrottle } from \"../src/auth/throttle.ts\";\nimport { loginService, type Employee } from \"../src/auth/login.ts\";\nimport { loginHandler } from \"../src/auth/http.ts\";\n\nconst PASSWORD = \"correct horse battery staple\";\n\nfunction setup() {\n    const employees: Employee[] = [\n        { id: \"e1\", username: \"dana.reyes\", passwordHash: hashPassword(PASSWORD), disabled: false },\n        { id: \"e2\", username: \"former.staff\", passwordHash: hashPassword(PASSWORD), disabled: true },\n    ];\n    const directory = { findByUsername: async (u: string) => employees.find((e) => e.username === u) ?? null };\n    let issued = 0;\n    const sessions = { issue: async (id: string) => `sess-${id}-${++issued}` };\n    const clock = { t: 1_000_000 };\n    const throttle = new LoginThrottle({ maxFailures: 5, windowMs: 15 * 60_000, lockMs: 30 * 60_000 });\n    const service = loginService(directory, throttle, sessions, () => clock.t);\n    return { service, http: loginHandler(service), clock };\n}\n\ntest(\"the right password signs the employee in, whatever case they type\", async () => {\n    const { service } = setup();\n    const res = await service.login(\"  Dana.Reyes \", PASSWORD);\n    assert.equal(res.ok, true);\n    assert.equal(res.ok && res.employeeId, \"e1\");\n});\n\ntest(\"a wrong password and an unknown user get the same 401\", async () => {\n    const { http } = setup();\n    const wrong = await http({ username: \"dana.reyes\", password: \"hunter2\" });\n    const unknown = await http({ username: \"nobody\", password: \"hunter2\" });\n    assert.deepEqual([wrong.status, wrong.body], [401, { error: \"invalid username or password\" }]);\n    assert.deepEqual([unknown.status, unknown.body], [wrong.status, wrong.body]);\n});\n\ntest(\"five failures lock the account, even against the right password\", async () => {\n    const { service } = setup();\n    for (let i = 0; i < 5; i++) await service.login(\"dana.reyes\", `guess-${i}`);\n    const res = await service.login(\"dana.reyes\", PASSWORD);\n    assert.equal(res.ok, false);\n    assert.equal(!res.ok && res.reason, \"locked\");\n});\n\ntest(\"changing the case of the username doesn't reset the failure count\", async () => {\n    const { service } = setup();\n    const spellings = [\"dana.reyes\", \"Dana.Reyes\", \"DANA.REYES\", \"dana.REYES\", \"Dana.reyes\", \"dAna.reyes\"];\n    const reasons = [];\n    for (const [i, name] of spellings.entries()) {\n        const res = await service.login(name, `guess-${i}`);\n        reasons.push(res.ok ? \"ok\" : res.reason);\n    }\n    console.log(\"results for six guesses with varied casing:\", reasons);\n    assert.equal(reasons[5], \"locked\");\n    const res = await service.login(\"DaNa.ReYeS\", PASSWORD);\n    assert.equal(res.ok, false);\n});\n\ntest(\"padding the username with spaces doesn't get around a lock\", async () => {\n    const { service } = setup();\n    for (let i = 0; i < 5; i++) await service.login(\"dana.reyes\", `guess-${i}`);\n    const res = await service.login(\" dana.reyes \", PASSWORD);\n    assert.equal(res.ok ? \"signed in\" : res.reason, \"locked\");\n});\n\ntest(\"the lock expires, and a successful login clears earlier failures\", async () => {\n    const { service, clock } = setup();\n    for (let i = 0; i < 5; i++) await service.login(\"dana.reyes\", `guess-${i}`);\n    clock.t += 30 * 60_000;\n    assert.equal((await service.login(\"dana.reyes\", PASSWORD)).ok, true);\n    for (let i = 0; i < 4; i++) await service.login(\"dana.reyes\", `guess-${i}`);\n    assert.equal((await service.login(\"dana.reyes\", PASSWORD)).ok, true);\n});\n\ntest(\"a locked account gets 429 with Retry-After over HTTP, however it is spelled\", async () => {\n    const { http, clock } = setup();\n    for (let i = 0; i < 5; i++) await http({ username: i % 2 ? \"DANA.REYES\" : \"dana.reyes\", password: `guess-${i}` });\n    clock.t += 60_000;\n    const res = await http({ username: \"Dana.Reyes\", password: PASSWORD });\n    assert.equal(res.status, 429);\n    assert.equal(res.headers[\"Retry-After\"], String(29 * 60));\n});\n\ntest(\"a disabled employee can't sign in with a correct password\", async () => {\n    const { http } = setup();\n    const res = await http({ username: \"former.staff\", password: PASSWORD });\n    assert.equal(res.status, 401);\n    assert.equal(res.headers[\"Set-Cookie\"], undefined);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.authentication",
+    "backend.resilience.rate_limiting",
+    "backend.api.status_codes_and_error_responses"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "943c5f56-e922-470e-8dcd-d46753633c15",
+  "title": "Telemetry ingest: a shutdown sequence that drops acknowledged readings",
+  "name": "Ingest graceful shutdown",
+  "createdAt": "2026-11-19T23:52:40.902Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Every time we roll the ingest fleet, a few greenhouse sensors show short gaps in their temperature charts. The sensors' own logs show those readings were sent and got 202 Accepted, but they never reach the time-series store, and no errors are logged. Fix lifecycle.ts so the tests pass.",
+      "editable": [
+        "telemetry/lifecycle.ts"
+      ],
+      "tests": [
+        {
+          "path": "shutdown.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { setTimeout as sleep, setImmediate as tick } from \"node:timers/promises\";\nimport { Batcher, type Reading } from \"../src/telemetry/batcher.ts\";\nimport { IngestServer } from \"../src/telemetry/server.ts\";\nimport { Lifecycle } from \"../src/telemetry/lifecycle.ts\";\n\nfunction setup(opts: { lookupMs?: number; maxBatch?: number; drainTimeoutMs?: number } = {}) {\n    const stored: Reading[] = [];\n    const events: string[] = [];\n    let closed = false;\n    const sink = {\n        async write(batch: Reading[]) {\n            await tick();\n            if (closed) throw new Error(\"sink is closed\");\n            stored.push(...batch);\n            events.push(`write ${batch.length}`);\n        },\n        async close() {\n            closed = true;\n            events.push(\"close\");\n        },\n    };\n    const registry = {\n        async lookup(token: string) {\n            if (token === \"hang\") return new Promise<never>(() => {});\n            await sleep(opts.lookupMs ?? 0);\n            return token.startsWith(\"tok_\") ? { deviceId: token.slice(4) } : null;\n        },\n    };\n    const batcher = new Batcher(sink, opts.maxBatch ?? 100);\n    const server = new IngestServer(registry, batcher);\n    const lifecycle = new Lifecycle(server, batcher, sink, opts.drainTimeoutMs ?? 1000);\n    const post = (token: string, n = 1) =>\n        server.handle({ token, readings: Array.from({ length: n }, (_, i) => ({ metric: \"temp_c\", value: 20 + i, at: \"2026-11-19T10:00:00Z\" })) });\n    return { stored, events, batcher, server, lifecycle, post };\n}\n\ntest(\"readings are written in full batches as they arrive\", async () => {\n    const { post, stored, batcher } = setup({ maxBatch: 4 });\n    for (let i = 0; i < 5; i++) assert.equal((await post(\"tok_th-1\", 2)).status, 202);\n    await tick();\n    await tick();\n    assert.equal(stored.length, 8);\n    assert.equal(batcher.pending, 2);\n});\n\ntest(\"shutting down an idle server flushes the buffer, then closes the sink\", async () => {\n    const { post, lifecycle, stored, events } = setup();\n    await post(\"tok_th-1\", 3);\n    const report = await lifecycle.shutdown();\n    assert.deepEqual(report, { inFlightAtStart: 0, drained: true });\n    assert.equal(stored.length, 3);\n    assert.deepEqual(events, [\"write 3\", \"close\"]);\n});\n\ntest(\"requests that arrive after shutdown starts are turned away with 503\", async () => {\n    const { post, lifecycle } = setup();\n    const stopping = lifecycle.shutdown();\n    const res = await post(\"tok_th-1\");\n    assert.equal(res.status, 503);\n    assert.equal(res.headers?.Connection, \"close\");\n    await stopping;\n});\n\ntest(\"a request in flight when SIGTERM arrives is acknowledged and stored\", async () => {\n    const { post, lifecycle, stored, events } = setup({ lookupMs: 20 });\n    const inFlight = post(\"tok_th-7\", 2);\n    await tick();\n    const report = await lifecycle.shutdown();\n    assert.equal((await inFlight).status, 202);\n    console.log(\"shutdown report:\", report, \"sink events:\", events, \"readings stored:\", stored.length);\n    assert.equal(stored.length, 2);\n});\n\ntest(\"every reading acknowledged with 202 during a rolling restart is stored\", async () => {\n    const { post, lifecycle, stored, batcher } = setup({ lookupMs: 15, maxBatch: 50 });\n    const requests = Array.from({ length: 10 }, (_, i) => post(`tok_dev-${i}`, 3));\n    await tick();\n    await lifecycle.shutdown();\n    const acknowledged = (await Promise.all(requests)).filter((r) => r.status === 202).length * 3;\n    assert.equal(acknowledged, 30);\n    assert.equal(stored.length, acknowledged);\n    assert.equal(batcher.pending, 0);\n});\n\ntest(\"a stuck request doesn't block shutdown past the drain timeout\", async () => {\n    const { post, lifecycle, events } = setup({ drainTimeoutMs: 40 });\n    void post(\"hang\");\n    await tick();\n    const report = await lifecycle.shutdown();\n    assert.deepEqual(report, { inFlightAtStart: 1, drained: false });\n    assert.equal(events.at(-1), \"close\");\n});\n\ntest(\"a second signal joins the shutdown already in progress\", async () => {\n    const { lifecycle, events } = setup();\n    const [a, b] = await Promise.all([lifecycle.shutdown(), lifecycle.shutdown()]);\n    assert.equal(a, b);\n    assert.deepEqual(events, [\"close\"]);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resilience.graceful_shutdown",
+    "backend.messaging.at_least_once_delivery"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "pagination.ts",
+          "content": "export interface Page<T> {\n    items: T[];\n    nextCursor: number | null;\n}\n\nconst DEFAULT_LIMIT = 20;\nconst MAX_LIMIT = 100;\n\n// Parse the ?limit= query parameter. Missing, non-numeric or non-positive values get the default.\nexport function parseLimit(raw: string | undefined): number {\n    const n = Number(raw);\n    if (!Number.isInteger(n) || n <= 0) return DEFAULT_LIMIT;\n    return Math.min(n, MAX_LIMIT);\n}\n\n// Offset pagination: up to `limit` items starting at index `cursor`,\n// plus the cursor of the next page (null on the last page).\nexport function paginate<T>(all: T[], cursor: number, limit: number): Page<T> {\n    const items = all.slice(cursor, cursor + limit);\n    const next = cursor + limit;\n    return { items, nextCursor: next < all.length ? next : null };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "slice(cursor, cursor + limit - 1) returns limit - 1 items, so each page drops its last item. And next <= all.length returns a cursor equal to the length on the last page, which points at an empty page. The fix is slice(cursor, cursor + limit) and next < all.length."
+  ]
+}

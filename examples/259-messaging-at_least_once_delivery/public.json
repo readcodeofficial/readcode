@@ -1,0 +1,29 @@
+{
+  "id": "1854b7b2-bb31-4f00-bb37-deb2b7d59b56",
+  "title": "Ad click billing: a stream consumer that commits past failures",
+  "name": "Click billing consumer",
+  "createdAt": "2026-11-19T23:52:50.423Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Finance reconciled November invoices against the raw click logs and found a few hundred clicks that were never billed, all around the times the ledger database logged deadlocks. The billing consumer logged each failure (\"deadlock detected writing clk-...\"), but those clicks never appear in the ledger, even after the consumer kept running for hours. Fix the click consumer so the tests pass. Keep billing batches in parallel.",
+      "editable": [
+        "billing/clickConsumer.ts"
+      ],
+      "tests": [
+        {
+          "path": "clickConsumer.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { PartitionLog } from \"../src/log/partitionLog.ts\";\nimport { BillingLedger, type Click } from \"../src/billing/clicks.ts\";\nimport { ClickConsumer } from \"../src/billing/clickConsumer.ts\";\n\nconst click = (n: number, advertiserId = \"acme\"): Click => ({ clickId: `clk-${n}`, campaignId: \"black-friday\", advertiserId, costMicros: 250_000 });\n\nfunction streamOf(clicks: (Click | string)[]) {\n    const log = new PartitionLog();\n    for (const c of clicks) log.append(typeof c === \"string\" ? c : JSON.stringify(c));\n    return log;\n}\n\n// Ledger whose database write fails the first time for the given click ids.\nfunction flakyLedger(failOnce: string[]) {\n    const ledger = new BillingLedger();\n    const pending = new Set(failOnce);\n    return {\n        ledger,\n        async upsertCharge(c: Click) {\n            if (pending.delete(c.clickId)) throw new Error(`deadlock detected writing ${c.clickId}`);\n            await ledger.upsertCharge(c);\n        },\n    };\n}\n\ntest(\"every click in the stream is billed and the offset ends at the tail\", async () => {\n    const log = streamOf([1, 2, 3, 4, 5].map((n) => click(n)));\n    const ledger = new BillingLedger();\n    await new ClickConsumer(log, \"billing\", ledger, 2).catchUp();\n    assert.equal(ledger.totalMicros(\"acme\"), 1_250_000);\n    assert.equal(await log.committed(\"billing\"), 5);\n});\n\ntest(\"replaying the stream from the start doesn't bill any click twice\", async () => {\n    const log = streamOf([1, 2, 3].map((n) => click(n)));\n    const ledger = new BillingLedger();\n    await new ClickConsumer(log, \"billing\", ledger).catchUp();\n    await log.commit(\"billing\", 0);\n    await new ClickConsumer(log, \"billing\", ledger).catchUp();\n    assert.equal(ledger.count(), 3);\n    assert.equal(ledger.totalMicros(\"acme\"), 750_000);\n});\n\ntest(\"a click whose charge failed is billed on a later poll\", async () => {\n    const log = streamOf([1, 2, 3, 4].map((n) => click(n)));\n    const store = flakyLedger([\"clk-2\"]);\n    const consumer = new ClickConsumer(log, \"billing\", store, 10);\n    const first = await consumer.pollOnce();\n    assert.equal(first.failed, 1);\n    console.log(\"committed offset after a batch where clk-2 failed:\", await log.committed(\"billing\"));\n    await consumer.pollOnce();\n    assert.equal(store.ledger.count(), 4);\n});\n\ntest(\"the committed offset never moves past a click that wasn't billed\", async () => {\n    const log = streamOf([1, 2, 3, 4, 5, 6].map((n) => click(n)));\n    const store = flakyLedger([\"clk-4\"]);\n    const offsets: number[] = [];\n    await new ClickConsumer(log, \"billing\", store, 10, (_, offset) => offsets.push(offset)).pollOnce();\n    assert.deepEqual(offsets, [3]);\n    assert.ok((await log.committed(\"billing\")) <= 3, \"offset 3 (clk-4) must still be ahead of the commit\");\n});\n\ntest(\"advertiser totals are complete after intermittent ledger errors\", async () => {\n    const clicks = Array.from({ length: 30 }, (_, i) => click(i, i % 3 === 0 ? \"globex\" : \"acme\"));\n    const log = streamOf(clicks);\n    const store = flakyLedger([\"clk-0\", \"clk-7\", \"clk-8\", \"clk-21\", \"clk-29\"]);\n    await new ClickConsumer(log, \"billing\", store, 8).catchUp();\n    assert.equal(store.ledger.totalMicros(\"globex\"), 10 * 250_000);\n    assert.equal(store.ledger.totalMicros(\"acme\"), 20 * 250_000);\n    assert.equal(await log.committed(\"billing\"), 30);\n});\n\ntest(\"malformed records are skipped without blocking the clicks behind them\", async () => {\n    const log = streamOf([click(1), \"{garbage\", JSON.stringify({ clickId: \"clk-x\" }), click(2)]);\n    const ledger = new BillingLedger();\n    const total = await new ClickConsumer(log, \"billing\", ledger).catchUp();\n    assert.deepEqual(total, { billed: 2, invalid: 2, failed: 0 });\n    assert.equal(await log.committed(\"billing\"), 4);\n});\n\ntest(\"a restarted consumer resumes from the group's committed offset\", async () => {\n    const log = streamOf([1, 2, 3, 4].map((n) => click(n)));\n    const ledger = new BillingLedger();\n    await new ClickConsumer(log, \"billing\", ledger, 2).pollOnce();\n    log.append(JSON.stringify(click(5)));\n    const resumed = await new ClickConsumer(log, \"billing\", ledger, 2).catchUp();\n    assert.equal(resumed.billed, 3);\n    assert.equal(ledger.count(), 5);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.at_least_once_delivery",
+    "backend.messaging.queues_and_consumers",
+    "backend.api.idempotency"
+  ]
+}

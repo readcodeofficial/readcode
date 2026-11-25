@@ -1,0 +1,28 @@
+{
+  "id": "4ea67aa9-432e-4448-8775-5804221e8648",
+  "title": "Ride-hailing live tracking: rider watches that never really stop",
+  "name": "Driver location fan-out",
+  "createdAt": "2026-11-19T23:52:53.524Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The live-tracking service's heap grows all day and the pods get restarted every night. Each driver ping now takes milliseconds, and logs show MaxListenersExceededWarning for busy drivers. Riders whose driver was reassigned also report the map jumping between the old and new driver. The ops dashboard shows normal watcher counts. Fix tracking/tracker.ts so the tests pass.",
+      "editable": [
+        "tracking/tracker.ts"
+      ],
+      "tests": [
+        {
+          "path": "tracking.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { EventEmitter } from \"node:events\";\nimport { LocationTracker } from \"../src/tracking/tracker.ts\";\nimport { RiderSession } from \"../src/tracking/sessions.ts\";\nimport { handleDriverPing } from \"../src/tracking/pings.ts\";\n\nconst NOW = 1_763_550_000_000;\nconst PICKUP = { lat: 52.52, lng: 13.405 };\nconst near = (i: number) => ({ lat: 52.52 + i * 0.001, lng: 13.405 });\n\nfunction setup() {\n    const bus = new EventEmitter();\n    const tracker = new LocationTracker(bus);\n    const listeners = () => bus.eventNames().reduce((n, e) => n + bus.listenerCount(e), 0);\n    return { bus, tracker, listeners };\n}\n\n// A rider connection that records what it was sent, and anything sent after the rider hung up.\nfunction riderSocket() {\n    const socket = {\n        closed: false,\n        messages: [] as { type: string; driverId?: string; etaMinutes?: number }[],\n        sentAfterClose: 0,\n        send(message: string) {\n            if (socket.closed) socket.sentAfterClose++;\n            else socket.messages.push(JSON.parse(message));\n        },\n    };\n    return socket;\n}\n\nconst ping = (driverId: string, i: number, at = NOW) => ({ driverId, position: near(i), at });\n\ntest(\"a rider sees the assigned driver's position with an ETA\", () => {\n    const { tracker } = setup();\n    const socket = riderSocket();\n    new RiderSession(tracker, socket, PICKUP).assignDriver(\"drv-1\");\n    assert.deepEqual(handleDriverPing(tracker, ping(\"drv-1\", 5), NOW), { accepted: true });\n    const locations = socket.messages.filter((m) => m.type === \"driver_location\");\n    assert.equal(locations.length, 1);\n    assert.equal(locations[0].etaMinutes, 2);\n});\n\ntest(\"a rider who starts watching gets the driver's last known position straight away\", () => {\n    const { tracker } = setup();\n    handleDriverPing(tracker, ping(\"drv-2\", 3), NOW);\n    const socket = riderSocket();\n    new RiderSession(tracker, socket, PICKUP).assignDriver(\"drv-2\");\n    assert.deepEqual(socket.messages.map((m) => m.type), [\"driver_assigned\", \"driver_location\"]);\n});\n\ntest(\"malformed and stale pings are dropped\", () => {\n    const { tracker } = setup();\n    assert.equal(handleDriverPing(tracker, { driverId: \"d\", position: { lat: 91, lng: 0 }, at: NOW }, NOW).accepted, false);\n    assert.equal(handleDriverPing(tracker, { driverId: \"d\", position: near(1), at: NOW - 31_000 }, NOW).accepted, false);\n    assert.equal(handleDriverPing(tracker, { position: near(1), at: NOW }, NOW).accepted, false);\n});\n\ntest(\"after a reassignment the rider only hears from the new driver\", () => {\n    const { tracker } = setup();\n    const socket = riderSocket();\n    const session = new RiderSession(tracker, socket, PICKUP);\n    session.assignDriver(\"drv-old\");\n    session.assignDriver(\"drv-new\");\n    tracker.publish(ping(\"drv-old\", 9));\n    tracker.publish(ping(\"drv-new\", 2));\n    const from = socket.messages.filter((m) => m.type === \"driver_location\").map((m) => m.driverId);\n    console.log(\"location updates sent to the rider came from:\", from);\n    assert.deepEqual(from, [\"drv-new\"]);\n});\n\ntest(\"finished trips leave no listeners behind\", () => {\n    const { tracker, listeners } = setup();\n    for (let trip = 0; trip < 200; trip++) {\n        const session = new RiderSession(tracker, riderSocket(), PICKUP);\n        session.assignDriver(`drv-${trip % 5}`);\n        tracker.publish(ping(`drv-${trip % 5}`, trip % 7));\n        session.close();\n    }\n    assert.equal(listeners(), 0, `${listeners()} listeners still registered after 200 finished trips`);\n});\n\ntest(\"stopping twice is harmless and the dashboard counts drop to zero\", () => {\n    const { tracker } = setup();\n    const stopA = tracker.watch(\"drv-3\", PICKUP, () => {});\n    const stopB = tracker.watch(\"drv-3\", PICKUP, () => {});\n    assert.equal(tracker.watcherCount(\"drv-3\"), 2);\n    stopA();\n    stopA();\n    assert.equal(tracker.watcherCount(\"drv-3\"), 1);\n    stopB();\n    assert.equal(tracker.watcherCount(\"drv-3\"), 0);\n});\n\ntest(\"a rider connection is never written to after the session closes\", () => {\n    const { tracker } = setup();\n    const socket = riderSocket();\n    const session = new RiderSession(tracker, socket, PICKUP);\n    session.assignDriver(\"drv-4\");\n    session.close();\n    socket.closed = true;\n    for (let i = 0; i < 10; i++) tracker.publish(ping(\"drv-4\", i));\n    assert.equal(socket.sentAfterClose, 0);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.resources.memory_leaks",
+    "backend.realtime.connection_fanout"
+  ]
+}

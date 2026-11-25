@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "admin/changeRoles.ts",
+          "content": "export type Role = \"viewer\" | \"editor\" | \"billing\" | \"admin\";\n\nexport interface Session {\n    userId: string;\n    roles: Role[];\n    ip: string;\n}\n\nexport interface AuditEntry {\n    at: string;\n    actorId: string;\n    action: string;\n    targetId: string;\n    outcome: \"success\" | \"denied\" | \"error\";\n    ip: string;\n    before?: Role[];\n    after?: Role[];\n    reason?: string;\n}\n\nexport interface AuditLog {\n    write(entry: AuditEntry): Promise<void>;\n}\n\nexport interface UserRoles {\n    get(userId: string): Promise<Role[] | null>;\n    set(userId: string, roles: Role[]): Promise<void>;\n}\n\n// Body of PUT /admin/users/:id/roles. `actorId` is sent by the internal support console,\n// which acts on behalf of the support agent who clicked the button.\nexport interface ChangeRolesRequest {\n    targetUserId: string;\n    roles: Role[];\n    reason?: string;\n    actorId?: string;\n}\n\nexport interface Deps {\n    roles: UserRoles;\n    audit: AuditLog;\n    now: () => Date;\n}\n\nexport async function changeRoles(session: Session, req: ChangeRolesRequest, deps: Deps): Promise<{ status: number; body: unknown }> {\n    const entry = {\n        at: deps.now().toISOString(),\n        actorId: session.userId,\n        action: \"user.roles.change\",\n        targetId: req.targetUserId,\n        ip: session.ip,\n        reason: req.reason,\n    };\n\n    if (!session.roles.includes(\"admin\")) {\n        await deps.audit.write({ ...entry, outcome: \"denied\", after: req.roles });\n        return { status: 403, body: { error: \"forbidden\" } };\n    }\n\n    const before = await deps.roles.get(req.targetUserId);\n    if (before === null) return { status: 404, body: { error: \"user not found\" } };\n\n    try {\n        await deps.roles.set(req.targetUserId, req.roles);\n    } catch (err) {\n        await deps.audit.write({ ...entry, outcome: \"error\", before, after: req.roles });\n        throw err;\n    }\n    await deps.audit.write({ ...entry, outcome: \"success\", before, after: req.roles });\n    return { status: 200, body: { roles: req.roles } };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The actor is taken from the request body when present (`req.actorId ?? session.userId`), so any caller can write someone else's name into the audit log. A denied attempt by an editor can be pinned on an admin, and an admin can hide their own changes. An audit trail is only evidence if its identity comes from the authenticated session. If the support console needs to record the agent it acts for, that should be a separate, verified field (e.g. `onBehalfOf` from a trusted service token), never a replacement for the actor."
+  ]
+}

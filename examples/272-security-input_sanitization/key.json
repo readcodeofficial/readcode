@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "reviews/escape.ts",
+          "content": "const ENTITIES: Record<string, string> = { \"&\": \"&amp;\", \"<\": \"&lt;\", \">\": \"&gt;\", '\"': \"&quot;\", \"'\": \"&#39;\" };\n\n// Output encoding for user-written text placed into HTML (element content or double-quoted attributes).\nexport function escapeHtml(value: string): string {\n    return value.replace(/[&<>\"']/g, (ch) => ENTITIES[ch]);\n}\n\n// Links from users may only be http(s); anything else (javascript:, data:, relative junk) is dropped.\nexport function safeUrl(raw: string | undefined): string | null {\n    if (!raw) return null;\n    try {\n        const url = new URL(raw.trim());\n        return url.protocol === \"https:\" || url.protocol === \"http:\" ? url.href : null;\n    } catch {\n        return null;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "String.prototype.replace with a string pattern replaces only the first match. escapeHtml therefore encodes the first &, <, >, \" and ' and passes every later one through unchanged. A review with one tag looks escaped, but the second tag is live HTML, and a second double quote in an author name closes the title attribute so the name can add attributes of its own. The fix uses one global regex with a lookup table, which encodes every occurrence of all five characters in a single pass, so each character is encoded exactly once."
+  ]
+}

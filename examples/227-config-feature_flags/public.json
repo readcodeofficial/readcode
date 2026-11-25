@@ -1,0 +1,28 @@
+{
+  "id": "01c0673f-6a75-4b1c-b8ec-f91e9ad91cb3",
+  "title": "Percentage rollouts: a flag at 0% that is still on for some users",
+  "name": "Feature flag rollout",
+  "createdAt": "2026-11-19T23:52:22.540Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The new checkout was rolled out at 0% while it was still being finished, but some real users saw it anyway, and every rollout reaches a few more users than its percentage says. Fix the flag evaluation so the tests pass.",
+      "editable": [
+        "flags/evaluate.ts"
+      ],
+      "tests": [
+        {
+          "path": "flags.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { isEnabled, type FlagConfig } from \"../src/flags/evaluate.ts\";\nimport { FlagStore } from \"../src/flags/store.ts\";\nimport { assignVariant } from \"../src/flags/variants.ts\";\nimport { flagsForRequest, type Exposure } from \"../src/flags/requestFlags.ts\";\n\nconst users = Array.from({ length: 2000 }, (_, i) => `user-${i}`);\nconst flag = (over: Partial<FlagConfig> = {}): FlagConfig => ({\n    key: \"new-checkout\",\n    enabled: true,\n    rolloutPercent: 0,\n    allowUsers: [],\n    denyUsers: [],\n    ...over,\n});\nconst share = (f: FlagConfig) => users.filter((u) => isEnabled(f, u)).length / users.length;\n\ntest(\"a 0% rollout enables nobody\", () => {\n    const on = users.filter((u) => isEnabled(flag({ rolloutPercent: 0 }), u));\n    console.log(`0% rollout enabled ${on.length} of ${users.length} users`);\n    assert.equal(on.length, 0);\n});\n\ntest(\"a 100% rollout enables everyone; 25% about a quarter, the same users every time\", () => {\n    assert.equal(share(flag({ rolloutPercent: 100 })), 1);\n    const f = flag({ rolloutPercent: 25 });\n    const s = share(f);\n    assert.ok(s > 0.2 && s < 0.3, `got ${s}`);\n    assert.deepEqual(users.map((u) => isEnabled(f, u)), users.map((u) => isEnabled(f, u)));\n});\n\ntest(\"1% means about 1%, not 2%\", () => {\n    const s = share(flag({ rolloutPercent: 1 }));\n    assert.ok(s > 0.004 && s < 0.016, `got ${s}`);\n});\n\ntest(\"allow and deny lists, and the kill switch\", () => {\n    assert.equal(isEnabled(flag({ allowUsers: [\"user-7\"] }), \"user-7\"), true);\n    assert.equal(isEnabled(flag({ rolloutPercent: 100, denyUsers: [\"user-7\"] }), \"user-7\"), false);\n    assert.equal(isEnabled(flag({ enabled: false, allowUsers: [\"user-7\"] }), \"user-7\"), false);\n});\n\ntest(\"FlagStore keeps the last good config when a reload is malformed\", () => {\n    const store = new FlagStore();\n    store.load(JSON.stringify([flag({ rolloutPercent: 100 })]));\n    assert.throws(() => store.load(\"{not json\"));\n    assert.equal(store.isEnabled(\"new-checkout\", \"user-1\"), true);\n});\n\ntest(\"experiment variants are sticky and follow their weights\", () => {\n    const exp = { key: \"pricing-page\", variants: [{ name: \"control\", weight: 50 }, { name: \"annual-first\", weight: 30 }, { name: \"no-free-tier\", weight: 20 }] };\n    const counts: Record<string, number> = {};\n    for (const u of users) counts[assignVariant(exp, u)] = (counts[assignVariant(exp, u)] ?? 0) + 1;\n    assert.ok(counts.control > 900 && counts.control < 1100, JSON.stringify(counts));\n    assert.ok(counts[\"no-free-tier\"] > 320 && counts[\"no-free-tier\"] < 480, JSON.stringify(counts));\n    assert.equal(assignVariant(exp, \"user-42\"), assignVariant(exp, \"user-42\"));\n    assert.throws(() => assignVariant({ key: \"empty\", variants: [{ name: \"a\", weight: 0 }] }, \"u\"));\n});\n\ntest(\"a page's flags at 0% are off for every signed-in user, and every evaluation is reported\", () => {\n    const store = new FlagStore();\n    store.load(JSON.stringify([flag({ key: \"new-checkout\", rolloutPercent: 0 }), flag({ key: \"dark-mode\", rolloutPercent: 100 })]));\n    const exposures: Exposure[] = [];\n    const leaked = users.filter((u) => flagsForRequest(store, u, [\"new-checkout\", \"dark-mode\"], (e) => exposures.push(e))[\"new-checkout\"]);\n    assert.equal(leaked.length, 0);\n    assert.equal(exposures.length, users.length * 2);\n});\n\ntest(\"anonymous visitors get every flag off and produce no exposures\", () => {\n    const store = new FlagStore();\n    store.load(JSON.stringify([flag({ key: \"dark-mode\", rolloutPercent: 100 })]));\n    const exposures: Exposure[] = [];\n    assert.deepEqual(flagsForRequest(store, null, [\"dark-mode\", \"dark-mode\"], (e) => exposures.push(e)), { \"dark-mode\": false });\n    assert.deepEqual(exposures, []);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.config.feature_flags",
+    "backend.config.configuration_loading"
+  ]
+}

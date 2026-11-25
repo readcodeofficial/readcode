@@ -1,0 +1,29 @@
+{
+  "id": "70d739c1-f0de-44a4-b2c8-5c880ad46adb",
+  "title": "Smart-meter config store: quorum reads during a replica outage",
+  "name": "Quorum config store",
+  "createdAt": "2026-11-19T23:53:03.989Z",
+  "durationMinutes": 22,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Incident report: when replica a lost power, a few thousand smart meters downgraded themselves. Some went back to the firmware from before last week's rollout, and some went all the way back to factory 1.0.0. Writes during the outage failed loudly as expected, but reads never reported an error. The store runs with N=3, W=2, R=2, so a single replica failure should be invisible. Fix replication/quorum.ts so the tests pass.",
+      "editable": [
+        "replication/quorum.ts"
+      ],
+      "tests": [
+        {
+          "path": "quorum.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { setImmediate as tick } from \"node:timers/promises\";\nimport { MemoryReplica } from \"../src/replication/replica.ts\";\nimport { QuorumError, QuorumStore } from \"../src/replication/quorum.ts\";\nimport { ConfigRegistry, FACTORY_CONFIG, type DeviceConfig } from \"../src/devices/configRegistry.ts\";\n\n// Three replicas, W = 2, R = 2. `slow` is B's latency in event-loop turns.\nfunction cluster(slow = 0) {\n    const a = new MemoryReplica<DeviceConfig>(\"a\");\n    const b = new MemoryReplica<DeviceConfig>(\"b\", slow);\n    const c = new MemoryReplica<DeviceConfig>(\"c\");\n    let now = 1000;\n    const store = new QuorumStore([a, b, c], { w: 2, r: 2, nodeId: \"eu-1\", clock: () => ++now });\n    return { a, b, c, store, registry: new ConfigRegistry(store) };\n}\n\nconst cfg = (firmware: string): DeviceConfig => ({ firmware, reportEverySec: 60 });\nconst settle = async () => {\n    for (let i = 0; i < 10; i++) await tick();\n};\n\ntest(\"a written value can be read back with one replica down\", async () => {\n    const { b, store } = cluster();\n    await store.put(\"cfg:m1\", cfg(\"2.0.0\"));\n    b.up = false;\n    assert.deepEqual(await store.get(\"cfg:m1\"), cfg(\"2.0.0\"));\n});\n\ntest(\"a write needs two acknowledgements\", async () => {\n    const { a, b, store } = cluster();\n    a.up = false;\n    await store.put(\"cfg:m1\", cfg(\"2.0.0\"));\n    b.up = false;\n    await assert.rejects(store.put(\"cfg:m1\", cfg(\"2.1.0\")), QuorumError);\n});\n\ntest(\"a read returns the latest write even when a replica that missed it answers first\", async () => {\n    const { a, c, store } = cluster(3);\n    await store.put(\"cfg:m1\", cfg(\"2.0.0\"));\n    c.up = false; // c misses the next write\n    await store.put(\"cfg:m1\", cfg(\"2.1.0\"));\n    c.up = true;\n    a.up = false; // now one of the two replicas that took the write goes down\n    const got = await store.get(\"cfg:m1\");\n    console.log(\"read after a failed over:\", got, \"| replica c holds:\", c.peek(\"cfg:m1\")?.value);\n    assert.deepEqual(got, cfg(\"2.1.0\"));\n});\n\ntest(\"with two replicas down a read fails instead of reporting the key as missing\", async () => {\n    const { a, b, store } = cluster();\n    await store.put(\"cfg:m1\", cfg(\"2.0.0\"));\n    a.up = false;\n    b.up = false;\n    await assert.rejects(store.get(\"cfg:m1\"), QuorumError);\n});\n\ntest(\"read repair brings a replica that missed a write up to date\", async () => {\n    const { a, b, c, store } = cluster(2);\n    await store.put(\"cfg:m1\", cfg(\"2.0.0\"));\n    c.up = false;\n    await store.put(\"cfg:m1\", cfg(\"2.1.0\"));\n    c.up = true;\n    a.latency = 1;\n    assert.deepEqual(await store.get(\"cfg:m1\"), cfg(\"2.1.0\"));\n    await settle();\n    assert.deepEqual([a, b, c].map((r) => r.peek(\"cfg:m1\")?.value.firmware), [\"2.1.0\", \"2.1.0\", \"2.1.0\"]);\n});\n\ntest(\"writes with the same timestamp from two coordinators settle on one value everywhere\", async () => {\n    const a = new MemoryReplica<DeviceConfig>(\"a\");\n    const b = new MemoryReplica<DeviceConfig>(\"b\");\n    const c = new MemoryReplica<DeviceConfig>(\"c\");\n    const eu = new QuorumStore([a, b, c], { w: 2, r: 2, nodeId: \"eu-1\", clock: () => 500 });\n    const us = new QuorumStore([c, b, a], { w: 2, r: 2, nodeId: \"us-1\", clock: () => 500 });\n    await us.put(\"cfg:m1\", cfg(\"from-us\"));\n    await eu.put(\"cfg:m1\", cfg(\"from-eu\"));\n    await settle();\n    assert.equal((await eu.get(\"cfg:m1\"))?.firmware, \"from-us\");\n    assert.deepEqual([a, b, c].map((r) => r.peek(\"cfg:m1\")?.writer), [\"us-1\", \"us-1\", \"us-1\"]);\n});\n\ntest(\"a meter keeps its rolled-out firmware when a replica fails over\", async () => {\n    const { a, c, registry } = cluster(3);\n    c.up = false;\n    assert.deepEqual(await registry.rollout([\"m1\", \"m2\"], \"2.1.0\"), { updated: [\"m1\", \"m2\"], failed: [] });\n    c.up = true;\n    a.up = false;\n    assert.equal((await registry.desired(\"m1\")).firmware, \"2.1.0\");\n    assert.equal((await registry.desired(\"never-configured\")).firmware, FACTORY_CONFIG.firmware);\n});\n\ntest(\"during a two-replica outage meters are not told to go back to factory firmware\", async () => {\n    const { a, b, registry } = cluster();\n    await registry.rollout([\"m1\"], \"2.1.0\");\n    a.up = false;\n    b.up = false;\n    await assert.rejects(registry.desired(\"m1\"), QuorumError);\n    assert.deepEqual(await registry.rollout([\"m1\"], \"2.2.0\"), { updated: [], failed: [\"m1\"] });\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.distributed.replication_and_consensus",
+    "backend.caching.stale_reads",
+    "backend.resilience.graceful_degradation"
+  ]
+}

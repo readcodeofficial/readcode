@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "payroll/uploader.ts",
+          "content": "import { renderPaymentFile, validateRun, type PayrollRun } from \"./bankFile.ts\";\nimport type { RemoteFile, SftpConnector, UploadTarget } from \"./sftp.ts\";\n\nexport interface UploadResult {\n    path: string;\n    lines: number;\n}\n\n// Uploads one payroll run to the bank's inbound folder. The file is written under a .part name and\n// renamed when complete, because the bank picks up every *.pay file it sees.\nexport async function uploadPaymentFile(connector: SftpConnector, target: UploadTarget, run: PayrollRun): Promise<UploadResult> {\n    const problems = validateRun(run);\n    if (problems.length > 0) throw new Error(`payroll run ${run.runId} is invalid: ${problems.join(\"; \")}`);\n\n    const lines = renderPaymentFile(run);\n    const finalPath = `${target.dir}/${run.employerId}-${run.runId}.pay`;\n    const partPath = `${finalPath}.part`;\n\n    const session = await connector.connect(target.host, target.user);\n    let file: RemoteFile | null = null;\n    try {\n        file = await session.openWrite(partPath);\n        for (const line of lines) await file.write(`${line}\\n`);\n        await file.close();\n        file = null;\n        await session.rename(partPath, finalPath);\n        return { path: finalPath, lines: lines.length };\n    } finally {\n        if (file) await file.close().catch(() => {});\n        await session.close();\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The finally block closes the remote file and then the session, but it awaits file.close() unguarded. When the connection breaks, write() fails and then the cleanup file.close() fails too. That rejection escapes the finally before session.close() runs, so the SFTP session leaks. It also replaces the original write error with the less useful close error. With only a few sessions allowed per customer, a couple of leaks block every later upload. In the finally block the file is only still open on an error path, where the upload has already failed, so the cleanup close may fail without stopping the session close. Catching it (or nesting a try/finally) guarantees session.close() runs and keeps the original error. A flush failure on the normal path is still thrown from inside the try."
+  ]
+}

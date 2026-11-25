@@ -1,0 +1,29 @@
+{
+  "id": "7c54bf11-495c-492e-9576-6741bd39c951",
+  "title": "Freight shipments: a permission rule that trusts the role but not the company",
+  "name": "Shipment permissions",
+  "createdAt": "2026-11-19T23:52:56.480Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "A shipper reported that one of its booked loads was cancelled and another was moved to a different trucking company, and neither change was made by its own staff. The history shows both were done by an admin user at FastFreight, the carrier assigned to those loads. Fix policy.ts so the tests pass.",
+      "editable": [
+        "shipments/policy.ts"
+      ],
+      "tests": [
+        {
+          "path": "shipments.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport type { Actor, Shipment } from \"../src/shipments/model.ts\";\nimport { ShipmentService } from \"../src/shipments/service.ts\";\nimport { shipmentRoutes } from \"../src/shipments/http.ts\";\n\n// Acme Foods ships with FastFreight; RoadRunner is another carrier; Globex is an unrelated shipper.\nconst acmeAdmin: Actor = { userId: \"u-acme-admin\", orgId: \"acme\", role: \"admin\" };\nconst acmeDispatch: Actor = { userId: \"u-acme-disp\", orgId: \"acme\", role: \"dispatcher\" };\nconst acmeViewer: Actor = { userId: \"u-acme-view\", orgId: \"acme\", role: \"viewer\" };\nconst fastDispatch: Actor = { userId: \"u-fast-disp\", orgId: \"fastfreight\", role: \"dispatcher\" };\nconst fastAdmin: Actor = { userId: \"u-fast-admin\", orgId: \"fastfreight\", role: \"admin\" };\nconst globexAdmin: Actor = { userId: \"u-globex-admin\", orgId: \"globex\", role: \"admin\" };\n\nfunction setup() {\n    const rows = new Map<string, Shipment>();\n    rows.set(\"sh-1\", { id: \"sh-1\", shipperOrgId: \"acme\", carrierOrgId: \"fastfreight\", status: \"booked\", reference: \"PO-1001\", history: [] });\n    const repo = { get: async (id: string) => rows.get(id) ?? null, save: async (s: Shipment) => void rows.set(s.id, s) };\n    const service = new ShipmentService(repo);\n    return { rows, service, http: shipmentRoutes(service) };\n}\n\ntest(\"the shipper and the assigned carrier can see a shipment; anyone else gets not found\", async () => {\n    const { service, http } = setup();\n    assert.equal((await service.get(acmeViewer, \"sh-1\")).reference, \"PO-1001\");\n    assert.equal((await service.get(fastDispatch, \"sh-1\")).reference, \"PO-1001\");\n    await assert.rejects(service.get(globexAdmin, \"sh-1\"), { name: \"NotFoundError\" });\n    assert.equal((await http.cancel(globexAdmin, \"sh-1\")).status, 404);\n});\n\ntest(\"the carrier's dispatcher reports pickup and delivery; a viewer can't\", async () => {\n    const { service, rows } = setup();\n    await service.updateStatus(fastDispatch, \"sh-1\", \"picked_up\");\n    await service.updateStatus(fastDispatch, \"sh-1\", \"in_transit\");\n    await assert.rejects(service.updateStatus(acmeViewer, \"sh-1\", \"delivered\"), { name: \"ForbiddenError\" });\n    await service.updateStatus(fastDispatch, \"sh-1\", \"delivered\");\n    assert.deepEqual(rows.get(\"sh-1\")?.history.map((h) => h.status), [\"picked_up\", \"in_transit\", \"delivered\"]);\n});\n\ntest(\"the shipper's dispatcher can cancel a booked shipment\", async () => {\n    const { http, rows } = setup();\n    const res = await http.cancel(acmeDispatch, \"sh-1\");\n    assert.equal(res.status, 200);\n    assert.equal(rows.get(\"sh-1\")?.status, \"cancelled\");\n});\n\ntest(\"the carrier's admin can't cancel the shipper's shipment\", async () => {\n    const { http, rows } = setup();\n    const res = await http.cancel(fastAdmin, \"sh-1\");\n    console.log(\"carrier admin cancelling shipper's shipment:\", res.status, res.body);\n    assert.equal(res.status, 403);\n    assert.equal(rows.get(\"sh-1\")?.status, \"booked\");\n});\n\ntest(\"the carrier's admin can't hand the shipment to a different carrier\", async () => {\n    const { http, rows } = setup();\n    const res = await http.carrier(fastAdmin, \"sh-1\", { carrierOrgId: \"roadrunner\" });\n    assert.equal(res.status, 403);\n    assert.equal(rows.get(\"sh-1\")?.carrierOrgId, \"fastfreight\");\n});\n\ntest(\"the carrier's admin can still report status like their dispatchers\", async () => {\n    const { http, rows } = setup();\n    assert.equal((await http.status(fastAdmin, \"sh-1\", { status: \"picked_up\" })).status, 200);\n    assert.equal((await http.cancel(fastAdmin, \"sh-1\")).status, 403);\n    assert.equal(rows.get(\"sh-1\")?.status, \"picked_up\");\n});\n\ntest(\"the shipper's admin can move it to another carrier, and the old carrier loses access\", async () => {\n    const { service, http } = setup();\n    assert.equal((await http.carrier(acmeAdmin, \"sh-1\", { carrierOrgId: \"roadrunner\" })).status, 200);\n    await assert.rejects(service.get(fastDispatch, \"sh-1\"), { name: \"NotFoundError\" });\n    assert.equal((await http.status(fastDispatch, \"sh-1\", { status: \"picked_up\" })).status, 404);\n});\n\ntest(\"a shipment that has been picked up can't be cancelled\", async () => {\n    const { service, http } = setup();\n    await service.updateStatus(fastDispatch, \"sh-1\", \"picked_up\");\n    const res = await http.cancel(acmeAdmin, \"sh-1\");\n    assert.deepEqual(res, { status: 409, body: { error: \"cannot cancel a shipment that is picked_up\" } });\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.security.authorization_checks",
+    "backend.security.multi_tenant_isolation",
+    "backend.api.status_codes_and_error_responses"
+  ]
+}

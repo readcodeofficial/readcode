@@ -1,0 +1,29 @@
+{
+  "id": "eb011f1f-d9bb-4b2b-b294-16030c14e0b4",
+  "title": "Greenhouse telemetry ingest: a batch validator that lets non-numbers through",
+  "name": "Telemetry batch validation",
+  "createdAt": "2026-11-19T23:52:47.771Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Since sensor firmware 4.2 rolled out to part of the fleet, the greenhouse dashboard shows temperature averages like 1010.8 °C, and some soil moisture charts drop to 0 for minutes at a time. The ingest API accepted every one of those batches with 202. Fix telemetry/validate.ts so the tests pass.",
+      "editable": [
+        "telemetry/validate.ts"
+      ],
+      "tests": [
+        {
+          "path": "telemetry.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { ingest, type StoredReading } from \"../src/telemetry/ingest.ts\";\nimport { hourlyAverages } from \"../src/telemetry/stats.ts\";\n\nconst now = () => new Date(\"2026-11-19T08:30:00Z\");\n\nfunction setup() {\n    const rows: StoredReading[] = [];\n    const store = { append: async (r: StoredReading[]) => void rows.push(...r) };\n    return { rows, post: (body: unknown) => ingest(body, store, now) };\n}\n\nconst reading = (sensor: string, value: unknown, at = \"2026-11-19T08:10:00Z\") => ({ sensor, value, at });\nconst details = (res: { body: unknown }) => (res.body as { details: string[] }).details;\n\ntest(\"a valid batch is accepted and stored with normalized timestamps\", async () => {\n    const { rows, post } = setup();\n    const res = await post({ deviceId: \"gh-north-07\", readings: [reading(\"temp_c\", 21.5, \"2026-11-19T09:10:00+01:00\"), reading(\"co2_ppm\", 830)] });\n    assert.deepEqual(res, { status: 202, body: { accepted: 2 } });\n    assert.deepEqual(rows[0], { deviceId: \"gh-north-07\", sensor: \"temp_c\", value: 21.5, at: \"2026-11-19T08:10:00.000Z\" });\n});\n\ntest(\"a value sent as a string is rejected\", async () => {\n    const { rows, post } = setup();\n    const res = await post({ deviceId: \"gh-north-07\", readings: [reading(\"humidity_pct\", 61), reading(\"temp_c\", \"21.5\")] });\n    console.log(\"response to a quoted temperature:\", res, \"stored:\", rows);\n    assert.equal(res.status, 400);\n    assert.deepEqual(details(res), [\"readings[1].value must be a number\"]);\n    assert.equal(rows.length, 0);\n});\n\ntest(\"null, empty, boolean and missing values are rejected\", async () => {\n    const { post } = setup();\n    const res = await post({\n        deviceId: \"gh-north-07\",\n        readings: [reading(\"temp_c\", null), reading(\"temp_c\", \"\"), reading(\"temp_c\", true), { sensor: \"temp_c\", at: \"2026-11-19T08:10:00Z\" }],\n    });\n    assert.equal(res.status, 400);\n    assert.equal(details(res).length, 4);\n});\n\ntest(\"out-of-range values, unknown sensors and bad device ids are rejected\", async () => {\n    const { post } = setup();\n    const res = await post({ deviceId: \"GH North\", readings: [reading(\"humidity_pct\", 140), reading(\"lux\", 300), reading(\"toString\", 1)] });\n    assert.equal(res.status, 400);\n    assert.deepEqual(details(res), [\n        \"deviceId must be 3-40 lowercase letters, digits or dashes\",\n        \"readings[0].value 140 is outside 0..100\",\n        \"readings[1].sensor must be one of temp_c, humidity_pct, co2_ppm, soil_moisture_pct\",\n        \"readings[2].sensor must be one of temp_c, humidity_pct, co2_ppm, soil_moisture_pct\",\n    ]);\n});\n\ntest(\"timestamps must parse and be neither in the future nor over a week old\", async () => {\n    const { post } = setup();\n    const res = await post({\n        deviceId: \"gh-south-01\",\n        readings: [reading(\"temp_c\", 20, \"yesterday\"), reading(\"temp_c\", 20, \"2026-11-19T08:40:00Z\"), reading(\"temp_c\", 20, \"2026-11-10T08:00:00Z\"), reading(\"temp_c\", 20, \"2026-11-19T08:34:00Z\")],\n    });\n    assert.deepEqual(details(res), [\"readings[0].at must be an ISO timestamp\", \"readings[1].at is in the future\", \"readings[2].at is more than 7 days old\"]);\n    assert.equal((await post({ deviceId: \"gh-south-01\", readings: [] })).status, 400);\n});\n\ntest(\"the dashboard's hourly averages stay correct when one firmware sends quoted or null values\", async () => {\n    const { rows, post } = setup();\n    await post({ deviceId: \"gh-east-02\", readings: [reading(\"temp_c\", 20), reading(\"temp_c\", 22, \"2026-11-19T08:20:00Z\")] });\n    await post({ deviceId: \"gh-east-02\", readings: [reading(\"temp_c\", \"23\", \"2026-11-19T08:25:00Z\")] });\n    await post({ deviceId: \"gh-east-02\", readings: [reading(\"temp_c\", null, \"2026-11-19T08:26:00Z\")] });\n    assert.deepEqual(hourlyAverages(rows, \"gh-east-02\"), [{ hour: \"2026-11-19T08:00Z\", sensor: \"temp_c\", average: 21, count: 2 }]);\n});\n\ntest(\"averages are bucketed by hour and sensor\", async () => {\n    const { rows, post } = setup();\n    await post({\n        deviceId: \"gh-east-02\",\n        readings: [reading(\"co2_ppm\", 800, \"2026-11-19T07:05:00Z\"), reading(\"co2_ppm\", 900, \"2026-11-19T07:55:00Z\"), reading(\"co2_ppm\", 1000), reading(\"soil_moisture_pct\", 35.25)],\n    });\n    assert.deepEqual(hourlyAverages(rows, \"gh-east-02\").map((a) => [a.hour, a.sensor, a.average, a.count]), [\n        [\"2026-11-19T07:00Z\", \"co2_ppm\", 850, 2],\n        [\"2026-11-19T08:00Z\", \"co2_ppm\", 1000, 1],\n        [\"2026-11-19T08:00Z\", \"soil_moisture_pct\", 35.3, 1],\n    ]);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.request_validation",
+    "backend.api.serialization_and_deserialization",
+    "backend.api.status_codes_and_error_responses"
+  ]
+}

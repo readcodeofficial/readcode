@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "bidding/bidder.ts",
+          "content": "import type { Pacer } from \"./pacing.ts\";\nimport type { Bid, BidRequest, Campaign, Matcher, RuleCompiler } from \"./types.ts\";\n\ninterface CompiledRule {\n    version: number;\n    matches: Matcher;\n}\n\nexport interface BidderStats {\n    requests: number;\n    bids: number;\n    rulesCompiled: number;\n}\n\n// Answers bid requests from the exchange. This runs for every ad slot on every page view\n// (tens of thousands per second per instance) and has a ~10 ms budget.\nexport class Bidder {\n    private readonly campaigns: () => Campaign[];\n    private readonly compile: RuleCompiler;\n    private readonly pacer: Pacer;\n    private readonly counters: BidderStats = { requests: 0, bids: 0, rulesCompiled: 0 };\n    private readonly compiled = new Map<string, CompiledRule>();\n\n    constructor(campaigns: () => Campaign[], compile: RuleCompiler, pacer: Pacer) {\n        this.campaigns = campaigns;\n        this.compile = compile;\n        this.pacer = pacer;\n    }\n\n    bid(req: BidRequest): Bid | null {\n        this.counters.requests++;\n        const ruleFor = (c: Campaign): Matcher => {\n            let entry = this.compiled.get(c.id);\n            if (!entry || entry.version !== c.version) {\n                entry = { version: c.version, matches: this.compile(c.rule) };\n                this.compiled.set(c.id, entry);\n                this.counters.rulesCompiled++;\n            }\n            return entry.matches;\n        };\n\n        let best: Campaign | null = null;\n        for (const c of this.campaigns()) {\n            if (c.status !== \"active\" || c.bidCents < req.floorCents) continue;\n            if (best && c.bidCents <= best.bidCents) continue;\n            if (!this.pacer.canAfford(c.id, c.bidCents, c.dailyBudgetCents)) continue;\n            if (ruleFor(c)(req)) best = c;\n        }\n        if (!best) return null;\n\n        this.pacer.record(best.id, best.bidCents);\n        this.counters.bids++;\n        return { requestId: req.id, campaignId: best.id, priceCents: best.bidCents };\n    }\n\n    stats(): BidderStats {\n        return { ...this.counters };\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "bid() caches compiled rules keyed by campaign id and version, but it creates the cache Map inside bid(), so the cache is thrown away after every request. Every request that reaches a campaign's targeting check re-parses its rule text. That's the expensive regex work the profile shows, and it grows with traffic. The fix moves the Map to a Bidder field, so each campaign's rule is compiled once and reused until the version changes. The version check still recompiles an edited campaign on its next request."
+  ]
+}

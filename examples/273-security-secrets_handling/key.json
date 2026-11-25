@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "gateway/redact.ts",
+          "content": "// Makes a copy of any config-like value that is safe to log or show on a diagnostics page.\n// Fields whose name marks them as credentials are masked, and passwords embedded in URLs are hidden.\nconst SECRET_FIELD = /(password|secret|token|key)$/i;\nconst MASK = \"[redacted]\";\n\nfunction maskUrlCredentials(value: string): string {\n    if (!value.includes(\"://\")) return value;\n    try {\n        const url = new URL(value);\n        if (!url.password) return value;\n        url.password = \"***\";\n        return url.href;\n    } catch {\n        return value;\n    }\n}\n\nexport function redact(value: unknown, fieldName = \"\"): unknown {\n    if (SECRET_FIELD.test(fieldName) && value !== \"\" && value !== undefined) return MASK;\n    if (Array.isArray(value)) return value.map((item) => redact(item));\n    if (value !== null && typeof value === \"object\") {\n        return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redact(v, k)]));\n    }\n    if (typeof value === \"string\") return maskUrlCredentials(value);\n    return value;\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "redact() decides which fields are credentials by matching the field name against SECRET_FIELD, but the regex is case-sensitive. It only catches names that end in a lowercase word, such as password. In camelCase names like apiKey, signingSecret and authToken, and in env-style names like DB_PASSWORD, the word is capitalized, so the regex doesn't match and those values are copied out verbatim. Adding the i flag makes the match case-insensitive, so every naming style is masked. redact still builds a new object, so the live config keeps the real values."
+  ]
+}

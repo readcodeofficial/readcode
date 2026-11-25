@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "coupons.ts",
+          "content": "export interface Coupon {\n    code: string;\n    percentOff: number; // 1..100\n    startsAt: string; // ISO timestamp\n    expiresAt: string | null; // null = never expires\n    maxRedemptions: number | null; // null = unlimited\n    redemptions: number;\n}\n\nexport type Clock = () => Date;\nexport const systemClock: Clock = () => new Date();\n\nexport type CouponCheck =\n    | { ok: true; percentOff: number }\n    | { ok: false; reason: \"not_started\" | \"expired\" | \"exhausted\" };\n\nexport function checkCoupon(coupon: Coupon, clock: Clock = systemClock): CouponCheck {\n    const now = clock().getTime();\n    if (now < Date.parse(coupon.startsAt)) {\n        return { ok: false, reason: \"not_started\" };\n    }\n    if (coupon.expiresAt !== null && now >= Date.parse(coupon.expiresAt)) {\n        return { ok: false, reason: \"expired\" };\n    }\n    if (coupon.maxRedemptions !== null && coupon.redemptions >= coupon.maxRedemptions) {\n        return { ok: false, reason: \"exhausted\" };\n    }\n    return { ok: true, percentOff: coupon.percentOff };\n}\n\nexport interface PricedCart {\n    subtotalCents: number;\n    discountCents: number;\n    totalCents: number;\n    rejected: \"not_started\" | \"expired\" | \"exhausted\" | null;\n}\n\nexport function applyCoupon(subtotalCents: number, coupon: Coupon, clock: Clock = systemClock): PricedCart {\n    const check = checkCoupon(coupon, clock);\n    if (!check.ok) {\n        return { subtotalCents, discountCents: 0, totalCents: subtotalCents, rejected: check.reason };\n    }\n    const discountCents = Math.floor((subtotalCents * check.percentOff) / 100);\n    return { subtotalCents, discountCents, totalCents: subtotalCents - discountCents, rejected: null };\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "checkCoupon reads `now` from the injected clock for the start check but calls Date.now() for the expiry check. Under a pinned clock the expiry check still uses the real time, so a coupon from 2020 is always \"expired\" and one expiring in 2098 never is. Every time-dependent decision has to go through the same injected clock; one stray Date.now() makes the function untestable and its tests date-dependent."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "hiring/jobService.ts",
+          "content": "import type { Job, JobRepo } from \"./jobRepo.ts\";\nimport { TtlCache } from \"./ttlCache.ts\";\n\nexport interface TenantContext {\n    tenantId: string; // resolved from the careers-page host or the recruiter's session, never from the body\n    userId?: string;\n}\n\nexport class NotFoundError extends Error {\n    constructor(what: string) {\n        super(`${what} not found`);\n        this.name = \"NotFoundError\";\n    }\n}\n\nconst cacheKey = (tenantId: string, slug: string) => `${tenantId}/${slug}`;\n\n// Job postings for many customer companies. Careers pages hit getOpenBySlug on every page\n// view, so slug lookups are cached for a minute.\nexport class JobService {\n    private readonly repo: JobRepo;\n    private readonly bySlug: TtlCache<Job | null>;\n\n    constructor(repo: JobRepo, now: () => number) {\n        this.repo = repo;\n        this.bySlug = new TtlCache(60_000, now);\n    }\n\n    async getOpenBySlug(ctx: TenantContext, slug: string): Promise<Job> {\n        const job = await this.bySlug.getOrLoad(cacheKey(ctx.tenantId, slug), () => this.repo.bySlug(ctx.tenantId, slug));\n        if (!job || job.status !== \"open\") throw new NotFoundError(`job ${slug}`);\n        return job;\n    }\n\n    async listOpen(ctx: TenantContext): Promise<Job[]> {\n        return (await this.repo.list(ctx.tenantId)).filter((j) => j.status === \"open\");\n    }\n\n    async upsert(ctx: TenantContext, job: Omit<Job, \"tenantId\">): Promise<Job> {\n        const previous = await this.repo.byId(ctx.tenantId, job.id);\n        const saved: Job = { ...job, tenantId: ctx.tenantId };\n        await this.repo.save(saved);\n        if (previous && previous.slug !== saved.slug) this.bySlug.delete(cacheKey(ctx.tenantId, previous.slug));\n        this.bySlug.delete(cacheKey(ctx.tenantId, saved.slug));\n        return saved;\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The slug cache is keyed by the slug alone, but slugs are only unique within a tenant. Whichever company's page is viewed first fills the entry for \"backend-engineer\", and for the next minute every tenant asking for that slug gets that company's job, including one that has no such job. applyToJob trusts the returned job's tenantId, so applications are filed with the wrong company too. The repository query was correctly scoped; the process-wide cache in front of it dropped the tenant. The fix includes the tenant id in every cache key, for lookups and invalidations alike, so each tenant has its own entries."
+  ]
+}

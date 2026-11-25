@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "shipments/policy.ts",
+          "content": "import type { Actor, Shipment } from \"./model.ts\";\n\nexport type Action = \"view\" | \"update_status\" | \"cancel\" | \"reassign_carrier\";\n\n// Who may do what to a shipment.\n//  - the shipper's people and the assigned carrier's people can see it\n//  - the carrier's dispatchers and admins report pickup / transit / delivery\n//  - the shipper's dispatchers and admins can cancel it or move it to another carrier\nexport function can(actor: Actor, action: Action, shipment: Shipment): boolean {\n    const isShipper = actor.orgId === shipment.shipperOrgId;\n    const isCarrier = shipment.carrierOrgId !== null && actor.orgId === shipment.carrierOrgId;\n\n    switch (action) {\n        case \"view\":\n            return isShipper || isCarrier;\n        case \"update_status\":\n            return isCarrier && actor.role !== \"viewer\";\n        case \"cancel\":\n        case \"reassign_carrier\":\n            return isShipper && (actor.role === \"admin\" || actor.role === \"dispatcher\");\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "The cancel / reassign rule allows any user whose role is \"admin\", but roles are scoped to the user's own organization, and the check never asks which organization the admin belongs to. Unrelated companies are still turned away because the service first requires \"view\" access. A carrier's admin can see the shipment, though, so they pass the view check and then get shipper-only powers. The fix requires isShipper for both roles, so only the shipper's admins and dispatchers can cancel a shipment or change its carrier."
+  ]
+}

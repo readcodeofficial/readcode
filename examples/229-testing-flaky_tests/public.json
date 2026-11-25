@@ -1,0 +1,29 @@
+{
+  "id": "52ce066a-16b6-485b-bb6f-a5f1d09c4ec8",
+  "title": "Cart pricing: a test that only fails when the network is slow",
+  "name": "Concurrent cart pricing",
+  "createdAt": "2026-11-19T23:52:28.456Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The cart-total test passed on laptops but failed on CI about one run in ten, and someone eventually saw a real customer charged the wrong total. The tests now pin the price service's latencies so the failure happens every time. Fix quoteCart.ts so the tests pass, keeping the concurrency limit.",
+      "editable": [
+        "pricing/quoteCart.ts"
+      ],
+      "tests": [
+        {
+          "path": "pricing.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { setTimeout as sleep } from \"node:timers/promises\";\nimport { quoteCart, type PriceSource } from \"../src/pricing/quoteCart.ts\";\nimport { cartTotal } from \"../src/pricing/cartTotal.ts\";\nimport { CachedPriceSource } from \"../src/pricing/priceCache.ts\";\nimport { checkoutSummary } from \"../src/pricing/checkout.ts\";\n\n// On CI the price service sometimes answers out of order. These fakes pin the\n// latencies so that ordering happens on every run instead of now and then.\nconst PRICES: Record<string, number> = { mug: 1200, tee: 2500, cap: 1800, pin: 300 };\nconst LATENCY_MS: Record<string, number> = { mug: 40, tee: 5, cap: 20, pin: 1 };\n\nfunction fakeSource(failing: string[] = []): PriceSource & { maxInFlight: number; calls: string[] } {\n    let inFlight = 0;\n    const source = {\n        maxInFlight: 0,\n        calls: [] as string[],\n        async fetchPriceCents(sku: string) {\n            source.calls.push(sku);\n            inFlight++;\n            source.maxInFlight = Math.max(source.maxInFlight, inFlight);\n            try {\n                await sleep(LATENCY_MS[sku] ?? 1);\n                if (failing.includes(sku)) throw new Error(`price service timeout for ${sku}`);\n                return PRICES[sku];\n            } finally {\n                inFlight--;\n            }\n        },\n    };\n    return source;\n}\n\ntest(\"quotes come back in the order the SKUs were given\", async () => {\n    const quotes = await quoteCart([\"mug\", \"tee\", \"cap\", \"pin\"], fakeSource());\n    console.log(\"quote order:\", quotes.map((q) => q.sku).join(\", \"));\n    assert.deepEqual(quotes.map((q) => q.sku), [\"mug\", \"tee\", \"cap\", \"pin\"]);\n});\n\ntest(\"a failed lookup is reported in its own position\", async () => {\n    const quotes = await quoteCart([\"mug\", \"tee\", \"cap\"], fakeSource([\"tee\"]));\n    assert.deepEqual(quotes.map((q) => q.priceCents), [1200, null, 1800]);\n});\n\ntest(\"cart total multiplies each line by its own price\", async () => {\n    const total = await cartTotal([{ sku: \"mug\", quantity: 1 }, { sku: \"pin\", quantity: 10 }], fakeSource());\n    assert.deepEqual(total, { totalCents: 1200 + 3000, unpriced: [] });\n});\n\ntest(\"never more than `concurrency` requests in flight; an empty cart makes none\", async () => {\n    const source = fakeSource();\n    await quoteCart([\"mug\", \"tee\", \"cap\", \"pin\", \"mug\", \"tee\", \"cap\", \"pin\"], source, 2);\n    assert.equal(source.maxInFlight, 2);\n    assert.deepEqual(await quoteCart([], source), []);\n});\n\ntest(\"the price cache serves repeats within the TTL and refetches after\", async () => {\n    const inner = fakeSource();\n    let now = 1_000;\n    const cached = new CachedPriceSource(inner, 60_000, () => now);\n    assert.equal(await cached.fetchPriceCents(\"pin\"), 300);\n    now += 30_000;\n    assert.equal(await cached.fetchPriceCents(\"pin\"), 300);\n    now += 31_000;\n    assert.equal(await cached.fetchPriceCents(\"pin\"), 300);\n    assert.deepEqual(inner.calls, [\"pin\", \"pin\"]);\n});\n\ntest(\"concurrent lookups of one SKU share a request, and failures aren't cached\", async () => {\n    const inner = fakeSource([\"cap\"]);\n    const cached = new CachedPriceSource(inner, 60_000, () => 0);\n    await Promise.all([cached.fetchPriceCents(\"mug\"), cached.fetchPriceCents(\"mug\"), cached.fetchPriceCents(\"mug\")]);\n    await assert.rejects(cached.fetchPriceCents(\"cap\"));\n    await assert.rejects(cached.fetchPriceCents(\"cap\"));\n    assert.deepEqual(inner.calls, [\"mug\", \"cap\", \"cap\"]);\n});\n\ntest(\"checkout charges the right total, tax included\", async () => {\n    const summary = await checkoutSummary(\n        [{ sku: \"mug\", quantity: 2 }, { sku: \"tee\", quantity: 1 }, { sku: \"pin\", quantity: 4 }],\n        fakeSource(),\n        825, // 8.25%\n    );\n    assert.deepEqual(summary, { ok: true, subtotalCents: 6100, taxCents: 503, totalCents: 6603 });\n});\n\ntest(\"checkout is blocked while an item can't be priced, and for an empty cart\", async () => {\n    assert.deepEqual(\n        await checkoutSummary([{ sku: \"mug\", quantity: 1 }, { sku: \"cap\", quantity: 2 }], fakeSource([\"cap\"]), 825),\n        { ok: false, reason: \"unpriced_items\", skus: [\"cap\"] },\n    );\n    assert.deepEqual(await checkoutSummary([{ sku: \"mug\", quantity: 0 }], fakeSource(), 825), { ok: false, reason: \"empty_cart\", skus: [] });\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.testing.flaky_tests",
+    "backend.concurrency.async_await_pitfalls",
+    "backend.concurrency.race_conditions"
+  ]
+}

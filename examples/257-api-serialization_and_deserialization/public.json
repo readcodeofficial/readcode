@@ -1,0 +1,29 @@
+{
+  "id": "bf18feac-28d0-481c-a60d-4c8e28b48b8d",
+  "title": "Fleet telemetry: decoding the gateway's wire format",
+  "name": "Telemetry wire codec",
+  "createdAt": "2026-11-19T23:52:49.322Z",
+  "durationMinutes": 18,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Since we moved trucks onto the new cellular gateway, the dispatcher map has gone blank for those trucks. The ingest endpoint answers 200, but every reading in a gateway batch comes back in `rejected` with reason \"stale\". Trucks still on the old firmware show up fine. The partner fuel report is also missing all gateway trucks. Fix wire.ts so the tests pass.",
+      "editable": [
+        "telemetry/wire.ts"
+      ],
+      "tests": [
+        {
+          "path": "telemetry.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { decodeReading, encodeReading } from \"../src/telemetry/wire.ts\";\nimport { exportSince, ingestBatch } from \"../src/telemetry/ingest.ts\";\nimport { ReadingStore } from \"../src/telemetry/store.ts\";\n\nconst NOW = new Date(\"2026-11-19T12:00:00Z\");\nconst nowSeconds = NOW.getTime() / 1000;\n\nconst gatewayReading = (secondsAgo: number, extra: Record<string, unknown> = {}) => ({\n    device_id: \"truck-17\",\n    recorded_at: nowSeconds - secondsAgo,\n    odometer_km: 182_340.5,\n    fuel_pct: 61,\n    location: { lat: 52.37, lon: 4.89 },\n    ...extra,\n});\n\ntest(\"a reading from old firmware with an ISO timestamp is decoded\", () => {\n    const r = decodeReading({ ...gatewayReading(0), recorded_at: \"2026-11-19T11:58:00Z\" });\n    assert.equal(r.recordedAt.toISOString(), \"2026-11-19T11:58:00.000Z\");\n    assert.deepEqual(r.location, { lat: 52.37, lon: 4.89 });\n    assert.deepEqual(r.faultCodes, []);\n});\n\ntest(\"a gateway reading's Unix-seconds timestamp is decoded to the right instant\", () => {\n    const r = decodeReading(gatewayReading(90));\n    console.log(\"recorded_at\", nowSeconds - 90, \"decoded as\", r.recordedAt.toISOString());\n    assert.equal(r.recordedAt.toISOString(), \"2026-11-19T11:58:30.000Z\");\n});\n\ntest(\"encoding writes snake_case fields and whole Unix seconds\", () => {\n    const wire = encodeReading({\n        deviceId: \"truck-3\",\n        recordedAt: new Date(\"2026-11-19T11:00:00.750Z\"),\n        odometerKm: 10,\n        fuelPct: 99,\n        location: null,\n        faultCodes: [\"P0420\"],\n    });\n    assert.deepEqual(wire, { device_id: \"truck-3\", recorded_at: 1795086000, odometer_km: 10, fuel_pct: 99, location: null, fault_codes: [\"P0420\"] });\n});\n\ntest(\"encode then decode gives back the same reading\", () => {\n    const original = decodeReading({ ...gatewayReading(0), recorded_at: \"2026-11-19T10:15:00Z\", fault_codes: [\"P0300\"] });\n    const roundTripped = decodeReading(JSON.parse(JSON.stringify(encodeReading(original))));\n    assert.deepEqual(roundTripped, original);\n});\n\ntest(\"fresh gateway readings are accepted and only genuinely old ones are stale\", () => {\n    const store = new ReadingStore();\n    const body = JSON.stringify([gatewayReading(60), gatewayReading(30), gatewayReading(2 * 86_400)]);\n    const result = ingestBatch(body, store, NOW);\n    assert.deepEqual(result, { accepted: 2, rejected: [{ index: 2, reason: \"stale\" }] });\n    assert.equal(store.history(\"truck-17\").length, 2);\n});\n\ntest(\"malformed readings are rejected with a reason while the rest of the batch goes in\", () => {\n    const store = new ReadingStore();\n    const body = JSON.stringify([\n        { ...gatewayReading(0), recorded_at: \"2026-11-19T11:59:00Z\" },\n        { ...gatewayReading(0), fuel_pct: 140 },\n        { ...gatewayReading(0), recorded_at: \"yesterday-ish\" },\n        { ...gatewayReading(0), location: \"52.37,4.89\" },\n    ]);\n    const result = ingestBatch(body, store, NOW);\n    assert.equal(result.accepted, 1);\n    assert.deepEqual(result.rejected.map((r) => r.index), [1, 2, 3]);\n    assert.match(result.rejected[0].reason, /fuel_pct/);\n});\n\ntest(\"the dispatcher map and the partner export see trucks reporting through the gateway\", () => {\n    const store = new ReadingStore();\n    ingestBatch(JSON.stringify([gatewayReading(600), gatewayReading(120, { location: { lat: 52.4, lon: 4.9 } })]), store, NOW);\n    const latest = store.latestPositions().get(\"truck-17\");\n    assert.deepEqual(latest, { lat: 52.4, lon: 4.9, at: new Date(\"2026-11-19T11:58:00Z\") });\n\n    const exported = JSON.parse(exportSince(store, [\"truck-17\"], new Date(\"2026-11-19T11:55:00Z\")));\n    assert.deepEqual(exported.map((w: { recorded_at: number }) => w.recorded_at), [nowSeconds - 120]);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.serialization_and_deserialization",
+    "backend.api.request_validation",
+    "backend.integrations.third_party_adapters"
+  ]
+}

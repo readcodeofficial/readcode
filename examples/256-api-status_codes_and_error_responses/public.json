@@ -1,0 +1,29 @@
+{
+  "id": "c3f9fbf0-43ac-4294-95c3-f8cfa4438491",
+  "title": "Hotel reservations API: domain errors mapped to the wrong HTTP statuses",
+  "name": "Reservation error mapping",
+  "createdAt": "2026-11-19T23:52:48.933Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "The booking widget team says our reservations API answers 422 for things that aren't rule violations. A mistyped confirmation link (GET /reservations/<bad id>) shows \"we couldn't process your request\" instead of \"reservation not found\". A guest who loses the race for the last room never sees the \"this room was just taken\" prompt, because the widget only shows it on a 409. Their retry logic and analytics are keyed on status codes, so the numbers are skewed too. Fix http.ts so the tests pass.",
+      "editable": [
+        "bookings/http.ts"
+      ],
+      "tests": [
+        {
+          "path": "bookings.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { bookingHandlers } from \"../src/bookings/handlers.ts\";\nimport { ReservationService, type Reservation } from \"../src/bookings/service.ts\";\nimport { UpstreamTimeoutError } from \"../src/bookings/errors.ts\";\n\nfunction setup(opts: { inventory?: () => Promise<void>; seed?: Reservation[] } = {}) {\n    const rows = new Map<string, Reservation>((opts.seed ?? []).map((r) => [r.id, r]));\n    const repo = {\n        get: async (id: string) => rows.get(id) ?? null,\n        forRoom: async (roomId: string) => [...rows.values()].filter((r) => r.roomId === roomId),\n        save: async (r: Reservation) => void rows.set(r.id, r),\n    };\n    let n = 0;\n    const logged: unknown[] = [];\n    const service = new ReservationService(repo, { hold: opts.inventory ?? (async () => {}) }, () => `res_${++n}`);\n    return { api: bookingHandlers(service, (e) => logged.push(e)), rows, logged };\n}\n\nconst stay = { roomId: \"101\", guestName: \"Grace Hopper\", checkIn: \"2026-12-01\", checkOut: \"2026-12-04\" };\nconst errorOf = (body: unknown) => (body as { error: Record<string, string> }).error;\n\ntest(\"booking a free room answers 201 with a Location header\", async () => {\n    const { api } = setup();\n    const res = await api.create({ params: {}, body: stay });\n    assert.equal(res.status, 201);\n    assert.equal(res.headers?.Location, \"/reservations/res_1\");\n});\n\ntest(\"malformed input is a 400 that names the offending field\", async () => {\n    const { api } = setup();\n    const res = await api.create({ params: {}, body: { ...stay, checkOut: \"2026-11-30\" } });\n    assert.equal(res.status, 400);\n    assert.deepEqual(errorOf(res.body), { code: \"invalid_request\", message: \"checkOut must be after checkIn\", field: \"checkOut\" });\n});\n\ntest(\"a well-formed request that breaks a booking rule is a 422\", async () => {\n    const { api } = setup();\n    const res = await api.create({ params: {}, body: { ...stay, checkOut: \"2027-02-01\" } });\n    assert.equal(res.status, 422);\n    assert.equal(errorOf(res.body).code, \"stay_too_long\");\n});\n\ntest(\"looking up a reservation that doesn't exist is a 404\", async () => {\n    const { api } = setup();\n    const res = await api.get({ params: { id: \"res_404\" } });\n    console.log(\"GET /reservations/res_404 ->\", res.status, res.body);\n    assert.equal(res.status, 404);\n    assert.equal(errorOf(res.body).code, \"reservation_not_found\");\n});\n\ntest(\"booking nights that are already taken is a 409 conflict\", async () => {\n    const { api, rows } = setup();\n    await api.create({ params: {}, body: stay });\n    const res = await api.create({ params: {}, body: { ...stay, guestName: \"Alan Turing\", checkIn: \"2026-12-03\", checkOut: \"2026-12-06\" } });\n    assert.equal(res.status, 409);\n    assert.equal(errorOf(res.body).code, \"room_unavailable\");\n    assert.equal(rows.size, 1);\n});\n\ntest(\"cancelling after check-in is a 409 and leaves the stay in place\", async () => {\n    const { api, rows } = setup({ seed: [{ ...stay, id: \"res_9\", status: \"checked_in\" }] });\n    const res = await api.cancel({ params: { id: \"res_9\" } });\n    assert.equal(res.status, 409);\n    assert.equal(errorOf(res.body).code, \"reservation_closed\");\n    assert.equal(rows.get(\"res_9\")?.status, \"checked_in\");\n    assert.equal((await api.cancel({ params: { id: \"res_nope\" } })).status, 404);\n});\n\ntest(\"upstream timeouts are a retryable 503 and unexpected bugs a generic 500\", async () => {\n    const slow = setup({ inventory: async () => { throw new UpstreamTimeoutError(\"channel-manager\", 5); } });\n    const timedOut = await slow.api.create({ params: {}, body: stay });\n    assert.equal(timedOut.status, 503);\n    assert.equal(timedOut.headers?.[\"Retry-After\"], \"5\");\n\n    const broken = setup({ inventory: async () => { throw new TypeError(\"cannot read properties of undefined (reading 'rate')\"); } });\n    const res = await broken.api.create({ params: {}, body: stay });\n    assert.equal(res.status, 500);\n    assert.deepEqual(errorOf(res.body), { code: \"internal_error\", message: \"Something went wrong\" });\n    assert.equal(broken.logged.length, 1);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.api.status_codes_and_error_responses",
+    "backend.api.request_validation",
+    "backend.api.rest_design"
+  ]
+}

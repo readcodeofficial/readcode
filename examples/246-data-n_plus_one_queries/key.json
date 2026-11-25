@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "hr/directory.ts",
+          "content": "import { employeesInDepartment, makeLoaders, type Db } from \"./repo.ts\";\n\nexport interface DirectoryRow {\n    id: string;\n    name: string;\n    title: string;\n    manager: string | null;\n    city: string | null;\n    lastRating: number | null;\n}\n\n// GET /departments/:id/directory — the team page managers open before calibration meetings.\nexport async function teamDirectory(db: Db, departmentId: string): Promise<DirectoryRow[]> {\n    const loaders = makeLoaders(db);\n    const employees = await employeesInDepartment(db, departmentId);\n\n    // Start every employee's loads in the same tick so each loader sends one batched query.\n    return Promise.all(\n        employees.map(async (e) => {\n            const [manager, office, review] = await Promise.all([\n                e.managerId ? loaders.employees.load(e.managerId) : Promise.resolve(null),\n                loaders.offices.load(e.officeId),\n                loaders.latestReviews.load(e.id),\n            ]);\n            return {\n                id: e.id,\n                name: e.name,\n                title: e.title,\n                manager: manager?.name ?? null,\n                city: office?.city ?? null,\n                lastRating: review?.rating ?? null,\n            };\n        }),\n    );\n}\n\n// Average of the latest ratings, ignoring people who haven't had a review yet.\nexport function averageRating(rows: DirectoryRow[]): number | null {\n    const rated = rows.filter((r) => r.lastRating !== null);\n    if (rated.length === 0) return null;\n    return Math.round((rated.reduce((s, r) => s + r.lastRating!, 0) / rated.length) * 100) / 100;\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "BatchLoader only batches the load() calls made in the same tick. teamDirectory awaits inside a for loop, so each employee's loads are dispatched, and their queries finish, before the next employee's loads even start. The inner Promise.all makes the three lookups for one person run in parallel, but every employee still costs its own round of queries, which is N+1 with extra steps. The latest-review lookup is different for each person, so the cache can't save it. The fix maps all employees to promises at once and awaits them together with Promise.all. Then every load lands in the same tick and each loader sends one query for the whole team, which also keeps the rows in the original order."
+  ]
+}

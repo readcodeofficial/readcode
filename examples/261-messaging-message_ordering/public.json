@@ -1,0 +1,29 @@
+{
+  "id": "953cdc5c-633f-4915-a034-39bae892039b",
+  "title": "Food delivery order tracking: a producer whose retries break per-key ordering",
+  "name": "Order status publisher",
+  "createdAt": "2026-11-19T23:52:51.269Z",
+  "durationMinutes": 20,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "Customer support is seeing tickets like \"the app says my order was just accepted, but the food is already here\". The pushes arrive scrambled too: \"Your courier is on the way\" comes before \"The restaurant accepted your order\". Each time, the status publisher logged a NOT_LEADER_FOR_PARTITION error during a broker leader election. Every event is eventually sent, and all of an order's events land on the same partition. Fix StatusPublisher so the tests pass.",
+      "editable": [
+        "orders/statusPublisher.ts"
+      ],
+      "tests": [
+        {
+          "path": "orderStatus.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { PartitionedTopic, TransientSendError } from \"../src/bus/topic.ts\";\nimport { StatusPublisher, type OrderStatus, type StatusEvent } from \"../src/orders/statusPublisher.ts\";\nimport { TrackingProjection } from \"../src/orders/tracking.ts\";\n\nconst LIFECYCLE: OrderStatus[] = [\"placed\", \"accepted\", \"preparing\", \"picked_up\", \"delivered\"];\n\nfunction setup(partitions = 4) {\n    const topic = new PartitionedTopic<StatusEvent>(partitions);\n    const publisher = new StatusPublisher(topic);\n    const pushes: [string, string][] = [];\n    const tracking = new TrackingProjection(topic, (orderId, text) => pushes.push([orderId, text]));\n    return { topic, publisher, tracking, pushes };\n}\n\nconst events = (orderId: string, statuses = LIFECYCLE): StatusEvent[] =>\n    statuses.map((status, i) => ({ orderId, status, at: `2026-11-19T18:${String(10 + i).padStart(2, \"0\")}:00Z` }));\n\n// Reject the given (orderId, status) sends once each with a transient error.\nfunction failOnce(topic: PartitionedTopic<StatusEvent>, ...which: [string, OrderStatus][]) {\n    const left = new Set(which.map(([o, s]) => `${o}/${s}`));\n    topic.failWhen = (_, m) => (left.delete(`${m.orderId}/${m.status}`) ? new TransientSendError(\"NOT_LEADER_FOR_PARTITION\") : null);\n}\n\ntest(\"an order's updates reach the tracking page in the order they happened\", async () => {\n    const { publisher, tracking } = setup();\n    for (const e of [...events(\"A-1\"), ...events(\"B-2\", [\"placed\", \"cancelled\"])]) publisher.enqueue(e);\n    await publisher.flushAll();\n    tracking.poll();\n    assert.deepEqual(tracking.timeline(\"A-1\"), LIFECYCLE);\n    assert.equal(tracking.statusOf(\"B-2\"), \"cancelled\");\n});\n\ntest(\"every update for one order goes to the same partition\", async () => {\n    const { topic, publisher } = setup(8);\n    for (const e of events(\"A-1\")) publisher.enqueue(e);\n    await publisher.flushAll();\n    const used = topic.partitions.map((p, i) => (p.length ? i : -1)).filter((i) => i >= 0);\n    assert.deepEqual(used, [topic.partitionFor(\"A-1\")]);\n});\n\ntest(\"a transient send failure doesn't reorder an order's updates\", async () => {\n    const { topic, publisher, tracking } = setup();\n    failOnce(topic, [\"A-1\", \"accepted\"]);\n    for (const e of events(\"A-1\")) publisher.enqueue(e);\n    await publisher.flushAll();\n    tracking.poll();\n    console.log(\"timeline seen by the customer:\", tracking.timeline(\"A-1\"));\n    assert.deepEqual(tracking.timeline(\"A-1\"), LIFECYCLE);\n});\n\ntest(\"after a flaky send, a delivered order shows as delivered\", async () => {\n    const { topic, publisher, tracking } = setup();\n    failOnce(topic, [\"A-1\", \"picked_up\"]);\n    for (const e of events(\"A-1\")) publisher.enqueue(e);\n    await publisher.flush();\n    tracking.poll();\n    await publisher.flushAll();\n    tracking.poll();\n    assert.equal(tracking.statusOf(\"A-1\"), \"delivered\");\n});\n\ntest(\"customers get push notifications in lifecycle order even when sends are retried\", async () => {\n    const { topic, publisher, tracking, pushes } = setup(1);\n    failOnce(topic, [\"A-1\", \"placed\"], [\"B-2\", \"accepted\"]);\n    for (let i = 0; i < 3; i++) {\n        publisher.enqueue(events(\"A-1\")[i]);\n        publisher.enqueue(events(\"B-2\")[i]);\n    }\n    await publisher.flushAll();\n    tracking.poll();\n    const forOrder = (id: string) => pushes.filter(([o]) => o === id).map(([, text]) => text);\n    assert.deepEqual(forOrder(\"A-1\"), forOrder(\"B-2\"));\n    assert.deepEqual(forOrder(\"A-1\")[0], \"We've sent your order to the restaurant\");\n});\n\ntest(\"updates that hit a transient error are kept and sent later, none lost\", async () => {\n    const { topic, publisher } = setup();\n    failOnce(topic, [\"A-1\", \"preparing\"], [\"C-3\", \"placed\"]);\n    for (const e of [...events(\"A-1\"), ...events(\"C-3\")]) publisher.enqueue(e);\n    await publisher.flushAll();\n    assert.equal(publisher.pendingCount(), 0);\n    assert.equal(topic.partitions.flat().length, 10);\n});\n\ntest(\"a non-transient broker error is raised to the caller\", async () => {\n    const { topic, publisher } = setup();\n    topic.failWhen = () => new Error(\"message too large\");\n    publisher.enqueue(events(\"A-1\")[0]);\n    await assert.rejects(publisher.flush(), /message too large/);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.messaging.message_ordering",
+    "backend.distributed.sharding_and_partitioning",
+    "backend.resilience.retries_and_backoff"
+  ]
+}

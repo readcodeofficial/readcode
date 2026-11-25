@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "orders/statusPublisher.ts",
+          "content": "import { TransientSendError, type PartitionedTopic } from \"../bus/topic.ts\";\n\nexport type OrderStatus = \"placed\" | \"accepted\" | \"preparing\" | \"picked_up\" | \"delivered\" | \"cancelled\";\n\nexport interface StatusEvent {\n    orderId: string;\n    status: OrderStatus;\n    at: string; // ISO time the status changed\n}\n\n// The restaurant and courier apps report status changes here. They're buffered and sent in batches,\n// keyed by order id so every update for one order lands on the same partition.\nexport class StatusPublisher {\n    private readonly topic: PartitionedTopic<StatusEvent>;\n    private pending: StatusEvent[] = [];\n\n    constructor(topic: PartitionedTopic<StatusEvent>) {\n        this.topic = topic;\n    }\n\n    enqueue(event: StatusEvent): void {\n        this.pending.push(event);\n    }\n\n    pendingCount(): number {\n        return this.pending.length;\n    }\n\n    // Sends what's buffered. Events that hit a transient broker error stay buffered for the next flush.\n    async flush(): Promise<number> {\n        const batch = this.pending.splice(0);\n        let sent = 0;\n        for (const event of batch) {\n            try {\n                await this.topic.send(this.topic.partitionFor(event.orderId), event);\n                sent++;\n            } catch (err) {\n                if (!(err instanceof TransientSendError)) throw err;\n                // Keep this event and everything after it, in order, ahead of anything enqueued since.\n                this.pending.unshift(...batch.slice(batch.indexOf(event)));\n                break;\n            }\n        }\n        return sent;\n    }\n\n    // Flushes until the buffer is empty or `maxFlushes` is reached (called on a timer and at shutdown).\n    async flushAll(maxFlushes = 10): Promise<void> {\n        for (let i = 0; i < maxFlushes && this.pending.length > 0; i++) await this.flush();\n        if (this.pending.length > 0) throw new Error(`${this.pending.length} status events still unsent`);\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "A partition only preserves the order in which sends succeed. When a send fails transiently, flush() pushes that event onto the end of the buffer and moves on to the next events in the batch. Later updates for the same order (picked_up, delivered) are sent first, and the failed one (accepted) follows on a later flush. The tracking projection trusts partition order, so it ends on the stale status and pushes the notifications out of order. The fix stops the flush at the first failed send and puts that event, together with everything behind it, back at the front of the buffer in its original order. The next flush then resumes exactly where it left off. A per-order variant (hold back only later events for the same orderId) also works."
+  ]
+}

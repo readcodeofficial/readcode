@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "bookings/http.ts",
+          "content": "import {\n    BookingError,\n    ReservationClosedError,\n    ReservationNotFoundError,\n    RoomUnavailableError,\n    UpstreamTimeoutError,\n    ValidationError,\n} from \"./errors.ts\";\n\nexport interface HttpResponse {\n    status: number;\n    headers?: Record<string, string>;\n    body?: unknown;\n}\n\ntype ErrorClass = abstract new (...args: never[]) => Error;\n\n// The first entry whose class matches decides the status.\nconst STATUS_BY_ERROR: [ErrorClass, number][] = [\n    [ValidationError, 400],\n    [ReservationNotFoundError, 404],\n    [RoomUnavailableError, 409],\n    [ReservationClosedError, 409],\n    [BookingError, 422],\n    [UpstreamTimeoutError, 503],\n];\n\nexport function json(status: number, body: unknown, headers: Record<string, string> = {}): HttpResponse {\n    return { status, headers: { \"Content-Type\": \"application/json\", ...headers }, body };\n}\n\n// Turns anything a handler threw into the API's error envelope: { error: { code, message, field? } }.\n// Unexpected errors are logged and answered with a generic 500 so internals never reach the client.\nexport function errorResponse(err: unknown, log: (err: unknown) => void): HttpResponse {\n    const match = STATUS_BY_ERROR.find(([cls]) => err instanceof cls);\n    if (!match) {\n        log(err);\n        return json(500, { error: { code: \"internal_error\", message: \"Something went wrong\" } });\n    }\n    const status = match[1];\n\n    if (err instanceof UpstreamTimeoutError) {\n        return json(status, { error: { code: \"temporarily_unavailable\", message: \"Please retry shortly\" } }, {\n            \"Retry-After\": String(err.retryAfterSeconds),\n        });\n    }\n    const e = err as BookingError;\n    const error: Record<string, string> = { code: e.code, message: e.message };\n    if (e instanceof ValidationError) error.field = e.field;\n    return json(status, { error });\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "errorResponse uses the first entry in STATUS_BY_ERROR whose class matches with instanceof. Every domain error extends BookingError, and the base-class entry sits above the specific ones, so not-found, room-unavailable and reservation-closed errors all match [BookingError, 422] and the 404 and 409 entries are never reached. ValidationError only works because it happens to be listed above the base class. Ordering the table from most to least specific, with the BookingError catch-all after its subclasses, gives each error its intended status, and business-rule failures with no entry of their own still fall back to 422."
+  ]
+}

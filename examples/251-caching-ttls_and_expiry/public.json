@@ -1,0 +1,29 @@
+{
+  "id": "d9216656-b1e9-43a6-a90e-04471114467a",
+  "title": "Ride-hailing surge pricing: cached multipliers that outlive their TTL",
+  "name": "Surge multiplier cache",
+  "createdAt": "2026-11-19T23:52:46.948Z",
+  "durationMinutes": 19,
+  "language": "TypeScript",
+  "questions": [
+    {
+      "kind": "fix",
+      "prompt": "After the stadium emptied last night, riders downtown were still quoted 3x fares an hour later, although driver supply had recovered within minutes. Quiet zones update fine. Separately, after a two-minute demand-feed outage, the busiest zones showed no surge at all for the rest of the evening. Fix the TtlCache in surge/ttlCache.ts so the tests pass, keeping the least-recently-used eviction.",
+      "editable": [
+        "surge/ttlCache.ts"
+      ],
+      "tests": [
+        {
+          "path": "surge.test.ts",
+          "content": "import { test } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { FALLBACK_TTL_MS, SURGE_TTL_MS, SurgeService, multiplierFrom, type ZoneDemand } from \"../src/surge/surge.ts\";\nimport { quoteFare } from \"../src/surge/fares.ts\";\n\nfunction setup(maxZones?: number) {\n    let now = Date.parse(\"2026-11-19T17:30:00Z\");\n    const demand = new Map<string, ZoneDemand>();\n    const feed = {\n        calls: 0,\n        down: false,\n        async current(zoneId: string) {\n            this.calls++;\n            if (this.down) throw new Error(\"feed unavailable\");\n            return demand.get(zoneId) ?? { openRequests: 0, availableDrivers: 10 };\n        },\n    };\n    const surge = new SurgeService(feed, () => now, maxZones);\n    return { feed, demand, surge, advance: (ms: number) => (now += ms) };\n}\n\nconst trip = { zoneId: \"downtown\", distanceKm: 10, durationMin: 20 };\n\ntest(\"a computed multiplier is reused for 30 seconds\", async () => {\n    const { feed, demand, surge, advance } = setup();\n    demand.set(\"downtown\", { openRequests: 40, availableDrivers: 20 });\n    assert.deepEqual(await surge.surgeFor(\"downtown\"), { multiplier: 2, source: \"live\" });\n    advance(SURGE_TTL_MS - 1);\n    await surge.surgeFor(\"downtown\");\n    assert.equal(feed.calls, 1);\n});\n\ntest(\"a busy zone is recomputed 30 seconds after the last computation, however often riders ask\", async () => {\n    const { feed, demand, surge, advance } = setup();\n    demand.set(\"downtown\", { openRequests: 50, availableDrivers: 20 });\n    await surge.surgeFor(\"downtown\");\n    demand.set(\"downtown\", { openRequests: 10, availableDrivers: 20 });\n    for (let t = 0; t < 6; t++) {\n        advance(5_000);\n        await surge.surgeFor(\"downtown\");\n    }\n    const after = await surge.surgeFor(\"downtown\");\n    console.log(`after 30s of riders asking every 5s: multiplier ${after.multiplier}, feed called ${feed.calls}x`);\n    assert.equal(after.multiplier, 1);\n    assert.equal(feed.calls, 2);\n});\n\ntest(\"fare quotes drop back to normal once the rush is over\", async () => {\n    const { demand, surge, advance } = setup();\n    demand.set(\"downtown\", { openRequests: 60, availableDrivers: 20 });\n    assert.equal((await quoteFare(surge, trip)).totalCents, 5350);\n    demand.set(\"downtown\", { openRequests: 5, availableDrivers: 20 });\n    for (let t = 0; t < 20; t++) {\n        advance(2_000);\n        await quoteFare(surge, trip);\n    }\n    assert.deepEqual(await quoteFare(surge, trip), { zoneId: \"downtown\", baseCents: 1700, multiplier: 1, totalCents: 1950 });\n});\n\ntest(\"after a feed outage the fallback is only used for 5 seconds\", async () => {\n    const { feed, demand, surge, advance } = setup();\n    demand.set(\"airport\", { openRequests: 30, availableDrivers: 10 });\n    feed.down = true;\n    assert.deepEqual(await surge.surgeFor(\"airport\"), { multiplier: 1, source: \"fallback\" });\n    feed.down = false;\n    advance(2_000);\n    assert.equal((await surge.surgeFor(\"airport\")).source, \"fallback\");\n    advance(2_000);\n    await surge.surgeFor(\"airport\");\n    advance(FALLBACK_TTL_MS - 4_000);\n    assert.deepEqual(await surge.surgeFor(\"airport\"), { multiplier: 3, source: \"live\" });\n});\n\ntest(\"only the most recently used zones are kept\", async () => {\n    const { feed, surge } = setup(2);\n    await surge.surgeFor(\"a\");\n    await surge.surgeFor(\"b\");\n    await surge.surgeFor(\"a\");\n    await surge.surgeFor(\"c\"); // evicts b, the least recently used\n    assert.equal(feed.calls, 3);\n    await surge.surgeFor(\"a\");\n    assert.equal(feed.calls, 3);\n    await surge.surgeFor(\"b\");\n    assert.equal(feed.calls, 4);\n});\n\ntest(\"multipliers are rounded to one decimal and capped at 3x\", () => {\n    assert.equal(multiplierFrom({ openRequests: 5, availableDrivers: 10 }), 1);\n    assert.equal(multiplierFrom({ openRequests: 37, availableDrivers: 20 }), 1.9);\n    assert.equal(multiplierFrom({ openRequests: 90, availableDrivers: 0 }), 3);\n});\n\ntest(\"each zone is quoted with its own surge and the minimum fare applies\", async () => {\n    const { demand, surge } = setup();\n    demand.set(\"stadium\", { openRequests: 25, availableDrivers: 10 });\n    assert.equal((await quoteFare(surge, { ...trip, zoneId: \"stadium\" })).totalCents, 4500);\n    assert.equal((await quoteFare(surge, trip)).totalCents, 1950);\n    assert.equal((await quoteFare(surge, { zoneId: \"suburb\", distanceKm: 1, durationMin: 3 })).totalCents, 700);\n});\n"
+        }
+      ]
+    }
+  ],
+  "taxonomyVersion": "0.1.0",
+  "concepts": [
+    "backend.caching.ttls_and_expiry",
+    "backend.caching.stale_reads",
+    "backend.resilience.graceful_degradation"
+  ]
+}

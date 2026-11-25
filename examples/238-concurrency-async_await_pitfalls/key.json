@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "solution": [
+        {
+          "path": "payroll/delivery.ts",
+          "content": "import { renderPayslip, type Employee, type Payslip } from \"./payslips.ts\";\n\nexport interface EmailGateway {\n    send(to: string, subject: string, body: string): Promise<void>;\n}\n\nexport interface PrintQueue {\n    // Queues a letter for the print-and-mail vendor; returns their tracking reference.\n    enqueue(address: string, body: string, note: string): Promise<string>;\n}\n\nexport interface Receipt {\n    employeeId: string;\n    channel: \"email\" | \"post\";\n    reference: string;\n}\n\nexport class PayslipDelivery {\n    private readonly email: EmailGateway;\n    private readonly print: PrintQueue;\n    private readonly log: (line: string) => void;\n\n    constructor(email: EmailGateway, print: PrintQueue, log: (line: string) => void = () => {}) {\n        this.email = email;\n        this.print = print;\n        this.log = log;\n    }\n\n    // Email by default. Employees who opted out, or whose email bounces, get a printed letter instead:\n    // everyone must receive a payslip by law.\n    async deliver(employee: Employee, payslip: Payslip): Promise<Receipt> {\n        if (employee.paperOnly || !employee.email) {\n            return this.viaPost(employee, payslip, employee.paperOnly ? \"opted out of email\" : \"no email on file\");\n        }\n        try {\n            return await this.viaEmail(employee, employee.email, payslip);\n        } catch (err) {\n            this.log(`payslip email to ${employee.id} failed: ${(err as Error).message}`);\n            return this.viaPost(employee, payslip, \"email failed\");\n        }\n    }\n\n    private async viaEmail(employee: Employee, to: string, payslip: Payslip): Promise<Receipt> {\n        await this.email.send(to, `Your payslip for ${payslip.period}`, renderPayslip(employee, payslip));\n        return { employeeId: employee.id, channel: \"email\", reference: to };\n    }\n\n    private async viaPost(employee: Employee, payslip: Payslip, note: string): Promise<Receipt> {\n        const reference = await this.print.enqueue(employee.postalAddress, renderPayslip(employee, payslip), note);\n        return { employeeId: employee.id, channel: \"post\", reference };\n    }\n}\n"
+        }
+      ]
+    }
+  ],
+  "explanations": [
+    "Inside the try block, deliver() returns the promise from viaEmail() without awaiting it. The try block finishes as soon as the promise is handed back, before the email is sent. When the send later rejects, the rejection goes straight to deliver()'s caller, and the catch that should log and queue a printed letter never runs. Writing `return await` makes deliver() wait for the email inside the try, so a bounce is caught there and the employee falls back to post as intended."
+  ]
+}
